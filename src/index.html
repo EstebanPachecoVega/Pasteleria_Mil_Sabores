@@ -31,6 +31,20 @@
 
 
     <!-- Scripts -->
+    <script>
+    // Verificador de rutas
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== VERIFICACIÓN DE RUTAS ===');
+        console.log('Ruta actual:', window.location.pathname);
+        console.log('Live Server funcionando:', window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1'));
+        
+        // Verificar que los placeholders existen
+        console.log('Header placeholder:', document.getElementById('header-placeholder'));
+        console.log('Navbar placeholder:', document.getElementById('navbar-placeholder')); 
+        console.log('Footer placeholder:', document.getElementById('footer-placeholder'));
+    });
+    </script>
+
     <script type="module" src="/src/js/partials.js"></script>
     <script type="module" src="/src/js/main.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
