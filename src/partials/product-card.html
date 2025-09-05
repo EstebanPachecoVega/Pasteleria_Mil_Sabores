@@ -8,7 +8,11 @@
             <div class="mt-auto">
                 <p class="card-text fw-bold text-primary">{{price}}</p>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary flex-grow-1 add-to-cart" data-product-id="{{id}}">
+                    <button class="btn btn-primary flex-grow-1 add-to-cart" 
+                            data-product-id="{{id}}"
+                            data-product-name="{{name}}"
+                            data-product-price="{{numericPrice}}"
+                            data-product-image="{{image}}">
                         Agregar al Carrito
                     </button>
                     <button class="btn btn-outline-secondary view-details" data-product-id="{{id}}">
