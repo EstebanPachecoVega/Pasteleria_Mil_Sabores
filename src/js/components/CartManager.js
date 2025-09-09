@@ -4,6 +4,8 @@ import { DiscountManager } from './DiscountManager.js';
 export class CartManager {
     constructor() {
         this.cart = [];
+        this.discountManager = new DiscountManager();
+        this.discountCode = null;
         this.loadCartFromStorage();
         this.setupEventListeners();
         this.updateCartUI();
@@ -60,24 +62,118 @@ export class CartManager {
         document.getElementById('cartOffcanvas')?.addEventListener('hidden.bs.offcanvas', () => {
             this.saveCartToStorage();
         });
+
+        // Aplicar código de descuento
+        document.getElementById('apply-discount-btn')?.addEventListener('click', () => {
+            this.applyDiscountHandler();
+        });
+        
+        document.getElementById('discount-code-input')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                this.applyDiscountHandler();
+            }
+        });
     }
 
     loadCartFromStorage() {
         try {
             const saved = localStorage.getItem('cart');
             this.cart = saved ? JSON.parse(saved) : [];
+            
+            // Cargar código de descuento si existe
+            this.discountCode = localStorage.getItem('discountCode') || null;
         } catch (err) {
             console.error('Error leyendo cart desde localStorage:', err);
             this.cart = [];
+            this.discountCode = null;
         }
     }
 
     saveCartToStorage() {
         try {
             localStorage.setItem('cart', JSON.stringify(this.cart));
+            if (this.discountCode) {
+                localStorage.setItem('discountCode', this.discountCode);
+            } else {
+                localStorage.removeItem('discountCode');
+            }
         } catch (err) {
             console.error('Error guardando cart en localStorage:', err);
         }
+    }
+
+    applyDiscountHandler() {
+        const codeInput = document.getElementById('discount-code-input');
+        const messageElement = document.getElementById('discount-message');
+        
+        if (!codeInput || !messageElement) return;
+        
+        const result = this.applyDiscountCode(codeInput.value);
+        
+        if (result.success) {
+            messageElement.textContent = result.message;
+            messageElement.className = 'small text-success';
+            codeInput.value = '';
+        } else {
+            messageElement.textContent = result.message;
+            messageElement.className = 'small text-danger';
+        }
+        
+        // Ocultar mensaje después de 3 segundos
+        setTimeout(() => {
+            messageElement.textContent = '';
+            messageElement.className = 'small';
+        }, 3000);
+    }
+
+    applyDiscountCode(code) {
+        const validation = this.discountManager.validateDiscount(code);
+        
+        if (validation.valid) {
+            this.discountCode = code;
+            
+            // Si es el código FELICES50, guardarlo en el perfil del usuario
+            if (code === 'FELICES50') {
+                const userData = this.discountManager.loadUserData() || {};
+                userData.discountCode = 'FELICES50';
+                this.discountManager.saveUserData(userData);
+            }
+            
+            this.updateCartUI();
+            return {
+                success: true,
+                message: 'Descuento aplicado correctamente'
+            };
+        }
+        
+        return {
+            success: false,
+            message: validation.description
+        };
+    }
+
+    getDiscountedCart() {
+        return this.discountManager.applyDiscounts(this.cart, this.discountCode);
+    }
+
+    calculateTotals() {
+        const discountedCart = this.getDiscountedCart();
+        const subtotal = discountedCart.reduce((total, item) => total + (item.price * item.quantity), 0);
+        
+        // Calcular ahorro total
+        const originalSubtotal = this.cart.reduce((total, item) => {
+            const originalPrice = item.originalPrice || item.price;
+            return total + (originalPrice * item.quantity);
+        }, 0);
+        
+        const totalDiscount = originalSubtotal - subtotal;
+        
+        return {
+            subtotal,
+            totalDiscount,
+            total: subtotal,
+            discountedCart
+        };
     }
 
     /**
@@ -155,10 +251,16 @@ export class CartManager {
 
     updateCartUI() {
         this.updateCartCount();
-        this.renderCartItems();
-        this.updateCartTotals();
+        
+        const totals = this.calculateTotals();
+        this.renderCartItems(totals.discountedCart);
+        this.updateCartTotals(totals);
+        
         this.saveCartToStorage();
         document.dispatchEvent(new CustomEvent('cartUpdated', { detail: { cart: this.cart } }));
+        
+        // Mostrar descuentos activos
+        this.showActiveDiscounts();
     }
 
     updateCartCount() {
@@ -169,7 +271,7 @@ export class CartManager {
         el.style.display = totalItems > 0 ? 'block' : 'none';
     }
 
-    renderCartItems() {
+    renderCartItems(discountedCart) {
         const cartItemsContainer = document.getElementById('cart-items-container');
         const cartEmptyState = document.getElementById('cart-empty-state');
 
@@ -201,7 +303,7 @@ export class CartManager {
             return;
         }
 
-        cartItemsList.innerHTML = this.cart.map(item => `
+        cartItemsList.innerHTML = discountedCart.map(item => `
             <div class="cart-item d-flex border-bottom py-3" data-product-id="${item.id}">
                 <img src="${item.image}" alt="${item.name}" class="cart-item-image" width="60" height="60" style="object-fit: cover;">
                 <div class="cart-item-details ms-3 flex-grow-1">
@@ -212,7 +314,15 @@ export class CartManager {
                             <span class="mx-2">${item.quantity}</span>
                             <button class="btn btn-sm btn-outline-secondary cart-item-increase">+</button>
                         </div>
-                        <span class="cart-item-price">${this.formatPrice(item.price * item.quantity)}</span>
+                        <span class="cart-item-price">
+                            ${item.originalPrice ? 
+                                `<span class="text-decoration-line-through text-muted small me-1">
+                                    ${this.formatPrice(item.originalPrice * item.quantity)}
+                                </span>` : 
+                                ''
+                            }
+                            ${this.formatPrice(item.price * item.quantity)}
+                        </span>
                     </div>
                 </div>
                 <button class="btn btn-sm btn-outline-danger cart-item-remove">
@@ -222,15 +332,43 @@ export class CartManager {
         `).join('');
     }
 
-    updateCartTotals() {
-        const subtotal = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    updateCartTotals(totals) {
         const subtotalEl = document.getElementById('cart-subtotal');
         const totalEl = document.getElementById('cart-total');
-        const shippingEl = document.getElementById('cart-shipping');
+        const discountsEl = document.getElementById('cart-discounts');
+        const discountsRow = document.getElementById('discounts-row');
 
-        if (subtotalEl) subtotalEl.textContent = this.formatPrice(subtotal);
-        if (shippingEl) shippingEl.textContent = this.formatPrice(0); // por ahora 0
-        if (totalEl) totalEl.textContent = this.formatPrice(subtotal + 0);
+        if (subtotalEl) subtotalEl.textContent = this.formatPrice(totals.subtotal);
+        if (totalEl) totalEl.textContent = this.formatPrice(totals.total);
+        
+        if (discountsEl && discountsRow) {
+            if (totals.totalDiscount > 0) {
+                discountsEl.textContent = `-${this.formatPrice(totals.totalDiscount)}`;
+                discountsRow.classList.remove('d-none');
+            } else {
+                discountsRow.classList.add('d-none');
+            }
+        }
+    }
+
+    showActiveDiscounts() {
+        const activeDiscounts = this.discountManager.getActiveDiscounts();
+        
+        // Ocultar todos los alerts primero
+        document.getElementById('age-discount-alert')?.style.setProperty('display', 'none', 'important');
+        document.getElementById('code-discount-alert')?.style.setProperty('display', 'none', 'important');
+        document.getElementById('birthday-discount-alert')?.style.setProperty('display', 'none', 'important');
+        
+        // Mostrar los descuentos activos
+        activeDiscounts.forEach(discount => {
+            if (discount.type === 'age') {
+                document.getElementById('age-discount-alert')?.style.setProperty('display', 'block', 'important');
+            } else if (discount.type === 'code') {
+                document.getElementById('code-discount-alert')?.style.setProperty('display', 'block', 'important');
+            } else if (discount.type === 'birthday') {
+                document.getElementById('birthday-discount-alert')?.style.setProperty('display', 'block', 'important');
+            }
+        });
     }
 
     formatPrice(price) {
@@ -243,9 +381,6 @@ export class CartManager {
 
     showAddedToCartFeedback(product) {
         console.log('Agregado al carrito:', product?.name ?? product);
-        // aquí podrías disparar un toast o animación
+        // aquí se puede disparar un toast o animación
     }
-
-    
-
 }
