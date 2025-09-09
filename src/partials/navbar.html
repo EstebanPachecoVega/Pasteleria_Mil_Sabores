@@ -20,10 +20,13 @@
                     <a class="nav-link active" aria-current="page" href="/src/index.html">Inicio</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/src/pages/quienes-somos.html">Quienes Somos</a>
+                    <a class="nav-link" href="/src/pages/nosotros.html">Nosotros</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/src/pages/soporte.html">Soporte</a>
+                    <a class="nav-link" href="/src/pages/blogs.html">Blogs</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/src/pages/contacto.html">Contacto</a>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -97,6 +100,29 @@
             <div class="cart-items-list">
                 <!-- Los items del carrito se insertarán aquí dinámicamente -->
             </div>
+
+            <!-- Sección de descuentos -->
+            <div class="discount-section mt-3 p-3 bg-light rounded">
+                <h6 class="mb-2">¿Tienes un código de descuento?</h6>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control" placeholder="Ingresa tu código" id="discount-code-input">
+                    <button class="btn btn-outline-primary" type="button" id="apply-discount-btn">Aplicar</button>
+                </div>
+                <div id="discount-message" class="small"></div>
+                
+                <!-- Descuentos aplicados -->
+                <div id="applied-discounts" class="mt-2">
+                    <div class="alert alert-success py-2" id="age-discount-alert" style="display: none;">
+                        <i class="bi bi-coin"></i> 50% de descuento para mayores de 50 años
+                    </div>
+                    <div class="alert alert-success py-2" id="code-discount-alert" style="display: none;">
+                        <i class="bi bi-tag"></i> 10% de descuento con código FELICES50
+                    </div>
+                    <div class="alert alert-success py-2" id="birthday-discount-alert" style="display: none;">
+                        <i class="bi bi-gift"></i> ¡Torta gratis en tu cumpleaños!
+                    </div>
+                </div>
+            </div>
             
             <!-- Resumen del carrito -->
             <div class="cart-summary border-top pt-3 mt-3">
@@ -104,17 +130,16 @@
                     <span>Subtotal:</span>
                     <span id="cart-subtotal">$0</span>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span>Envío:</span>
-                    <span id="cart-shipping">$0</span>
+                <div class="d-flex justify-content-between align-items-center mb-2 text-success" id="discounts-row">
+                    <span>Descuentos:</span>
+                    <span id="cart-discounts">-$0</span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3 fw-bold">
                     <span>Total:</span>
                     <span id="cart-total">$0</span>
                 </div>
-                
                 <div class="d-grid gap-2">
-                    <button class="btn btn-primary">Proceder al Pago</button>
+                    <button class="btn btn-primary" id="proceed-to-checkout">Proceder al Pago</button>
                     <button class="btn btn-outline-secondary" data-bs-dismiss="offcanvas">
                         Continuar Comprando
                     </button>

@@ -1,4 +1,5 @@
 import { getProductById } from '../data/products.js';
+import { DiscountManager } from './DiscountManager.js';
 
 export class CartManager {
     constructor() {
@@ -244,4 +245,7 @@ export class CartManager {
         console.log('Agregado al carrito:', product?.name ?? product);
         // aquí podrías disparar un toast o animación
     }
+
+    
+
 }
