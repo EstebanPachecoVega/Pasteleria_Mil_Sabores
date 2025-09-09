@@ -1,0 +1,123 @@
+<!-- Modal de Login -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loginModalLabel">Iniciar Sesión</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="loginEmail" class="form-label">Correo electrónico</label>
+                        <input type="email" class="form-control" id="loginEmail" required>
+                        <div class="invalid-feedback">Por favor ingresa un correo válido</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="loginPassword" class="form-label">Contraseña</label>
+                        <input type="password" class="form-control" id="loginPassword" required minlength="4" maxlength="10">
+                        <div class="invalid-feedback">La contraseña debe tener entre 4 y 10 caracteres</div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberLogin">
+                        <label class="form-check-label" for="rememberLogin">Recordarme</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p>¿No tienes cuenta? <a href="#" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#registerModal">Regístrate aquí</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Registro -->
+<div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="registerModalLabel">Crear Cuenta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="registerForm">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="registerRun" class="form-label">RUN (sin puntos ni guión)</label>
+                            <input type="text" class="form-control" id="registerRun" required pattern="[0-9Kk]{7,9}">
+                            <div class="invalid-feedback">Por favor ingresa un RUN válido</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="registerDiscountCode" class="form-label">Código de Descuento (opcional)</label>
+                            <input type="text" class="form-control" id="registerDiscountCode">
+                            <div class="form-text">Ej: FELICES50 para 10% de descuento permanente</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="registerName" class="form-label">Nombre</label>
+                            <input type="text" class="form-control" id="registerName" required maxlength="50">
+                            <div class="invalid-feedback">El nombre es requerido (máx. 50 caracteres)</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="registerLastName" class="form-label">Apellidos</label>
+                            <input type="text" class="form-control" id="registerLastName" required maxlength="100">
+                            <div class="invalid-feedback">Los apellidos son requeridos (máx. 100 caracteres)</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="registerEmail" class="form-label">Correo electrónico</label>
+                            <input type="email" class="form-control" id="registerEmail" required>
+                            <div class="invalid-feedback">Por favor ingresa un correo válido (@duoc.cl, @profesor.duoc.cl o @gmail.com)</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="registerPassword" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="registerPassword" required minlength="4" maxlength="10">
+                            <div class="invalid-feedback">La contraseña debe tener entre 4 y 10 caracteres</div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="registerBirthdate" class="form-label">Fecha de Nacimiento (opcional)</label>
+                            <input type="date" class="form-control" id="registerBirthdate">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="registerRegion" class="form-label">Región</label>
+                            <select class="form-select" id="registerRegion" required>
+                                <option value="">Selecciona una región</option>
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
+                            <div class="invalid-feedback">Por favor selecciona una región</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="registerCommune" class="form-label">Comuna</label>
+                            <select class="form-select" id="registerCommune" required disabled>
+                                <option value="">Primero selecciona una región</option>
+                            </select>
+                            <div class="invalid-feedback">Por favor selecciona una comuna</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="registerAddress" class="form-label">Dirección</label>
+                        <textarea class="form-control" id="registerAddress" rows="2" required maxlength="300"></textarea>
+                        <div class="invalid-feedback">La dirección es requerida (máx. 300 caracteres)</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+                </form>
+                <div class="text-center mt-3">
+                    <p>¿Ya tienes cuenta? <a href="#" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#loginModal">Inicia sesión aquí</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
