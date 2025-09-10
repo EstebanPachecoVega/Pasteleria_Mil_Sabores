@@ -1,4 +1,4 @@
-// Componente para renderizar productos usando una plantilla HTML
+
 // Componente para renderizar productos usando una plantilla HTML
 export class ProductRenderer {
     constructor() {

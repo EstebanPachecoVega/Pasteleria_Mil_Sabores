@@ -20,6 +20,9 @@
                     <a class="nav-link active" aria-current="page" href="/src/index.html">Inicio</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="/src/pages/reposteria.html">Productos</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="/src/pages/nosotros.html">Nosotros</a>
                 </li>
                 <li class="nav-item">
@@ -72,6 +75,34 @@
                 <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#authModal">
                     <i class="bi bi-person"></i>
                 </button>
+
+                <!-- Modal de autenticación -->
+                <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="authModalLabel">Acceso</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <!-- Login/Register -->
+                            <div id="auth-buttons" class="d-flex justify-content-center gap-2">
+                                <a href="/src/pages/login.html" class="btn btn-outline-primary me-2">
+                                    <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                                </a>
+                                <a href="/src/pages/register.html" class="btn btn-primary">
+                                    <i class="bi bi-person-plus"></i> Registrarse
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -149,67 +180,18 @@
     </div>
 </div>
 
-<!-- Modal de Login/Register -->
-<div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <ul class="nav nav-tabs card-header-tabs w-100" id="authTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login" type="button" role="tab">Iniciar Sesión</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button" role="tab">Registrarse</button>
-                    </li>
-                </ul>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="tab-content" id="authTabsContent">
-                    <!-- Login Tab -->
-                    <div class="tab-pane fade show active" id="login" role="tabpanel">
-                        <form>
-                            <div class="mb-3">
-                                <label for="loginEmail" class="form-label">Correo electrónico</label>
-                                <input type="email" class="form-control" id="loginEmail">
-                            </div>
-                            <div class="mb-3">
-                                <label for="loginPassword" class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" id="loginPassword">
-                            </div>
-                            <div class="mb-3 form-check">
-                                <input type="checkbox" class="form-check-input" id="rememberLogin">
-                                <label class="form-check-label" for="rememberLogin">Recordarme</label>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
-                        </form>
-                    </div>
-                    
-                    <!-- Registro Tab -->
-                    <div class="tab-pane fade" id="register" role="tabpanel">
-                        <form>
-                            <div class="mb-3">
-                                <label for="registerName" class="form-label">Nombre completo</label>
-                                <input type="text" class="form-control" id="registerName">
-                            </div>
-                            <div class="mb-3">
-                                <label for="registerEmail" class="form-label">Correo electrónico</label>
-                                <input type="email" class="form-control" id="registerEmail">
-                            </div>
-                            <div class="mb-3">
-                                <label for="registerPassword" class="form-label">Contraseña</label>
-                                <input type="password" class="form-control" id="registerPassword">
-                            </div>
-                            <div class="mb-3">
-                                <label for="registerConfirmPassword" class="form-label">Confirmar Contraseña</label>
-                                <input type="password" class="form-control" id="registerConfirmPassword">
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Registrarse</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
+<!-- Menú de usuario (para usuarios logueados) -->
+<div id="user-menu" class="d-none">
+    <div class="dropdown">
+        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-person-circle"></i> <span id="user-name"></span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="/src/pages/profile.html">Mi Perfil</a></li>
+            <li><a class="dropdown-item" href="/src/pages/orders.html">Mis Pedidos</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" id="logout-btn">Cerrar Sesión</a></li>
+        </ul>
     </div>
 </div>
 

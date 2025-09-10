@@ -26,50 +26,41 @@
     <div id="navbar-placeholder"></div>
     
     <!--CONTENIDO PRINCIPAL-->
-    <main id="main-content" class="container mt-4" role="main">
-        <h1 class="text-center">Bienvenido a</h1>
-        <!-- Componente principal / Hero -->
-        <section id="store-hero" class="store-hero my-5">
-            <div class="row align-items-center g-4">
-            <!-- Texto izquierdo -->
-            <div class="col-12 col-md-6">
-                <h2 class="display-5">Pastelería Mil Sabores</h2>
-                <p class="lead mb-3">
-                Endulza tus celebraciones con pasteles, postres y repostería artesanal hechos con ingredientes seleccionados. Entregas en todo Chile.
-                </p>
-                <p class="mb-4">
-                Descubre nuestro catálogo: tortas personalizadas, empanaditas, pies, cupcakes y opciones sin gluten. Calidad y sabor en cada bocado.
-                </p>
-
-                <div class="d-flex flex-wrap gap-2">
-                <!-- Si estás en index, el botón hará scroll hacia #products-container; si estás en otra página, navegará -->
-                <a href="/src/pages/reposteria.html" id="btn-ver-productos" class="btn btn-primary btn-lg" role="button" aria-controls="products-container">
-                    Ver productos
-                </a>
-                <a href="/src/pages/contacto.html" class="btn btn-outline-secondary btn-lg">Contáctanos</a>
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-body p-5">
+                        <h2 class="card-title text-center mb-4">Iniciar Sesión</h2>
+                        <form id="loginForm">
+                            <div class="mb-3">
+                                <label for="loginEmail" class="form-label">Correo electrónico</label>
+                                <input type="email" class="form-control" id="loginEmail" required>
+                                <div class="invalid-feedback">Por favor ingresa un correo válido</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="loginPassword" class="form-label">Contraseña</label>
+                                <input type="password" class="form-control" id="loginPassword" required minlength="4" maxlength="10">
+                                <div class="invalid-feedback">La contraseña debe tener entre 4 y 10 caracteres</div>
+                            </div>
+                            <div class="mb-3 form-check">
+                                <input type="checkbox" class="form-check-input" id="rememberLogin">
+                                <label class="form-check-label" for="rememberLogin">Recordarme</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+                        </form>
+                        <div class="text-center mt-3">
+                            <p>¿No tienes cuenta? <a href="/src/pages/register.html">Regístrate aquí</a></p>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <!-- Imagen derecha -->
-            <div class="col-12 col-md-6 text-center">
-                <figure class="m-0">
-                <!-- Cambia la ruta de la imagen por la tuya -->
-                <img src="/src/assets/hero_pasteleria_mil_sabores.PNG"
-                    alt="Mostrador con pasteles y repostería de Pastelería Mil Sabores"
-                    class="img-fluid store-hero-img rounded shadow">
-                </figure>
-            </div>
-            </div>
-        </section>
-
-        <!-- Sección de productos destacados o todos los productos -->
-        <section id="featured-products" class="my-5">
-            <div id="products-container" class="row g-4"></div>
-        </section>
+        </div>
     </main>
 
     <!--PIE DE PÁGINA-->
     <div id="footer-placeholder"></div>
+
 
     <!-- Scripts -->
     <script>

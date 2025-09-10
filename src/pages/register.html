@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="/src/assets/logo_pasteleria.PNG" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pasteleria Mil Sabores</title>
+    <meta name="description" content="La mejor plataforma tienda online de pasteleria de chile">
+    <meta name="keywords" content="reposteria, pasteles, dulces">
+
+<!-- Librerias Externas -->
+<!-- Estilos de Proyecto -->
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="/src/css/main.css">
+</head>
+
+<body>
+    <!--ENCABEZADO DE PÁGINA-->
+    <div id="header-placeholder"></div>
+
+    <!--NAVBAR-->
+    <div id="navbar-placeholder"></div>
+    
+    <!--CONTENIDO PRINCIPAL-->
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="card-title mb-0"><i class="bi bi-person-plus me-2"></i>Crear Cuenta</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        <form id="registerForm" novalidate>
+                            <!-- Sección de información personal -->
+                            <h5 class="mb-3 border-bottom pb-2"><i class="bi bi-person-circle me-2"></i>Información Personal</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerRun" class="form-label">RUN <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="registerRun" 
+                                           placeholder="12345678K (sin puntos ni guión)" required>
+                                    <div class="invalid-feedback">Por favor ingresa un RUN válido</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerDiscountCode" class="form-label">Código de Descuento (opcional)</label>
+                                    <input type="text" class="form-control" id="registerDiscountCode" 
+                                           placeholder="FELICES50">
+                                    <div class="form-text">Ej: FELICES50 para 10% de descuento permanente</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerName" class="form-label">Nombre <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="registerName" 
+                                           placeholder="Tu nombre" required maxlength="50">
+                                    <div class="invalid-feedback">El nombre es requerido (máx. 50 caracteres)</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerLastName" class="form-label">Apellidos <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="registerLastName" 
+                                           placeholder="Tus apellidos" required maxlength="100">
+                                    <div class="invalid-feedback">Los apellidos son requeridos (máx. 100 caracteres)</div>
+                                </div>
+                            </div>
+
+                            <!-- Sección de contacto -->
+                            <h5 class="mb-3 mt-4 border-bottom pb-2"><i class="bi bi-envelope me-2"></i>Información de Contacto</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerEmail" class="form-label">Correo electrónico <span class="text-danger">*</span></label>
+                                    <input type="email" class="form-control" id="registerEmail" 
+                                           placeholder="tu@email.com" required>
+                                    <div class="invalid-feedback">Por favor ingresa un correo válido (@duoc.cl, @profesor.duoc.cl o @gmail.com)</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerPhone" class="form-label">Teléfono <span class="text-danger">*</span></label>
+                                    <input type="tel" class="form-control" id="registerPhone" 
+                                           placeholder="+56912345678" required>
+                                    <div class="invalid-feedback">Por favor ingresa un teléfono válido</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerPassword" class="form-label">Contraseña <span class="text-danger">*</span></label>
+                                    <input type="password" class="form-control" id="registerPassword" 
+                                           placeholder="Crea una contraseña" required minlength="4" maxlength="10">
+                                    <div class="invalid-feedback">La contraseña debe tener entre 4 y 10 caracteres</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerBirthdate" class="form-label">Fecha de Nacimiento (opcional)</label>
+                                    <input type="date" class="form-control" id="registerBirthdate">
+                                </div>
+                            </div>
+
+                            <!-- Sección de ubicación -->
+                            <h5 class="mb-3 mt-4 border-bottom pb-2"><i class="bi bi-geo-alt me-2"></i>Ubicación</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerRegion" class="form-label">Región <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="registerRegion" required>
+                                        <option value="">Selecciona una región</option>
+                                        <!-- Las regiones se cargarán dinámicamente -->
+                                    </select>
+                                    <div class="invalid-feedback">Por favor selecciona una región</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="registerCommune" class="form-label">Comuna <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="registerCommune" required disabled>
+                                        <option value="">Primero selecciona una región</option>
+                                    </select>
+                                    <div class="invalid-feedback">Por favor selecciona una comuna</div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="registerAddress" class="form-label">Dirección <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="registerAddress" rows="2" 
+                                          placeholder="Tu dirección completa" required maxlength="300"></textarea>
+                                <div class="invalid-feedback">La dirección es requerida (máx. 300 caracteres)</div>
+                            </div>
+
+                            <div class="form-check mb-4">
+                                <input class="form-check-input" type="checkbox" id="registerTerms" required>
+                                <label class="form-check-label" for="registerTerms">
+                                    Acepto los <a href="#">términos y condiciones</a> y la <a href="#">política de privacidad</a>
+                                </label>
+                                <div class="invalid-feedback">Debes aceptar los términos y condiciones</div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 py-2">
+                                <i class="bi bi-person-plus me-2"></i>Crear Cuenta
+                            </button>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <p class="mb-0">¿Ya tienes cuenta? 
+                                <a href="/src/pages/login.html" class="text-decoration-none">Inicia sesión aquí</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!--PIE DE PÁGINA-->
+    <div id="footer-placeholder"></div>
+
+
+    <!-- Scripts -->
+    <script>
+    // Verificador de rutas
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('=== VERIFICACIÓN DE RUTAS ===');
+        console.log('Ruta actual:', window.location.pathname);
+        console.log('Live Server funcionando:', window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1'));
+        
+        // Verificar que los placeholders existen
+        console.log('Header placeholder:', document.getElementById('header-placeholder'));
+        console.log('Navbar placeholder:', document.getElementById('navbar-placeholder')); 
+        console.log('Footer placeholder:', document.getElementById('footer-placeholder'));
+    });
+    </script>
+
+    <script type="module" src="/src/js/partials.js"></script>
+    <script type="module" src="/src/js/pages/register.js"></script>
+    <script type="module" src="/src/js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+
+</html>

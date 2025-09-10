@@ -1,4 +1,4 @@
-import { Validators } from '../utils/validators.js';
+import { validateRun, validateEmail, validatePassword, validateText, validateDate, calculateAge, validatePhone } from '../utils/validators.js';
 
 export class UserManager {
     constructor() {
@@ -6,11 +6,11 @@ export class UserManager {
         this.currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
     }
 
-    // Registrar nuevo usuario
+    // Crear nuevo usuario
     register(userData) {
         // Validaciones
         if (!this.validateUserData(userData)) {
-            return { success: false, message: 'Datos de usuario no válidos' };
+            return { success: false, message: 'Datos de usuario inválidos' };
         }
 
         // Verificar si el usuario ya existe
@@ -22,17 +22,18 @@ export class UserManager {
             return { success: false, message: 'El RUN ya está registrado' };
         }
 
-        // Crear nuevo usuario
+        // Crear usuario
         const newUser = {
             id: Date.now().toString(),
             run: userData.run,
             name: userData.name,
             lastName: userData.lastName,
             email: userData.email,
-            password: userData.password, 
+            password: userData.password,
+            phone: userData.phone,
             birthdate: userData.birthdate,
-            age: userData.birthdate ? Validators.calculateAge(userData.birthdate) : 0,
-            userType: 'cliente', // Por defecto es cliente
+            age: userData.birthdate ? calculateAge(userData.birthdate) : 0,
+            userType: 'cliente',
             region: userData.region,
             commune: userData.commune,
             address: userData.address,
@@ -41,17 +42,13 @@ export class UserManager {
             registrationDate: new Date().toISOString()
         };
 
-        // Aplicar reglas de descuento especiales
+        // Aplicar beneficios por registro
         if (userData.discountCode === 'FELICES50') {
             newUser.hasPermanentDiscount = true;
         }
 
-        // Guardar usuario
         this.users.push(newUser);
         localStorage.setItem('users', JSON.stringify(this.users));
-
-        // Iniciar sesión automáticamente
-        this.login(userData.email, userData.password);
 
         return { 
             success: true, 
@@ -66,12 +63,12 @@ export class UserManager {
         
         if (user) {
             this.currentUser = { ...user };
-            delete this.currentUser.password; // No guarda la contraseña en la sesión
+            delete this.currentUser.password;
             localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
             return { success: true, user: this.currentUser };
         }
         
-        return { success: false, message: 'Credenciales no válidas' };
+        return { success: false, message: 'Credenciales inválidas' };
     }
 
     // Cerrar sesión
@@ -83,13 +80,14 @@ export class UserManager {
     // Validar datos de usuario
     validateUserData(userData) {
         return (
-            Validators.validateRun(userData.run) &&
-            Validators.validateText(userData.name, 50) &&
-            Validators.validateText(userData.lastName, 100) &&
-            Validators.validateEmail(userData.email) &&
-            Validators.validatePassword(userData.password) &&
-            (!userData.birthdate || Validators.validateDate(userData.birthdate)) &&
-            Validators.validateText(userData.address, 300)
+            validateRun(userData.run) &&
+            validateText(userData.name, 50) &&
+            validateText(userData.lastName, 100) &&
+            validateEmail(userData.email) &&
+            validatePassword(userData.password) &&
+            validatePhone(userData.phone) &&
+            (!userData.birthdate || validateDate(userData.birthdate)) &&
+            validateText(userData.address, 300)
         );
     }
 
@@ -98,24 +96,14 @@ export class UserManager {
         return this.currentUser;
     }
 
-    // Verificar si hay una sesión activa
+    // Verificar sesión activa
     isLoggedIn() {
         return this.currentUser !== null;
     }
 
-    // Actualizar perfil de usuario
-    updateProfile(updatedData) {
-        if (!this.isLoggedIn()) {
-            return { success: false, message: 'No hay una sesión activa' };
-        }
-
-        // Validar datos actualizados
-        if (!this.validateUserData({ ...this.currentUser, ...updatedData })) {
-            return { success: false, message: 'Datos de usuario no válidos' };
-        }
-
-        // Actualizar usuario en la base de datos
-        const userIndex = this.users.findIndex(u => u.id === this.currentUser.id);
+    // Actualizar perfil
+    updateProfile(userId, updatedData) {
+        const userIndex = this.users.findIndex(u => u.id === userId);
         if (userIndex === -1) {
             return { success: false, message: 'Usuario no encontrado' };
         }
@@ -123,27 +111,12 @@ export class UserManager {
         this.users[userIndex] = { ...this.users[userIndex], ...updatedData };
         localStorage.setItem('users', JSON.stringify(this.users));
 
-        // Actualizar usuario actual
-        this.currentUser = { ...this.currentUser, ...updatedData };
-        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        // Actualizar usuario actual si es el mismo
+        if (this.currentUser && this.currentUser.id === userId) {
+            this.currentUser = { ...this.currentUser, ...updatedData };
+            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+        }
 
         return { success: true, message: 'Perfil actualizado exitosamente' };
-    }
-
-    // Verificar elegibilidad para descuentos
-    getDiscountEligibility() {
-        if (!this.currentUser) return {};
-        
-        const today = new Date();
-        const birthdate = new Date(this.currentUser.birthdate);
-        const isBirthday = birthdate.getDate() === today.getDate() && 
-                          birthdate.getMonth() === today.getMonth();
-        
-        return {
-            isOver50: this.currentUser.age >= 50,
-            hasPermanentDiscount: this.currentUser.hasPermanentDiscount || this.currentUser.discountCode === 'FELICES50',
-            isDuocStudent: this.currentUser.isDuocStudent,
-            isBirthday: isBirthday
-        };
     }
 }

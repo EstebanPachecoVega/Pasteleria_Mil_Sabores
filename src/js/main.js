@@ -18,37 +18,64 @@ const pageToCategoryMap = {
   'tradicional.html': 'tradicional'
 };
 
+// loadCategoryProducts (ajusta solo las rutas que uses)
 async function loadCategoryProducts() {
-  const currentPage = window.location.pathname.split('/').pop();
+  const currentPageRaw = window.location.pathname.split('/').pop();
+  const currentPage = currentPageRaw === '' ? 'index.html' : currentPageRaw;
   const category = pageToCategoryMap[currentPage];
 
-  // Si estamos en index.html, currentPage será '' o 'index.html'
-  if (currentPage === '' || currentPage === 'index.html') {
+  if (currentPage === 'index.html') {
+    // en index mostramos solo 6
+    await loadAllProducts(8);
+  } else if (currentPage === 'reposteria.html' || currentPage === 'productos.html' || currentPage === 'nuestros-productos.html') {
+    // en estas páginas mostramos todos
     await loadAllProducts();
   } else if (category && document.getElementById('products-container')) {
     await loadProductsByCategory(category);
   }
 }
 
-async function loadAllProducts() {
-  if (!document.getElementById('products-container')) return;
+// loadAllProducts parametrizable, con dedupe y cache simple
+async function loadAllProducts(limit = null) {
+  const container = document.getElementById('products-container');
+  if (!container) return;
 
   try {
-    // Usar la instancia global ya inicializada
     await productRenderer.loadTemplate();
 
-    const allProducts = [];
-    for (const key in pageToCategoryMap) {
-      const products = getProductsByCategory(pageToCategoryMap[key]);
-      allProducts.push(...products);
+    // Cache simple en memoria (evita recalcular si se llama varias veces)
+    if (!window.__allProductsCache) {
+      const allProducts = [];
+      for (const key in pageToCategoryMap) {
+        const products = getProductsByCategory(pageToCategoryMap[key]) || [];
+        allProducts.push(...products);
+      }
+
+      // Eliminar duplicados por id (ajusta la propiedad id según tu modelo)
+      const uniqueMap = new Map();
+      allProducts.forEach(p => {
+        if (!p) return;
+        const id = p.id ?? `${p.name}-${p.sku}`; // fallback si no tienes id
+        if (!uniqueMap.has(id)) uniqueMap.set(id, p);
+      });
+
+      window.__allProductsCache = Array.from(uniqueMap.values());
     }
 
-    productRenderer.renderProducts(allProducts.slice(0, 16), 'products-container');
-    console.log('Productos destacados cargados ✅');
+    const productsToUse = Array.isArray(window.__allProductsCache) ? window.__allProductsCache : [];
+
+    // Si se pasó limit lo usamos; si no, mostramos todos
+    const finalList = (typeof limit === 'number' && limit > 0)
+      ? productsToUse.slice(0, limit)
+      : productsToUse;
+
+    productRenderer.renderProducts(finalList, 'products-container');
+    console.log(`Productos cargados ✅ (page: ${window.location.pathname.split('/').pop() || 'index.html'}, count: ${finalList.length})`);
   } catch (error) {
     console.error('Error cargando todos los productos:', error);
   }
 }
+
 
 async function loadProductsByCategory(category) {
   try {
