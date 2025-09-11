@@ -29,6 +29,17 @@ export const users = [
         birthdate: "1993-03-08",
         discountCode: null,
         isDuocStudent: false
+    },
+    {
+        id: 4,
+        email: "pichupancha.admin@company.com",
+        password: "admin2024",
+        name: "Admin User",
+        age: 22, // Ajustar según la fecha actual
+        birthdate: "2002-01-01",
+        discountCode: null,
+        isDuocStudent: false,
+        userType: "admin" // Tipo de usuario administrador
     }
 ];
 

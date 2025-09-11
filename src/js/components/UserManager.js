@@ -10,7 +10,7 @@ export class UserManager {
     register(userData) {
         // Validaciones
         if (!this.validateUserData(userData)) {
-            return { success: false, message: 'Datos de usuario inválidos' };
+            return { success: false, message: 'Datos de usuario no válidos' };
         }
 
         // Verificar si el usuario ya existe
@@ -68,7 +68,7 @@ export class UserManager {
             return { success: true, user: this.currentUser };
         }
         
-        return { success: false, message: 'Credenciales inválidas' };
+        return { success: false, message: 'Credenciales no válidas' };
     }
 
     // Cerrar sesión

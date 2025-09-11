@@ -1,10 +1,14 @@
+// main.js - Punto de entrada principal
 import { loadPartial } from './partials.js';
 import { ProductRenderer } from './components/ProductRenderer.js';
 import { getProductsByCategory } from './data/products.js';
 import { CartManager } from './components/CartManager.js';
+import { AuthManager } from './components/AuthManager.js';
 
+// Variables globales
 let cartManager;
 let productRenderer;
+let authManager;
 
 // Mapeo de páginas a categorías
 const pageToCategoryMap = {
@@ -18,14 +22,14 @@ const pageToCategoryMap = {
   'tradicional.html': 'tradicional'
 };
 
-// loadCategoryProducts (ajusta solo las rutas que uses)
+// Cargar productos por categoría
 async function loadCategoryProducts() {
   const currentPageRaw = window.location.pathname.split('/').pop();
   const currentPage = currentPageRaw === '' ? 'index.html' : currentPageRaw;
   const category = pageToCategoryMap[currentPage];
 
   if (currentPage === 'index.html') {
-    // en index mostramos solo 6
+    // en index mostramos solo 8 productos
     await loadAllProducts(8);
   } else if (currentPage === 'reposteria.html' || currentPage === 'productos.html' || currentPage === 'nuestros-productos.html') {
     // en estas páginas mostramos todos
@@ -35,7 +39,7 @@ async function loadCategoryProducts() {
   }
 }
 
-// loadAllProducts parametrizable, con dedupe y cache simple
+// Cargar todos los productos
 async function loadAllProducts(limit = null) {
   const container = document.getElementById('products-container');
   if (!container) return;
@@ -51,11 +55,11 @@ async function loadAllProducts(limit = null) {
         allProducts.push(...products);
       }
 
-      // Eliminar duplicados por id (ajusta la propiedad id según tu modelo)
+      // Eliminar duplicados por id
       const uniqueMap = new Map();
       allProducts.forEach(p => {
         if (!p) return;
-        const id = p.id ?? `${p.name}-${p.sku}`; // fallback si no tienes id
+        const id = p.id ?? `${p.name}-${p.sku}`;
         if (!uniqueMap.has(id)) uniqueMap.set(id, p);
       });
 
@@ -76,7 +80,7 @@ async function loadAllProducts(limit = null) {
   }
 }
 
-
+// Cargar productos por categoría
 async function loadProductsByCategory(category) {
   try {
     await productRenderer.loadTemplate();
@@ -88,18 +92,21 @@ async function loadProductsByCategory(category) {
   }
 }
 
+// Inicializar la aplicación
 (async function init() {
   try {
-    // Cargar partials comunes una sola vez
+    // Cargar partials comunes
     await Promise.all([
       loadPartial('header-placeholder', '/src/partials/header.html'),
       loadPartial('navbar-placeholder', '/src/partials/navbar.html'),
       loadPartial('footer-placeholder', '/src/partials/footer.html')
     ]);
 
-    // Inicializar el CartManager y ProductRenderer una sola vez
+    // Inicializar managers
     cartManager = new CartManager();
     productRenderer = new ProductRenderer();
+    authManager = new AuthManager();
+    
     productRenderer.setCartManager(cartManager);
 
     // Pre-cargar template para evitar render sin plantilla
@@ -108,9 +115,10 @@ async function loadProductsByCategory(category) {
     // Cargar productos según la página
     await loadCategoryProducts();
 
-    // Exportar global (si realmente lo necesitas)
+    // Exportar global (si es necesario para debugging)
     window.cartManager = cartManager;
     window.productRenderer = productRenderer;
+    window.authManager = authManager;
 
     console.log('Inicialización completada ✅');
   } catch (err) {

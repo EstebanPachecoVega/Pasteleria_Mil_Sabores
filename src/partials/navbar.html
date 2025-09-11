@@ -208,5 +208,5 @@ function updateCartCount() {
 document.addEventListener('DOMContentLoaded', updateCartCount);
 
 // Escuchar eventos de actualización del carrito
-document.addEventListener('cartUpdated', updateCartCount);
+window.addEventListener('cartUpdated', updateCartCount);
 </script>
