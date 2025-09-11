@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="/src/assets/logo_pasteleria.PNG" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil - Pastelería Mil Sabores</title>
+    <meta name="description" content="Gestiona tu perfil en Pastelería Mil Sabores">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Main CSS -->
+    <link rel="stylesheet" href="/src/css/main.css">
+</head>
+
+<body>
+    <!--ENCABEZADO DE PÁGINA-->
+    <div id="header-placeholder"></div>
+
+    <!--NAVBAR-->
+    <div id="navbar-placeholder"></div>
+    
+    <!--CONTENIDO PRINCIPAL-->
+    <main class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10 col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1 class="h3 mb-0">Mi Perfil</h1>
+                    <button id="edit-toggle-btn" class="btn btn-outline-primary">
+                        <i class="bi bi-pencil me-1"></i>Editar
+                    </button>
+                </div>
+
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-person-circle me-2"></i>Información Personal</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Alert para mensajes -->
+                        <div id="profile-alert" class="alert d-none"></div>
+
+                        <form id="profile-form" novalidate>
+                            <div class="row">
+                                <!-- RUN (solo lectura) -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">RUN</label>
+                                    <input type="text" class="form-control" id="profile-run" 
+                                           readonly disabled>
+                                    <div class="form-text">Identificación única (no editable)</div>
+                                </div>
+                                
+                                <!-- Email (solo lectura) -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Correo electrónico</label>
+                                    <input type="email" class="form-control" id="profile-email" 
+                                           readonly disabled>
+                                    <div class="form-text">Contacto principal (no editable)</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Nombre -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="profile-name" class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" id="profile-name" 
+                                           maxlength="50" readonly required>
+                                    <div class="invalid-feedback">El nombre es requerido</div>
+                                </div>
+                                
+                                <!-- Apellidos -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="profile-lastname" class="form-label">Apellidos</label>
+                                    <input type="text" class="form-control" id="profile-lastname" 
+                                           maxlength="100" readonly required>
+                                    <div class="invalid-feedback">Los apellidos son requeridos</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Teléfono -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="profile-phone" class="form-label">Teléfono</label>
+                                    <input type="tel" class="form-control" id="profile-phone" 
+                                           readonly required>
+                                    <div class="invalid-feedback">El teléfono es requerido</div>
+                                </div>
+                                
+                                <!-- Fecha de nacimiento -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="profile-birthdate" class="form-label">Fecha de nacimiento</label>
+                                    <input type="date" class="form-control" id="profile-birthdate" 
+                                           readonly>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Región -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="profile-region" class="form-label">Región</label>
+                                    <select class="form-select" id="profile-region" disabled required>
+                                        <option value="">Selecciona una región</option>
+                                    </select>
+                                    <div class="invalid-feedback">Por favor selecciona una región</div>
+                                </div>
+                                
+                                <!-- Comuna -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="profile-commune" class="form-label">Comuna</label>
+                                    <select class="form-select" id="profile-commune" disabled required>
+                                        <option value="">Selecciona una comuna</option>
+                                    </select>
+                                    <div class="invalid-feedback">Por favor selecciona una comuna</div>
+                                </div>
+                            </div>
+
+                            <!-- Dirección -->
+                            <div class="mb-3">
+                                <label for="profile-address" class="form-label">Dirección</label>
+                                <textarea class="form-control" id="profile-address" rows="2" 
+                                          maxlength="300" readonly required></textarea>
+                                <div class="invalid-feedback">La dirección es requerida</div>
+                            </div>
+
+                            <!-- Botones de acción (inicialmente ocultos) -->
+                            <div id="profile-actions" class="d-none mt-4">
+                                <button type="submit" class="btn btn-primary me-2">
+                                    <i class="bi bi-check-circle me-1"></i>Guardar cambios
+                                </button>
+                                <button type="button" id="cancel-edit-btn" class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-circle me-1"></i>Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Sección de beneficios -->
+                <div class="card shadow mt-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0"><i class="bi bi-gift me-2"></i>Mis Beneficios</h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div id="benefits-container" class="row g-3">
+                            <!-- Los beneficios se cargarán dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!--PIE DE PÁGINA-->
+    <div id="footer-placeholder"></div>
+
+    <!-- Scripts -->
+    <script type="module" src="/src/js/partials.js"></script>
+    <script type="module" src="/src/js/pages/profile.js"></script>
+    <script type="module" src="/src/js/main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+</html>
