@@ -1,0 +1,203 @@
+/* Página de Productos */
+.product-page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+/* Detalle de Producto */
+.product-detail-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    background-color: var(--white-color);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow-medium);
+    margin-bottom: 2rem;
+}
+
+.product-detail-image {
+    flex: 1;
+    min-width: 300px;
+}
+
+.product-detail-image img {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.product-detail-info {
+    flex: 2;
+    min-width: 300px;
+}
+
+.product-detail-info h1 {
+    font-size: 2.5rem;
+    color: var(--accent-chocolate);
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+.product-detail-info .price {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--accent-pink);
+    margin-bottom: 1.5rem;
+}
+
+.product-detail-info .description {
+    font-size: 1.1rem;
+    color: var(--text-primary-color);
+    margin-bottom: 2rem;
+}
+
+.product-detail-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.product-detail-actions input[type="number"] {
+    width: 80px;
+    padding: 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.product-detail-actions .btn-add-cart {
+    background-color: var(--accent-chocolate);
+    color: var(--white-color);
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.product-detail-actions .btn-add-cart:hover {
+    background-color: var(--accent-pink);
+    transform: translateY(-2px);
+}
+
+/* Carrito de Compras */
+.cart-container {
+    background-color: var(--white-color);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow-medium);
+    margin-bottom: 2rem;
+}
+
+.cart-container h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: var(--accent-chocolate);
+}
+
+.cart-items {
+    border-top: 1px solid #eee;
+    margin-top: 1.5rem;
+}
+
+.cart-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.cart-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.cart-item-details {
+    flex-grow: 1;
+}
+
+.cart-item-details h4 {
+    margin: 0;
+    font-family: var(--font-primary);
+    color: var(--accent-chocolate);
+}
+
+.cart-item-details p {
+    margin: 0.2rem 0;
+    color: var(--text-primary-color);
+}
+
+.cart-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cart-item-actions input[type="number"] {
+    width: 60px;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.cart-item-actions .btn-remove {
+    background-color: #dc3545; /* Rojo para eliminar */
+    color: var(--white-color);
+    border: none;
+    padding: 0.5rem 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.cart-item-actions .btn-remove:hover {
+    background-color: #c82333;
+}
+
+.cart-summary {
+    margin-top: 2rem;
+    border-top: 2px solid var(--accent-chocolate);
+    padding-top: 1.5rem;
+    text-align: right;
+}
+
+.cart-summary p {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.cart-summary .total-price {
+    font-size: 1.8rem;
+    color: var(--accent-pink);
+}
+
+.cart-summary .btn-checkout {
+    background-color: var(--accent-pink);
+    color: var(--white-color);
+    padding: 1rem 2rem;
+    border-radius: 5px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.cart-summary .btn-checkout:hover {
+    background-color: var(--accent-chocolate);
+    transform: translateY(-2px);
+}
+

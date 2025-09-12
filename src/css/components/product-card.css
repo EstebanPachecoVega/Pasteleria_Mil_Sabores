@@ -1,59 +1,77 @@
-/* product-card.css */
-.product-card .card {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  border: none;
-  overflow: hidden;
+/* Sección de Productos Destacados */
+.product-list-home {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+}
+/* Apuntamos a la nueva clase 'custom-product-card' */
+.custom-product-card .card { /* Apuntamos al div con clase 'card' dentro de 'custom-product-card' */
+    background-color: var(--white-color);
+    border-radius: 10px;
+    box-shadow: var(--shadow-light);
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.custom-product-card .card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-medium);
+}
+.custom-product-card .card-img-top {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid #eee;
 }
 
-.product-card .card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--box-shadow-hover);
+.custom-product-card .card-img-top {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid #eee;
+}
+.custom-product-card .card-body {
+    padding: 1.5rem;
+}
+.custom-product-card .card-title {
+    font-family: var(--font-primary);
+    font-size: 1.4rem;
+    color: var(--accent-chocolate);
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+}
+/* Apuntamos a la nueva clase 'product-price' */
+.custom-product-card .product-price {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--accent-pink); /* Precio en Rosa Suave */
+    margin-bottom: 1rem;
 }
 
-.product-card .card-img-top {
-  transition: transform 0.5s ease;
+.custom-product-card .custom-btn-add-cart {
+    background-color: var(--accent-chocolate); /* Botón en Chocolate */
+    color: var(--white-color);
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    border: none; /* Aseguramos que no haya borde de Bootstrap */
+    cursor: pointer;
+}
+.custom-product-card .custom-btn-add-cart:hover {
+    background-color: var(--accent-pink); /* Hover del botón en Rosa Suave */
 }
 
-.product-card .card:hover .card-img-top {
-  transform: scale(1.05);
+.custom-product-card .custom-btn-view-details {
+    background-color: var(--text-secondary-color); /* Gris claro para el botón de ver */
+    color: var(--white-color);
+    padding: 0.8rem 1rem; /* Ajusta el padding si es necesario */
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
 }
-
-.product-card .card-body {
-  display: flex;
-  flex-direction: column;
-}
-
-.product-card .card-title {
-  color: var(--brand-dark);
-  font-weight: bold;
-}
-
-.product-card .card-text {
-  color: #6c757d;
-  flex-grow: 1;
-}
-
-.product-card .fw-bold {
-  color: var(--brand-primary);
-  font-size: 1.25rem;
-}
-
-.product-card .btn-primary {
-  background-color: var(--brand-primary);
-  border-color: var(--brand-primary);
-}
-
-.product-card .btn-primary:hover {
-  background-color: var(--brand-dark);
-  border-color: var(--brand-dark);
-}
-
-.product-card .btn-outline-secondary {
-  color: var(--brand-dark);
-  border-color: var(--brand-dark);
-}
-
-.product-card .btn-outline-secondary:hover {
-  background-color: var(--brand-dark);
-  color: var(--text-light);
+.custom-product-card .custom-btn-view-details:hover {
+    background-color: var(--accent-chocolate); /* Hover en chocolate */
 }

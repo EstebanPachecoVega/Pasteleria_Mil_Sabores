@@ -1,0 +1,223 @@
+/* Estilos para el Administrador */
+.admin-body {
+    background-color: #f8f9fa; /* Un gris claro para el fondo del admin */
+    color: #343a40;
+}
+
+.admin-header {
+    background-color: var(--accent-chocolate);
+    color: var(--white-color);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-light);
+}
+
+.admin-header h1 {
+    color: var(--white-color);
+    font-family: var(--font-primary);
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+.admin-header .logout-btn {
+    background-color: var(--accent-pink);
+    color: var(--white-color);
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.admin-header .logout-btn:hover {
+    background-color: #dc3545; /* Rojo para logout */
+}
+
+.admin-layout {
+    display: flex;
+    min-height: calc(100vh - 70px); /* Ajusta según la altura del header */
+}
+
+.admin-sidebar {
+    width: 250px;
+    background-color: #343a40; /* Gris oscuro para la barra lateral */
+    color: var(--white-color);
+    padding: 1.5rem 0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.admin-sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.admin-sidebar ul li a {
+    display: block;
+    padding: 1rem 1.5rem;
+    color: var(--white-color);
+    text-decoration: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.admin-sidebar ul li a:hover,
+.admin-sidebar ul li a.active {
+    background-color: var(--accent-chocolate);
+    color: var(--accent-pink);
+}
+
+.admin-content {
+    flex-grow: 1;
+    padding: 2rem;
+    background-color: #f8f9fa;
+}
+
+.admin-content h2 {
+    color: var(--accent-chocolate);
+    margin-bottom: 1.5rem;
+    font-family: var(--font-primary);
+}
+
+/* Tablas del Administrador */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+    background-color: var(--white-color);
+    box-shadow: var(--shadow-light);
+    border-radius: 8px;
+    overflow: hidden; /* Para que los bordes redondeados se apliquen bien */
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.admin-table th {
+    background-color: var(--accent-chocolate);
+    color: var(--white-color);
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+}
+
+.admin-table tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-table tbody tr:hover {
+    background-color: #f2f2f2;
+}
+
+.admin-table .action-buttons button,
+.admin-table .action-buttons a {
+    background-color: var(--accent-pink);
+    color: var(--white-color);
+    border: none;
+    padding: 0.5rem 0.8rem;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-right: 5px;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.admin-table .action-buttons .edit-btn {
+    background-color: #007bff; /* Azul para editar */
+}
+
+.admin-table .action-buttons .edit-btn:hover {
+    background-color: #0056b3;
+}
+
+.admin-table .action-buttons .delete-btn {
+    background-color: #dc3545; /* Rojo para eliminar */
+}
+
+.admin-table .action-buttons .delete-btn:hover {
+    background-color: #c82333;
+}
+
+.admin-table .action-buttons .view-btn {
+    background-color: #28a745; /* Verde para ver */
+}
+
+.admin-table .action-buttons .view-btn:hover {
+    background-color: #218838;
+}
+
+/* Formulario de Nuevo/Editar Producto/Usuario en Admin */
+.admin-form-container {
+    background-color: var(--white-color);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow-medium);
+    max-width: 700px;
+    margin: 2rem 0;
+}
+
+.admin-form-container .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+}
+
+.admin-form-container .form-group label {
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--text-primary-color);
+}
+
+.admin-form-container .form-group input[type="text"],
+.admin-form-container .form-group input[type="email"],
+.admin-form-container .form-group input[type="password"],
+.admin-form-container .form-group input[type="number"],
+.admin-form-container .form-group input[type="date"],
+.admin-form-container .form-group textarea,
+.admin-form-container .form-group select {
+    padding: 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.admin-form-container .form-actions {
+    text-align: right;
+}
+
+.admin-form-container .btn-save {
+    background-color: var(--accent-chocolate);
+    color: var(--white-color);
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.admin-form-container .btn-save:hover {
+    background-color: var(--accent-pink);
+}
+
+.admin-form-container .btn-cancel {
+    background-color: #6c757d; /* Gris para cancelar */
+    color: var(--white-color);
+    padding: 0.8rem 1.5rem;
+    border-radius: 5px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: background-color 0.3s ease;
+}
+
+.admin-form-container .btn-cancel:hover {
+    background-color: #5a6268;
+}
