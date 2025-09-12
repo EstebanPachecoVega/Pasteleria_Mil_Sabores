@@ -1,0 +1,50 @@
+/* footer.css */
+footer {
+  background-color: #343a40;
+  color: var(--text-light);
+  margin-top: auto;
+}
+
+.footer-column {
+  margin-bottom: 1.5rem;
+}
+
+.footer-column h5 {
+  color: var(--brand-primary);
+  margin-bottom: 1rem;
+  font-weight: bold;
+}
+
+.footer-links li {
+  margin-bottom: 0.5rem;
+}
+
+.footer-links a {
+  color: #adb5bd;
+  text-decoration: none;
+  transition: color 0.15s ease-in-out;
+}
+
+.footer-links a:hover {
+  color: var(--text-light);
+  text-decoration: none;
+}
+
+.payment-methods {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.payment-methods i {
+  color: #6c757d;
+}
+
+footer hr {
+  border-color: #6c757d;
+}
+
+footer .container > .row:last-child {
+  padding: 1rem 0;
+}

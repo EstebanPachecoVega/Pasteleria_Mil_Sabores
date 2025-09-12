@@ -1,0 +1,35 @@
+/* forms.css */
+.form-control {
+  border-radius: var(--border-radius);
+  border: 1px solid #ced4da;
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+  border-color: var(--brand-primary);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(217, 123, 154, 0.25);
+}
+
+.form-select {
+  border-radius: var(--border-radius);
+  border: 1px solid #ced4da;
+  padding: 0.5rem 2.25rem 0.5rem 0.75rem;
+}
+
+.form-select:focus {
+  border-color: var(--brand-primary);
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(217, 123, 154, 0.25);
+}
+
+.form-text {
+  color: #6c757d;
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}
+
+.input-group .btn {
+  z-index: 3;
+}

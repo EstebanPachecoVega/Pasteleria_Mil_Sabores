@@ -1,0 +1,17 @@
+/* header.css */
+.site-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: var(--bg);
+  padding: 0.5rem 0;
+}
+
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.site-header small {
+  font-size: 0.875rem;
+  color: #6c757d;
+}

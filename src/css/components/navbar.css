@@ -1,0 +1,69 @@
+/* navbar.css */
+.navbar {
+  box-shadow: var(--box-shadow);
+  background-color: var(--text-light);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: var(--brand-dark) !important;
+}
+
+.navbar-brand img {
+  margin-right: 0.5rem;
+}
+
+.navbar .nav-link {
+  color: var(--text-dark);
+  padding: 0.5rem 1rem;
+  transition: color 0.15s ease-in-out;
+}
+
+.navbar .nav-link:hover,
+.navbar .nav-link:focus {
+  color: var(--brand-primary);
+}
+
+.navbar .dropdown-menu {
+  border: none;
+  box-shadow: var(--box-shadow-hover);
+}
+
+.navbar .dropdown-item {
+  padding: 0.5rem 1rem;
+}
+
+.navbar .dropdown-item:hover {
+  background-color: var(--brand-primary);
+  color: var(--text-light);
+}
+
+.navbar .input-group {
+  max-width: 300px;
+}
+
+.navbar .btn-outline-primary {
+  border-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+.navbar .btn-outline-primary:hover {
+  background-color: var(--brand-primary);
+  color: var(--text-light);
+}
+
+#cart-count {
+  font-size: 0.75rem;
+  padding: 0.25em 0.5em;
+}
+
+#user-menu .dropdown-toggle {
+  display: flex;
+  align-items: center;
+}
+
+#user-menu .dropdown-toggle::after {
+  margin-left: 0.5rem;
+}
