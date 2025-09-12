@@ -1,11 +1,14 @@
 import { AuthManager } from '../components/AuthManager.js';
 import { UserManager } from '../components/UserManager.js';
-import { getAllRegions, getCommunesByRegion } from '../../data/regions.js';
+import { getAllRegions, getCommunesByRegion } from '../data/regions.js';
 import { validateText, validatePhone, validateDate } from '../utils/validators.js';
 
 // Inicializar managers
 const authManager = new AuthManager();
 const userManager = new UserManager();
+
+// Variable para almacenar los datos originales (para restaurar al cancelar)
+let originalUserData = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar autenticación
@@ -14,78 +17,104 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Cargar datos del perfil
-    loadProfileData();
-    
-    // Cargar regiones
-    loadRegions();
-    
-    // Configurar event listeners
-    setupEventListeners();
+    // Pequeño retraso para asegurar que los partials estén cargados
+    setTimeout(() => {
+        loadProfileData();
+        loadRegions();
+        setupEventListeners();
+    }, 100);
 });
 
 function loadProfileData() {
     const user = authManager.getCurrentUser();
     if (!user) return;
 
+    // Obtener datos completos del usuario desde UserManager
+    const fullUser = userManager.findUserById(user.id) || user;
+    
+    // Guardar datos originales para restaurar si es necesario
+    originalUserData = {...fullUser};
+    
+    console.log('Cargando perfil para:', fullUser);
+
     // Enmascarar RUN (formato: 12.345.678-*)
-    const runParts = user.run.replace(/[\.\-]/g, '');
+    const runValue = fullUser.run || '';
+    const runParts = runValue.replace(/[\.\-]/g, '');
     const maskedRun = runParts.length >= 8 
-        ? `${runParts.slice(0, 2)}.${runParts.slice(2, 5)}.${runParts.slice(5, 8)}-*` 
-        : user.run;
+        ? `${runParts.slice(0, 2)}.${runParts.slice(2, 5)}.${runParts.slice(5, 6)}*****` 
+        : runValue;
     
     // Enmascarar email (formato: us****@dominio.com)
-    const [emailUser, emailDomain] = user.email.split('@');
-    const maskedEmail = emailUser.length > 2 
+    const emailValue = fullUser.email || '';
+    const [emailUser, emailDomain] = emailValue.split('@');
+    const maskedEmail = emailUser && emailDomain 
         ? `${emailUser.slice(0, 2)}****@${emailDomain}`
-        : `****@${emailDomain}`;
+        : emailValue;
 
-    // Llenar campos de información
-    document.getElementById('profile-run').value = maskedRun;
-    document.getElementById('profile-email').value = maskedEmail;
-    document.getElementById('profile-name').value = user.name || '';
-    document.getElementById('profile-lastname').value = user.lastName || '';
-    document.getElementById('profile-phone').value = user.phone || '';
-    document.getElementById('profile-birthdate').value = user.birthdate || '';
-    document.getElementById('profile-address').value = user.address || '';
+    // Llenar campos con valores por defecto si no existen
+    setFieldValue('profile-run', maskedRun);
+    setFieldValue('profile-email', maskedEmail);
+    setFieldValue('profile-name', fullUser.name || '');
+    setFieldValue('profile-lastname', fullUser.lastName || fullUser.lastname || '');
+    setFieldValue('profile-phone', fullUser.phone || '');
+    setFieldValue('profile-birthdate', fullUser.birthdate || '');
+    setFieldValue('profile-address', fullUser.address || '');
 
-    // Cargar región y comuna si existen
-    if (user.region) {
-        document.getElementById('profile-region').value = user.region;
-        loadCommunes(parseInt(user.region));
-        setTimeout(() => {
-            document.getElementById('profile-commune').value = user.commune || '';
-        }, 100);
-    }
+    // NOTA: Las regiones y comunas ahora se cargan en loadRegions() y loadCommunes()
+    // para asegurar que los selects tengan las opciones correctas con selected
 
     // Cargar beneficios
-    loadBenefits(user);
+    loadBenefits(fullUser);
 }
 
+// Función auxiliar para establecer valores de campos
+function setFieldValue(fieldId, value) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.value = value || '';
+    }
+}
+
+// Cargar regiones en el select
 function loadRegions() {
     const regionSelect = document.getElementById('profile-region');
     if (!regionSelect) return;
 
+    const user = authManager.getCurrentUser();
+    const fullUser = userManager.findUserById(user.id) || user;
+    const userRegion = fullUser.region;
+
     const regions = getAllRegions();
+    
     regionSelect.innerHTML = '<option value="">Selecciona una región</option>' +
         regions.map(region => 
-            `<option value="${region.id}">${region.name}</option>`
+            `<option value="${region.id}" ${region.id == userRegion ? 'selected' : ''}>${region.name}</option>`
         ).join('');
 
     // Cargar comunas cuando cambie la región
     regionSelect.addEventListener('change', (e) => {
         loadCommunes(parseInt(e.target.value));
     });
+
+    // Si el usuario tiene región, cargar sus comunas también
+    if (userRegion) {
+        loadCommunes(parseInt(userRegion));
+    }
 }
 
+// Cargar comunas basadas en la región seleccionada
 function loadCommunes(regionId) {
     const communeSelect = document.getElementById('profile-commune');
     if (!communeSelect) return;
 
+    const user = authManager.getCurrentUser();
+    const fullUser = userManager.findUserById(user.id) || user;
+    const userCommune = fullUser.commune;
+
     const communes = getCommunesByRegion(regionId);
     communeSelect.innerHTML = '<option value="">Selecciona una comuna</option>' +
         communes.map(commune => 
-            `<option value="${commune}">${commune}</option>`
+            `<option value="${commune}" ${commune === userCommune ? 'selected' : ''}>${commune}</option>`
         ).join('');
 
     communeSelect.disabled = !regionId;
@@ -215,7 +244,21 @@ function disableEditing() {
 
 function resetForm() {
     // Recargar datos originales
-    loadProfileData();
+    if (originalUserData) {
+        setFieldValue('profile-name', originalUserData.name);
+        setFieldValue('profile-lastname', originalUserData.lastName || originalUserData.lastname);
+        setFieldValue('profile-phone', originalUserData.phone);
+        setFieldValue('profile-birthdate', originalUserData.birthdate);
+        setFieldValue('profile-region', originalUserData.region);
+        setFieldValue('profile-address', originalUserData.address);
+        
+        if (originalUserData.region) {
+            loadCommunes(parseInt(originalUserData.region));
+            setTimeout(() => {
+                setFieldValue('profile-commune', originalUserData.commune);
+            }, 200);
+        }
+    }
     
     // Limpiar estados de validación
     const fields = document.querySelectorAll('.is-invalid, .is-valid');
@@ -311,6 +354,9 @@ async function handleProfileUpdate(e) {
             document.getElementById('edit-toggle-btn').innerHTML = '<i class="bi bi-pencil me-1"></i>Editar';
             document.getElementById('edit-toggle-btn').classList.remove('btn-outline-danger');
             document.getElementById('edit-toggle-btn').classList.add('btn-outline-primary');
+            
+            // Actualizar datos originales
+            originalUserData = {...originalUserData, ...updatedData};
         } else {
             showAlert(result.message, 'danger');
         }
@@ -338,3 +384,14 @@ function showAlert(message, type) {
         }
     }, 5000);
 }
+
+// Función de depuración para verificar datos
+window.debugProfile = function() {
+    const user = authManager.getCurrentUser();
+    console.log('Usuario actual:', user);
+    
+    const fullUser = userManager.findUserById(user.id);
+    console.log('Usuario completo:', fullUser);
+    
+    console.log('Datos originales:', originalUserData);
+};

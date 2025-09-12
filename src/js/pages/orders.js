@@ -1,4 +1,5 @@
 import { AuthManager } from '../components/AuthManager.js';
+import { getProductById } from '../data/products.js';
 
 // Inicializar el gestor de autenticación
 const authManager = new AuthManager();
@@ -16,14 +17,73 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Cargar órdenes
-    loadOrders();
-    
-    // Configurar event listeners
-    setupEventListeners();
+    // Pequeño delay para asegurar que los partials estén cargados
+    setTimeout(() => {
+        loadOrders();
+        setupEventListeners();
+    }, 100);
 });
 
-// Modifica la función loadOrders para crear órdenes de muestra si no existen
+// Función para convertir precio string a número (ej: "$5.000" → 5000)
+function parsePrice(priceString) {
+    if (typeof priceString === 'number') return priceString;
+    if (!priceString) return 0;
+    return parseInt(priceString.replace(/\$\s?|\./g, '')) || 0;
+}
+
+// Función para obtener productos de muestra con precios actualizados
+function getSampleOrderItems() {
+    const products = [
+        { id: 'PI001', quantity: 2 }, // Mousse de Chocolate
+        { id: 'TC001', quantity: 1 }, // Torta Circular de Vainilla
+        { id: 'PSA001', quantity: 1 } // Torta Sin Azúcar de Naranja
+    ];
+
+    return products.map(item => {
+        const product = getProductById(item.id);
+        return {
+            id: item.id,
+            name: product ? product.name : `Producto ${item.id}`,
+            quantity: item.quantity,
+            price: product ? parsePrice(product.price) : 0,
+            image: product ? product.image : ''
+        };
+    });
+}
+
+// Función para crear órdenes de muestra con precios actualizados
+function createSampleOrders(userId) {
+    const items = getSampleOrderItems();
+    
+    const sampleOrders = [
+        {
+            id: 'ORD-' + Date.now(),
+            userId: userId,
+            date: new Date(),
+            status: 'pending',
+            total: items.slice(0, 2).reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            items: items.slice(0, 2), // Primeros 2 productos
+            shippingAddress: 'Calle Principal 123, Santiago',
+            shippingMethod: 'Estándar',
+            discounts: 0
+        },
+        {
+            id: 'ORD-' + (Date.now() - 86400000), // Hace 1 día
+            userId: userId,
+            date: new Date(Date.now() - 86400000),
+            status: 'processing',
+            total: items[2].price * items[2].quantity, // Tercer producto
+            items: [items[2]], // Solo el tercer producto
+            shippingAddress: 'Calle Principal 123, Santiago',
+            shippingMethod: 'Express',
+            discounts: 0
+        }
+    ];
+    
+    localStorage.setItem(`orders_${userId}`, JSON.stringify(sampleOrders));
+    return sampleOrders;
+}
+
 function loadOrders() {
     const user = authManager.getCurrentUser();
     if (!user) return;
@@ -66,7 +126,8 @@ function setupEventListeners() {
     // Búsqueda
     document.getElementById('search-orders').addEventListener('input', applyFilters);
     
-    // Botones de acción en órdenes (se configuran dinámicamente en renderOrders)
+    // Botón de búsqueda
+    document.querySelector('#search-orders + button').addEventListener('click', applyFilters);
 }
 
 function applyFilters() {
@@ -153,6 +214,8 @@ function renderOrders() {
                     </div>
                     <div class="col-md-3">
                         <small>${order.items.length} producto(s)</small>
+                        <br>
+                        <small class="text-muted">${order.items.map(item => item.name).join(', ')}</small>
                     </div>
                     <div class="col-md-2 text-end">
                         <button class="btn btn-sm btn-outline-primary view-order-details" 
@@ -268,7 +331,7 @@ function showOrderDetails(orderId) {
                     <tr>
                         <th>Producto</th>
                         <th class="text-center">Cantidad</th>
-                        <th class="text-end">Precio</th>
+                        <th class="text-end">Precio Unitario</th>
                         <th class="text-end">Subtotal</th>
                     </tr>
                 </thead>
@@ -283,6 +346,12 @@ function showOrderDetails(orderId) {
                     `).join('')}
                 </tbody>
                 <tfoot>
+                    ${order.discounts > 0 ? `
+                        <tr>
+                            <td colspan="3" class="text-end"><strong>Descuentos:</strong></td>
+                            <td class="text-end text-danger"><strong>-${formatCurrency(order.discounts)}</strong></td>
+                        </tr>
+                    ` : ''}
                     <tr>
                         <td colspan="3" class="text-end"><strong>Total:</strong></td>
                         <td class="text-end"><strong>${formatCurrency(order.total)}</strong></td>
@@ -359,41 +428,15 @@ function formatCurrency(amount) {
     }).format(amount);
 }
 
-// Para simular datos (en una implementación real, esto vendría del proceso de checkout)
-function createSampleOrders(userId) {
-    const sampleOrders = [
-        {
-            id: 'ORD-' + Date.now(),
-            userId: userId,
-            date: new Date(),
-            status: 'pending',
-            total: 25000,
-            items: [
-                { id: 'PI001', name: 'Mousse de Chocolate', quantity: 2, price: 5000 },
-                { id: 'TC001', name: 'Torta Circular de Vainilla', quantity: 1, price: 15000 }
-            ],
-            shippingAddress: 'Calle Principal 123, Santiago',
-            shippingMethod: 'Estándar'
-        },
-        {
-            id: 'ORD-' + (Date.now() - 86400000), // Hace 1 día
-            userId: userId,
-            date: new Date(Date.now() - 86400000),
-            status: 'processing',
-            total: 18000,
-            items: [
-                { id: 'PSA001', name: 'Torta Sin Azúcar de Naranja', quantity: 1, price: 18000 }
-            ],
-            shippingAddress: 'Calle Principal 123, Santiago',
-            shippingMethod: 'Express'
-        }
-    ];
-    
-    localStorage.setItem(`orders_${userId}`, JSON.stringify(sampleOrders));
-    return sampleOrders;
-
 // Asegúrate de que createSampleOrders esté disponible globalmente
-// Agrega esta línea al final del archivo para hacerla accesible:
 window.createSampleOrders = createSampleOrders;
 
-}
+// Función para forzar la regeneración de órdenes de muestra
+window.regenerateSampleOrders = function() {
+    const user = authManager.getCurrentUser();
+    if (user) {
+        localStorage.removeItem(`orders_${user.id}`);
+        loadOrders();
+        alert('Órdenes de muestra regeneradas con precios actualizados');
+    }
+};

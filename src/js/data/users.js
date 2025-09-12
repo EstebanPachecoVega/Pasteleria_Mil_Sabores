@@ -23,7 +23,7 @@ export const users = [
     {
         id: 2,
         run: "18765432-1",
-        email: "margonzalez@duoc.cl",
+        email: "estudiante@duoc.cl",
         password: "password123",
         name: "María",
         lastName: "González",
