@@ -2,23 +2,25 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <link rel="icon" href="/src/assets/logo_pasteleria.PNG" type="image/x-icon">
+    <link rel="icon" href="../assets/logo_pasteleria.PNG" type="image/x-icon">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pasteleria Mil Sabores</title>
-    <meta name="description" content="La mejor plataforma tienda online de pasteleria de chile">
-    <meta name="keywords" content="reposteria, pasteles, dulces">
+    <title>Pastelería Mil Sabores - Blog y Noticias</title>
+    <meta name="description" content="Noticias, tips y novedades de Pastelería Mil Sabores">
+    <meta name="keywords" content="blog pastelería, noticias repostería, tips baking, novedades postres">
 
-<!-- Librerias Externas -->
-<!-- Estilos de Proyecto -->
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
     <!-- Main CSS -->
-    <link rel="stylesheet" href="/src/css/main.css">
+    <link rel="stylesheet" href="../css/main.css">
 </head>
 
-<body>
+<body class="blog-body">
     <!--ENCABEZADO DE PÁGINA-->
     <div id="header-placeholder"></div>
 
@@ -26,34 +28,132 @@
     <div id="navbar-placeholder"></div>
     
     <!--CONTENIDO PRINCIPAL-->
-    <main id="main-content" class="container mt-4" role="main">
-        <h1 class="text-center">NOTICIAS IMPORTANTES</h1>
-        <p class="lead text-center mb-5">Mantente al día con las últimas novedades y 
-            tendencias en el mundo de la repostería.</p>
+    <main id="main-content" class="container mt-4 py-4" role="main">
+        <div class="blog-header text-center">
+            <h1 class="pacifico-regular">Blog y Noticias</h1>
+            <p class="lead">Mantente al día con las últimas novedades, tips y tendencias en el mundo de la repostería</p>
+        </div>
+
+        <!-- Sección de Blog -->
+        <section class="row g-4">
+            <!-- Artículo 1 -->
+            <article class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm blog-card">
+                    <img src="https://placehold.co/600x400/FFC0CB/884513?text=Pasteles+Veganos" class="card-img-top" alt="Nueva línea de pasteles veganos">
+                    <div class="card-body">
+                        <span class="badge blog-badge bg-novedad mb-2">Novedad</span>
+                        <h3 class="h5 card-title">Lanzamos Nueva Línea Vegana</h3>
+                        <p class="card-text">Descubre nuestros deliciosos pasteles 100% veganos, hechos con ingredientes naturales y sin sacrificar el sabor.</p>
+                        <a href="#" class="btn btn-blog btn-sm">Leer más</a>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <small class="text-date"><i class="bi bi-calendar"></i> 15 Diciembre 2024</small>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Artículo 2 -->
+            <article class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm blog-card">
+                    <img src="https://placehold.co/600x400/FFF5E1/884513?text=Taller+Navideño" class="card-img-top" alt="Taller de decoración de pasteles">
+                    <div class="card-body">
+                        <span class="badge blog-badge bg-evento mb-2">Evento</span>
+                        <h3 class="h5 card-title">Taller de Decoración Navideña</h3>
+                        <p class="card-text">Aprende a decorar tus propios pasteles navideños en nuestro taller gratuito este sábado.</p>
+                        <a href="#" class="btn btn-blog btn-sm">Leer más</a>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <small class="text-date"><i class="bi bi-calendar"></i> 10 Diciembre 2024</small>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Artículo 3 -->
+            <article class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm blog-card">
+                    <img src="https://placehold.co/600x400/884513/FFF5E1?text=Premio+2024" class="card-img-top" alt="Premio mejor pastelería">
+                    <div class="card-body">
+                        <span class="badge blog-badge bg-promocion mb-2">Logro</span>
+                        <h3 class="h5 card-title">Ganadores del Premio a Mejor Pastelería 2024</h3>
+                        <p class="card-text">Estamos orgullosos de anunciar que hemos sido reconocidos como la mejor pastelería de la región.</p>
+                        <a href="#" class="btn btn-blog btn-sm">Leer más</a>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <small class="text-date"><i class="bi bi-calendar"></i> 5 Diciembre 2024</small>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Artículo 4 -->
+            <article class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm blog-card">
+                    <img src="https://placehold.co/600x400/FFC0CB/884513?text=Sabores+Verano" class="card-img-top" alt="Nuevos sabores de temporada">
+                    <div class="card-body">
+                        <span class="badge blog-badge bg-novedad mb-2">Temporada</span>
+                        <h3 class="h5 card-title">Sabores de Verano 2024</h3>
+                        <p class="card-text">Prueba nuestros nuevos sabores refrescantes: limón merengue, frutos rojos y coco tropical.</p>
+                        <a href="#" class="btn btn-blog btn-sm">Leer más</a>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <small class="text-date"><i class="bi bi-calendar"></i> 1 Diciembre 2024</small>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Artículo 5 -->
+            <article class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm blog-card">
+                    <img src="https://placehold.co/600x400/FFF5E1/884513?text=Promo+2x1" class="card-img-top" alt="Promoción especial">
+                    <div class="card-body">
+                        <span class="badge blog-badge bg-promocion mb-2">Promoción</span>
+                        <h3 class="h5 card-title">2x1 en Cupcakes Todos los Miércoles</h3>
+                        <p class="card-text">Aprovecha nuestra promoción especial: lleva 2 cupcakes por el precio de 1 todos los miércoles.</p>
+                        <a href="#" class="btn btn-blog btn-sm">Leer más</a>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <small class="text-date"><i class="bi bi-calendar"></i> 28 Noviembre 2024</small>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Artículo 6 -->
+            <article class="col-md-6 col-lg-4">
+                <div class="card h-100 shadow-sm blog-card">
+                    <img src="https://placehold.co/600x400/884513/FFF5E1?text=Ingredientes+Orgánicos" class="card-img-top" alt="Ingredientes orgánicos">
+                    <div class="card-body">
+                        <span class="badge blog-badge bg-evento mb-2">Calidad</span>
+                        <h3 class="h5 card-title">Ahora Usamos Solo Ingredientes Orgánicos</h3>
+                        <p class="card-text">Mejoramos nuestra calidad: todos nuestros productos ahora son elaborados con ingredientes 100% orgánicos.</p>
+                        <a href="#" class="btn btn-blog btn-sm">Leer más</a>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <small class="text-date"><i class="bi bi-calendar"></i> 25 Noviembre 2024</small>
+                    </div>
+                </div>
+            </article>
+        </section>
+
+        <!-- Sección de suscripción al blog -->
+        <section class="row mt-5">
+            <div class="col-12">
+                <div class="blog-header text-center p-4">
+                    <h2 class="pacifico-regular">¡No te pierdas ninguna novedad!</h2>
+                    <p>Suscríbete a nuestro blog y recibe recetas, tips de repostería y promociones exclusivas</p>
+                    <div class="d-flex justify-content-center mt-3">
+                        <input type="email" class="form-control w-50 me-2" placeholder="Tu correo electrónico">
+                        <button class="btn btn-blog">Suscribirse</button>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <!--PIE DE PÁGINA-->
     <div id="footer-placeholder"></div>
 
-
     <!-- Scripts -->
-    <script>
-    // Verificador de rutas
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('=== VERIFICACIÓN DE RUTAS ===');
-        console.log('Ruta actual:', window.location.pathname);
-        console.log('Live Server funcionando:', window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1'));
-        
-        // Verificar que los placeholders existen
-        console.log('Header placeholder:', document.getElementById('header-placeholder'));
-        console.log('Navbar placeholder:', document.getElementById('navbar-placeholder')); 
-        console.log('Footer placeholder:', document.getElementById('footer-placeholder'));
-    });
-    </script>
-
-    <script type="module" src="/src/js/partials.js"></script>
-    <script type="module" src="/src/js/main.js"></script>
+    <script type="module" src="../js/partials.js"></script>
+    <script type="module" src="../js/main.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
 </body>
-
 </html>
