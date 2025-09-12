@@ -1,0 +1,84 @@
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Breadcrumb -->
+        <div class="col-12 mb-3">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="index.html">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="#" id="category-link">{{category}}</a></li>
+                    <li class="breadcrumb-item active">{{name}}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Product Images -->
+        <div class="col-lg-6 col-md-12 mb-4">
+            <div class="main-image-container mb-3">
+                <img id="main-product-image" 
+                     src="{{mainImage}}" 
+                     alt="{{name}}" 
+                     class="img-fluid rounded shadow-sm w-100"
+                     style="height: 400px; object-fit: cover;">
+            </div>
+            
+            <div class="thumbnail-container">
+                <div class="row g-2" id="thumbnail-gallery">
+                    <!-- Thumbnails populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Information -->
+        <div class="col-lg-6 col-md-12">
+            <div class="product-info">
+                <h1 class="product-title h2 mb-3">{{name}}</h1>
+                
+                <div class="mb-3">
+                    <span class="badge bg-primary rounded-pill">{{category}}</span>
+                </div>
+                
+                <div class="price-section mb-4">
+                    <h3 class="price text-success fw-bold mb-0">{{price}}</h3>
+                    <small class="text-muted">Precio por unidad</small>
+                </div>
+                
+                <div class="description-section mb-4">
+                    <h5 class="mb-3">Descripción</h5>
+                    <p class="text-muted">{{description}}</p>
+                </div>
+                
+                <!-- Purchase Section -->
+                <div class="purchase-section">
+                    <div class="row align-items-center">
+                        <div class="col-md-4 col-6 mb-3">
+                            <label for="quantity-input" class="form-label">Cantidad:</label>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button" id="decrease-quantity">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" 
+                                       class="form-control text-center" 
+                                       id="quantity-input" 
+                                       value="1" 
+                                       min="1" 
+                                       max="10">
+                                <button class="btn btn-outline-secondary" type="button" id="increase-quantity">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-8 col-6 mb-3">
+                            <button class="btn btn-success btn-lg w-100" id="add-to-cart-btn">
+                                <i class="fas fa-shopping-cart me-2"></i>
+                                Añadir al Carrito
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
