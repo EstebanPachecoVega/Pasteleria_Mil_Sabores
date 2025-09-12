@@ -23,13 +23,17 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
 });
 
+// Modifica la función loadOrders para crear órdenes de muestra si no existen
 function loadOrders() {
     const user = authManager.getCurrentUser();
     if (!user) return;
 
-    // En una implementación real, esto vendría de una API o base de datos
-    // Por ahora, usamos datos de ejemplo o del localStorage
-    const orders = getOrdersFromStorage(user.id);
+    let orders = getOrdersFromStorage(user.id);
+    
+    // Si no hay órdenes, crear algunas de muestra
+    if (!orders || orders.length === 0) {
+        orders = createSampleOrders(user.id);
+    }
     
     if (orders && orders.length > 0) {
         currentOrders = orders;
@@ -387,4 +391,9 @@ function createSampleOrders(userId) {
     
     localStorage.setItem(`orders_${userId}`, JSON.stringify(sampleOrders));
     return sampleOrders;
+
+// Asegúrate de que createSampleOrders esté disponible globalmente
+// Agrega esta línea al final del archivo para hacerla accesible:
+window.createSampleOrders = createSampleOrders;
+
 }
