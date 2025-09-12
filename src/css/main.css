@@ -25,11 +25,11 @@
 @import url('./components/navbar.css');
 @import url('./components/footer.css');
 @import url('./components/auth-modals.css');
-@import url('./components/product-card.css');
+/*@import url('./components/product-card.css');*/
 @import url('./components/buttons.css');
 @import url('./components/forms.css');
 @import url('./components/content.css');
-@import url('./components/products.css');
+/*@import url('./components/products.css');*/
 @import url('./components/media.css');
 @import url('./components/admin.css');
 @import url('./animations.css');
