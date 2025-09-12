@@ -14,7 +14,7 @@ export const products = {
             name: 'Tiramisú Clásico',
             description: 'Un postre italiano individual con capas de café, mascarpone y cacao, perfecto para finalizar cualquier comida.',
             price: '$5.500',
-            image: '/src/assets/images/tiramisu_clasico.jpg',
+            image: '/src/assets/images/tiramisu_clasico.png',
             category: 'individuales'
         }
     ],
@@ -78,7 +78,7 @@ export const products = {
             name: 'Torta Circular de Vainilla',
             description: 'Bizcocho de vainilla clásico relleno con crema pastelera y cubierto con un glaseado dulce, perfecto para cualquier ocasión.',
             price: '$40.000',
-            image: '/src/assets/images/torta_circular_de_vainilla.jpg',
+            image: '/src/assets/images/torta_circular_de_vainilla.png',
             category: 'circulares'
         },
         {
