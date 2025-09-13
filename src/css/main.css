@@ -108,10 +108,9 @@ a {
     /* marrón oscuro */
 }
 
-.btn.btn-ver-productos {
-    background-color: var(--accent-chocolate);
-    color: var(--primary-bg-color);
-    border: none;
+.btn.ver-productos-btn {
+    border-color: var(--accent-chocolate);
+    color: var(--accent-chocolate);
     /* sin borde */
     border-radius: 30px;
     /* bordes redondeados */
@@ -125,22 +124,22 @@ a {
     /* transiciones suaves */
 }
 
-.btn.btn-ver-productos:hover,
-.btn.btn-ver-productos:focus {
-    background-color: var(--accent-pink);
+.btn.ver-productos-btn:hover,
+.btn.ver-productos-btn:focus {
+    background-color: var(--accent-chocolate);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20);
-    color: var(--text-primary-color);
+    color: var(--primary-bg-color);
 }
 
-.btn.btn-ver-productos:focus-visible {
+.btn.ver-productos-btn:focus-visible {
     outline: none;
     box-shadow: var(--shadow-rose);
 }
 
 /* Disabled */
-.btn.btn-ver-productos:disabled,
-.btn.btn-ver-productos[aria-disabled="true"] {
+.btn.ver-productos-btn:disabled,
+.btn.ver-productos-btn[aria-disabled="true"] {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
@@ -162,12 +161,12 @@ a {
 
 /* Navbar.css */
 /* Estilos para la barra de navegación */
-.bg-navbar {
-    background-color: var(--primary-bg-color) !important;
+.navbar-bg {
+    background-color: var(--primary-bg-color);
     /* Crema Pastel */
 }
 
-.navbar-brand {
+.navbar-title {
     font-family: var(--font-heading);
     /* Pacifico */
     color: var(--text-primary-color);
@@ -189,9 +188,83 @@ a {
     /* Rosa Suave */
 }
 
+.dropdown-menu-bg {
+    background-color: var(--primary-bg-color);
+    /* Crema Pastel */
+    border: 1px solid var(--text-secondary-color);
+    /* Gris Claro */
+}
+
+.dropdown-menu-bg .dropdown-item {
+    color: var(--text-primary-color);
+    /* Marrón Oscuro */
+    font-family: var(--font-primary);
+    /* Lato */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dropdown-menu-bg .dropdown-item:hover {
+    background-color: var(--primary-bg-color);
+    /* Rosa Suave */
+    color: var(--accent-pink);
+    /* Marrón Oscuro */
+}
+
+/* --- Contenedor del buscador --- */
+/* Ancho del input */
+.navbar-search .form-control {
+    min-width: 250px;
+    /* más ancho que el default */
+}
+
+/* --- Botón del buscador --- */
+.btn.navbar-search-btn {
+    font-size: 1.2rem;
+    border-color: var(--accent-chocolate);
+    color: var(--accent-chocolate);
+    transition: all 0.3s ease;
+}
+
+.btn.navbar-search-btn:hover {
+    background-color: var(--accent-chocolate);
+    color: var(--primary-bg-color);
+}
+
+/* --- Botón del carrito --- */
+.btn.navbar-cart-btn {
+    font-size: 1.2rem;
+    border-color: var(--accent-chocolate);
+    color: var(--accent-chocolate);
+    transition: all 0.3s ease;
+}
+
+.btn.navbar-cart-btn:hover {
+    background-color: var(--accent-chocolate);
+    color: var(--primary-bg-color);
+}
+
+/* --- Botón del usuario --- */
+.btn.navbar-person-btn {
+    font-size: 1.2rem;
+    border-color: var(--accent-pink);
+    color: var(--accent-pink);
+    transition: all 0.3s ease;
+}
+
+.btn.navbar-person-btn:hover {
+    background-color: var(--accent-pink);
+    color: var(--primary-bg-color);
+}
+
+/* Ajustes del Toggler */
 .navbar-toggler {
     border-color: var(--text-primary-color);
     /* Marrón Oscuro */
+}
+
+.navbar-toggler-icon {
+    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 30 30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke='rgba(93, 64, 55, 1)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+    /* Icono de hamburguesa marrón oscuro */
 }
 
 /* product-card.css */
@@ -248,7 +321,7 @@ a {
 }
 
 .footer-links a:hover {
-    color: var(--text-secondary-color);
+    color: var(--accent-pink);
     text-decoration: underline;
 }
 

@@ -1,10 +1,10 @@
 <!-- NAVBAR COMPLETO - Desktop & Mobile -->
-<nav class="navbar navbar-expand-lg bg-navbar shadow-sm">
+<nav class="navbar navbar-expand-lg navbar-bg shadow-sm">
     <div class="container">
         <!-- Logo -->
         <a class="navbar-brand" href="/src/index.html">
             <img src="/src/assets/logo_pasteleria_sin_fondo.png" alt="Logo Pastelería Mil Sabores" height="60">
-            <span class="ms-2 d-none d-md-inline">Pastelería Mil Sabores</span>
+            <span class="navbar-title ms-2 d-none d-md-inline">Pastelería Mil Sabores</span>
         </a>
 
         <!-- Mobile toggle -->
@@ -36,7 +36,7 @@
                         aria-expanded="false">
                         Categorías
                     </a>
-                    <ul class="dropdown-menu">
+                    <ul class="dropdown-menu dropdown-menu-bg">
                         <li><a class="dropdown-item" href="/src/pages/postres/individuales.html">Postres
                                 Individuales</a></li>
                         <li>
@@ -64,10 +64,10 @@
 
             <!-- Buscador -->
             <form class="d-flex me-3" role="search">
-                <div class="input-group">
+                <div class="input-group navbar-search">
                     <input class="form-control" type="search" placeholder="Buscar productos..." aria-label="Search">
-                    <button class="btn btn-outline-primary" type="submit">
-                        <i class="bi bi-search"></i>
+                    <button class="btn navbar-search-btn" type="submit">
+                        <i class="bi bi-search navbar-icon-search"></i>
                     </button>
                 </div>
             </form>
@@ -75,7 +75,7 @@
             <!-- Iconos de usuario y carrito -->
             <div class="d-flex">
                 <!-- Carrito con offcanvas -->
-                <button class="btn btn-outline-primary position-relative me-2" type="button" data-bs-toggle="offcanvas"
+                <button class="btn navbar-cart-btn position-relative me-2" type="button" data-bs-toggle="offcanvas"
                     data-bs-target="#cartOffcanvas">
                     <i class="bi bi-cart3"></i>
                     <span id="cart-count"
@@ -85,7 +85,7 @@
                 </button>
 
                 <!-- Usuario con modal -->
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
+                <button class="btn navbar-person-btn" type="button" data-bs-toggle="modal"
                     data-bs-target="#authModal">
                     <i class="bi bi-person"></i>
                 </button>
