@@ -1,12 +1,21 @@
 /* Pie de Página */
 footer {
-    background-color: var(--accent-chocolate);
+    background-color: #8B4513;
     color: var(--white-color);
     padding: 2rem 0;
     text-align: center;
     margin-top: 3rem;
     box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
 }
+ /*
+.footer-links{
+    color: var(--white-color);
+}
+
+.bg-footer {
+    background-color: var(--accent-chocolate) !important;
+}
+
 
 footer .footer-content {
     display: flex;
@@ -30,6 +39,7 @@ footer .footer-section h4 {
     margin-bottom: 1rem;
     font-size: 1.2rem;
 }
+
 
 footer .footer-section p,
 footer .footer-section ul {

@@ -1,12 +1,24 @@
 /* main.css */
+
+/* Importación de fuentes */
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Pacifico&display=swap');
+
+
+
 /* Variables globales y estilos base */
 :root {
     /* Colores */
-    --primary-bg-color: #FFF5E1; /* Crema Pastel */
-    --accent-pink: #FFC0CB; /* Rosa Suave */
-    --accent-chocolate: #8B4513; /* Chocolate */
-    --text-primary-color: #5D4037; /* Marrón Oscuro */
-    --text-secondary-color: #B0BEC5; /* Gris Claro */
+    --primary-bg-color: #FFF5E1;
+    /* Crema Pastel */
+    --accent-pink: #FFC0CB;
+    /* Rosa Suave */
+    --accent-chocolate: #8B4513;
+    /* Chocolate */
+    --text-primary-color: #5D4037;
+    /* Marrón Oscuro */
+    --text-secondary-color: #B0BEC5;
+    /* Gris Claro */
     --white-color: #FFFFFF;
     --black-color: #000000;
 
@@ -23,7 +35,7 @@
 /* Importación de componentes */
 @import url('./components/header.css');
 @import url('./components/navbar.css');
-@import url('./components/footer.css');
+@import url('../components/footer.css');
 @import url('./components/auth-modals.css');
 /*@import url('./components/product-card.css');*/
 @import url('./components/buttons.css');
@@ -46,24 +58,122 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
-    color: var(--accent-chocolate);
-    margin-top: 1em;
-    margin-bottom: 0.5em;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: "Pacifico", cursive;
+    font-weight: 400;
+    /* o 700 si quieres más grueso */
+    margin: 0 0 0.5rem 0;
+    line-height: 1.1;
 }
 
 p {
-    margin-bottom: 1em;
+    font-family: "Lato", sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    margin: 0 0 1rem 0;
+    
 }
 
 a {
-    color: var(--accent-chocolate);
+    color: var(--accent-pink);
     text-decoration: none;
     transition: color 0.3s ease;
 }
 
-a:hover {
+/* buttons.css */
+/* Estilos para botones personalizados */
+.btn-add-cart {
+  background-color: var(--accent-chocolate) !important; /* chocolate */
+  color: #FFFFFF; /* blanco */
+  padding: 10px 20px;
+  border: none;             /* si usas Bootstrap y quieres quitar el borde */
+  transition: background-color 0.15s ease;
+}
+
+.btn-ver-productos {
+    background-color: var(--accent-chocolate);
+    color: var(--white-color);
+    border: none;
+}
+
+/* product-card.css */
+/* Tarjeta de Producto Personalizada */
+.product-title {
+    font-family: var(--font-primary);
+    color: var(--text-primary-color);
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.product-description {
+    font-family: var(--font-primary);
+    color: var(--text-secondary-color);
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.product-price {
+    font-family: var(--font-primary); /* Aseguramos que use la fuente primaria */
+    color: var(--text-primary-color); /* Color marrón oscuro */
+    font-size: 1.3rem; /* Tamaño de fuente más grande para destacar el precio */
+    margin-bottom: 1rem; /* Espacio debajo del precio */
+    font-weight: 800; /* Negrita para resaltar el precio */
+}
+
+
+/* footer.css */
+/* Pie de Página */
+.bg-footer {
+    background-color: var(--accent-chocolate) !important; /* Chocolate */
+}
+
+.footer-column {
+    color: var(--primary-bg-color);
+    margin-bottom: 1.5rem;
+    padding: 0 15px;
+    box-sizing: border-box;
+    font-family: var(--font-primary);
+}
+
+/* Estilos para enlaces */
+.footer-links a {
+    color: var(--primary-bg-color);
+    font-family: var(--font-primary);
+    margin-bottom: 1rem;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: var(--text-secondary-color);
+  text-decoration: underline;
+}
+
+.footer-divisor {
+    border-top: 1px solid var(--primary-bg-color);
+}
+
+.footer-copyrigth {
+    color: var(--primary-bg-color);
+    font-family: var(--font-primary);
+    font-size: 0.9rem;
+}
+
+.icon-social-red {
+    font-size: 1.5rem;
+    transition: color 0.3s ease;
+}
+
+.icon-social-red a {
+    color: var(--primary-bg-color);
+}
+
+.icon-social-red a:hover {
     color: var(--accent-pink);
-    text-decoration: underline;
 }

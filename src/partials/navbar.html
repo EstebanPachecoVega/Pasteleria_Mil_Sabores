@@ -32,21 +32,32 @@
                     <a class="nav-link" href="/src/pages/contacto.html">Contacto</a>
                 </li>
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                        aria-expanded="false">
                         Categorías
                     </a>
                     <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/src/pages/postres/individuales.html">Postres Individuales</a></li>
-                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/src/pages/postres/individuales.html">Postres
+                                Individuales</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
                         <li><a class="dropdown-item" href="/src/pages/tortas/cuadradas.html">Tortas Cuadradas</a></li>
                         <li><a class="dropdown-item" href="/src/pages/tortas/circulares.html">Tortas Circulares</a></li>
                         <li><a class="dropdown-item" href="/src/pages/tortas/especiales.html">Tortas Especiales</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/src/pages/productos/sin_azucar.html">Productos sin Azúcar</a></li>
-                        <li><a class="dropdown-item" href="/src/pages/productos/sin_gluten.html">Productos sin Gluten</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="/src/pages/productos/sin_azucar.html">Productos sin
+                                Azúcar</a></li>
+                        <li><a class="dropdown-item" href="/src/pages/productos/sin_gluten.html">Productos sin
+                                Gluten</a></li>
                         <li><a class="dropdown-item" href="/src/pages/productos/veganos.html">Productos Veganos</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="/src/pages/pasteleria/tradicional.html">Pastelería Tradicional</a></li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li><a class="dropdown-item" href="/src/pages/pasteleria/tradicional.html">Pastelería
+                                Tradicional</a></li>
                     </ul>
                 </li>
             </ul>
@@ -64,43 +75,66 @@
             <!-- Iconos de usuario y carrito -->
             <div class="d-flex">
                 <!-- Carrito con offcanvas -->
-                <button class="btn btn-outline-primary position-relative me-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#cartOffcanvas">
+                <button class="btn btn-outline-primary position-relative me-2" type="button" data-bs-toggle="offcanvas"
+                    data-bs-target="#cartOffcanvas">
                     <i class="bi bi-cart3"></i>
-                    <span id="cart-count" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    <span id="cart-count"
+                        class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
                         0
                     </span>
                 </button>
-                
+
                 <!-- Usuario con modal -->
-                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#authModal">
+                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal"
+                    data-bs-target="#authModal">
                     <i class="bi bi-person"></i>
                 </button>
 
                 <!-- Modal de autenticación -->
-                <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel" aria-hidden="true">
+                <div class="modal fade" id="authModal" tabindex="-1" aria-labelledby="authModalLabel"
+                    aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="authModalLabel">Acceso</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                        </div>
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="authModalLabel">Acceso</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                    aria-label="Cerrar"></button>
+                            </div>
 
-                        <div class="modal-body">
-                            <!-- Login/Register -->
-                            <div id="auth-buttons" class="d-flex justify-content-center gap-2">
-                                <a href="/src/pages/login.html" class="btn btn-outline-primary me-2">
-                                    <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
-                                </a>
-                                <a href="/src/pages/register.html" class="btn btn-primary">
-                                    <i class="bi bi-person-plus"></i> Registrarse
-                                </a>
+                            <div class="modal-body">
+                                <!-- Login/Register -->
+                                <div id="auth-buttons" class="d-flex justify-content-center gap-2">
+                                    <a href="/src/pages/login.html" class="btn btn-outline-primary me-2">
+                                        <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                                    </a>
+                                    <a href="/src/pages/register.html" class="btn btn-primary">
+                                        <i class="bi bi-person-plus"></i> Registrarse
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                        </div>
-                        </div>
+                <!-- Menú de usuario (para usuarios logueados) -->
+                <div id="user-menu" class="d-none">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> <span id="user-name"></span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/src/pages/profile.html">Mi Perfil</a></li>
+                            <li><a class="dropdown-item" href="/src/pages/orders.html">Mis Pedidos</a></li>
+                            <li>
+                                <hr class="dropdown-divider">
+                            </li>
+                            <li><a class="dropdown-item" href="/src/index.html" id="logout-btn">Cerrar Sesión</a></li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -125,7 +159,7 @@
                 Continuar Comprando
             </button>
         </div>
-        
+
         <!-- Contenedor de items (oculto inicialmente) -->
         <div id="cart-items-container" class="d-none">
             <div class="cart-items-list">
@@ -140,7 +174,7 @@
                     <button class="btn btn-outline-primary" type="button" id="apply-discount-btn">Aplicar</button>
                 </div>
                 <div id="discount-message" class="small"></div>
-                
+
                 <!-- Descuentos aplicados -->
                 <div id="applied-discounts" class="mt-2">
                     <div class="alert alert-success py-2" id="age-discount-alert" style="display: none;">
@@ -154,7 +188,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- Resumen del carrito -->
             <div class="cart-summary border-top pt-3 mt-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -180,33 +214,18 @@
     </div>
 </div>
 
-<!-- Menú de usuario (para usuarios logueados) -->
-<div id="user-menu" class="d-none">
-    <div class="dropdown">
-        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-            <i class="bi bi-person-circle"></i> <span id="user-name"></span>
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="/src/pages/profile.html">Mi Perfil</a></li>
-            <li><a class="dropdown-item" href="/src/pages/orders.html">Mis Pedidos</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="/src/index.html" id="logout-btn">Cerrar Sesión</a></li>
-        </ul>
-    </div>
-</div>
-
 <!-- Script para el contador del carrito -->
 <script>
-// Función para actualizar el contador del carrito
-function updateCartCount() {
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
-    document.getElementById('cart-count').textContent = totalItems;
-}
+    // Función para actualizar el contador del carrito
+    function updateCartCount() {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
+        document.getElementById('cart-count').textContent = totalItems;
+    }
 
-// Actualizar al cargar la página
-document.addEventListener('DOMContentLoaded', updateCartCount);
+    // Actualizar al cargar la página
+    document.addEventListener('DOMContentLoaded', updateCartCount);
 
-// Escuchar eventos de actualización del carrito
-window.addEventListener('cartUpdated', updateCartCount);
+    // Escuchar eventos de actualización del carrito
+    window.addEventListener('cartUpdated', updateCartCount);
 </script>

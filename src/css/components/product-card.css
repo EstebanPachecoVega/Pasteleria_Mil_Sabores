@@ -1,4 +1,33 @@
 /* Sección de Productos Destacados */
+
+.product-title {
+    font-family: var(--font-primary);
+    color: var(--accent-chocolate);
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+}
+
+.product-description {
+    font-family: var(--font-primary);
+    color: var(--text-secondary-color);
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+}
+
+.product-price {
+    font-family: var(--font-primary);
+    color: var(--text-primary-color);
+    font-weight: 800;
+    font-weight: bold;
+}
+
+
+
+
+
+
+
 .product-list-home {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
