@@ -88,6 +88,7 @@ a {
     transition: color 0.3s ease;
 }
 
+
 /* buttons.css */
 /* Estilos para botones personalizados */
 .btn-add-cart {
@@ -295,6 +296,270 @@ a {
     /* Espacio debajo del precio */
     font-weight: 800;
     /* Negrita para resaltar el precio */
+}
+
+/* Cart Offcanvas */
+.cart-offcanvas-main {
+    background-color: var(--primary-bg-color);
+    /* Crema Pastel */
+    color: var(--text-primary-color);
+    /* Marrón Oscuro */
+    font-family: var(--font-primary);
+}
+
+.offcanvas-header {
+    border-bottom: 1px solid var(--accent-chocolate);
+}
+
+.btn-close {
+    width: 1rem;
+    height: 1rem;
+    background-size: 1.4rem;
+    filter: invert(30%) sepia(80%) saturate(400%) hue-rotate(330deg);
+    opacity: 0.8;
+}
+
+.btn-close:hover {
+    filter: invert(70%) sepia(50%) saturate(500%) hue-rotate(310deg);
+    /* Tono rosado (accent-pink) */
+    opacity: 1;
+}
+
+/* --- Contenedor del item del carrito --- */
+.cart-item {
+    background-color: var(--primary-bg-color);
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--accent-chocolate) !important;
+    /* línea divisoria */
+    padding: 0.75rem 0;
+    /* padding vertical */
+    transition: background-color 0.2s ease;
+}
+
+/* --- Imagen del producto --- */
+.cart-item-image {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    /* mantiene proporción y recorta si es necesario */
+    border-radius: 8px;
+    /* esquinas redondeadas */
+}
+
+/* --- Selector de cantidad --- */
+.quantity-selector {
+    display: flex;
+    align-items: center;
+}
+
+.quantity-selector span {
+    min-width: 20px;
+    text-align: center;
+    display: inline-block;
+    font-weight: 500;
+    margin: 0.5rem;
+}
+
+/* Botón "-" */
+.cart-item-decrease {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-weight: bold;
+    font-size: 1rem;
+    border-radius: 4px;
+    border: 1px solid #d9534f;
+    color: #d9534f;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.cart-item-decrease:hover,
+.cart-item-decrease:focus,
+.cart-item-decrease:active {
+    background-color: #d9534f;
+    color: var(--primary-bg-color);
+    border-color: #d9534f;
+    /* mantener rojo en borde */
+    box-shadow: none;
+    /* quitar sombra predeterminada */
+}
+
+/* Botón "+" */
+.cart-item-increase {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-weight: bold;
+    font-size: 1rem;
+    border-radius: 4px;
+    border: 1px solid #28a745;
+    color: #28a745;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.cart-item-increase:hover,
+.cart-item-increase:focus,
+.cart-item-increase:active {
+    background-color: #28a745;
+    color: var(--primary-bg-color);
+    border-color: #28a745;
+    /* mantener verde en borde */
+    box-shadow: none;
+}
+
+/* --- Precio --- */
+.cart-item-price {
+    font-weight: 600;
+    color: var(--text-primary-color);
+    font-size: 1rem;
+    min-width: 60px;
+}
+
+/* --- Botón eliminar --- */
+.cart-item-remove {
+    margin-left: 0.5rem;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.cart-item-remove i {
+    color: #d9534f;
+    /* rojo del botón */
+}
+
+.cart-item-remove:hover {
+    background-color: #d9534f;
+    color: var(--primary-bg-color);
+}
+
+.cart-item-remove:hover i {
+    color: var(--primary-bg-color);
+}
+
+/* --- Contenedor del descuento del carrito --- */
+.discount-section {
+    background-color: var(--primary-bg-color) !important;
+    /* color de fondo suave, puedes usar var(--primary-bg-color) */
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+}
+
+#discount-code-input {
+    border: 2px solid var(--accent-chocolate);
+    border-radius: 6px 0 0 6px;
+    /* bordes redondeados solo en la izquierda */
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+#discount-code-input:focus {
+    border-color: var(--accent-pink);
+    box-shadow: 0 0 5px rgba(255, 105, 180, 0.4);
+    /* sombra rosa */
+}
+
+/* --- Botón Aplicar --- */
+#apply-discount-btn {
+    border-radius: 0 6px 6px 0;
+    /* bordes redondeados solo derecha */
+    border: 1px solid var(--accent-chocolate);
+    background-color: var(--accent-chocolate);
+    color: var(--primary-bg-color);
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+#apply-discount-btn:hover {
+    background-color: var(--accent-pink);
+    border-color: var(--accent-pink);
+    color: var(--text-primary-color);
+    box-shadow: 0 0 5px rgba(255, 105, 180, 0.4);
+}
+
+/* --- Mensaje de descuento --- */
+#discount-message {
+    font-size: 0.85rem;
+    color: var(--accent-pink);
+    margin-top: 0.25rem;
+}
+
+/* --- Contenedor del Resumen del carrito --- */
+.cart-summary {
+    border-top: 2px solid var(--accent-chocolate) !important;
+    /* divisor chocolate */
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+/* --- Filas de subtotal, descuentos y total --- */
+.cart-summary .d-flex {
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+/* Subtotal y Total */
+.cart-summary span {
+    font-size: 1rem;
+    color: #333;
+}
+
+/* Total destacado */
+.cart-summary .fw-bold span {
+    font-weight: 700;
+    color: var(--accent-chocolate);
+    font-size: 1.1rem;
+}
+
+/* Botones de proceder al pago y continuar comprando */
+.cart-summary .btn {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.btn.proceed-payment-btn {
+    background-color: var(--accent-pink);
+    /* Chocolate */
+    color: var(--text-primary-color);
+    /* Crema Pastel */
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    transition: background-color .25s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.btn.proceed-payment-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.20);
+}
+
+.btn.continue-shopping-btn {
+    color: var(--text-primary-color);
+    border-color: var(--accent-chocolate);
+    border-radius: 10px;
+    padding: 10px 20px;
+    transition: background-color .25s ease, transform .15s ease, box-shadow .15s ease;
+}
+
+.btn.continue-shopping-btn:hover {
+    background-color: var(--accent-chocolate);
+    color: var(--primary-bg-color);
 }
 
 /* footer.css */
