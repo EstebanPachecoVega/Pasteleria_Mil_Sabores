@@ -1,0 +1,102 @@
+/* Estilos para la página de detalles */
+.product-title-detail {
+    font-family: var(--font-heading);
+    color: var(--text-primary-color);
+    font-size: 3rem;
+    font-weight: 600;
+}
+
+.product-price-detail {
+    font-family: var(--font-heading);
+    color: var(--text-primary-color);
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    font-weight: 400;
+}
+
+/* Etiquetas personalizados */
+.category-badge-detail {
+    background-color: var(--accent-pink) !important;
+    color: var(--accent-chocolate);
+    font-size: 1rem;
+    border-radius: 5px;
+}
+
+.stock-badge-detail {
+    background-color: var(--accent-chocolate) !important;
+    color: var(--primary-bg-color);
+    font-size: 1rem;
+    border-radius: 5px;
+}
+
+/* Descripción del producto */
+.product-description-detail {
+    font-family: var(--font-primary);
+    color: var(--text-primary-color);
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+}
+
+/* Contenedor de la imagen principal */
+.main-image-container {
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: var(--shadow-medium);
+}
+
+/* Estilos para la sección de compra */
+.purchase-section .btn-add-to-cart,
+.purchase-section .btn-add-to-cart:hover {
+  background-color: var(--accent-chocolate);
+  border-color: var(--accent-chocolate);
+  color: var(--primary-bg-color);
+}
+
+.purchase-section .btn-add-to-cart:hover {
+  background-color: var(--accent-pink);
+  border-color: var(--accent-pink);
+  color: var(--text-primary-color);
+}
+
+/* Botones de cantidad */
+.btn.decrease-quantity-detail,
+.btn.increase-quantity-detail {
+    background-color: var(--primary-bg-color);
+    border: 1px solid var(--accent-chocolate);
+    color: var(--accent-chocolate);
+    font-size: 1.2rem;
+}
+
+/* hover */
+.btn.decrease-quantity-detail:hover,
+.btn.increase-quantity-detail:hover {
+    background-color: var(--accent-chocolate);
+    color: var(--primary-bg-color);
+    box-shadow: none;
+}
+
+/* icono */
+.btn.decrease-quantity-detail i,
+.btn.increase-quantity-detail i {
+    color: inherit;
+}
+
+/* Quitar flechas en navegadores WebKit (Chrome, Edge Chromium, Safari) */
+.input-number::-webkit-outer-spin-button,
+.input-number::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Quitar flechas en Firefox */
+.input-number[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+
+/* Asegurar apariencia neutra en otros navegadores */
+.input-number {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+}

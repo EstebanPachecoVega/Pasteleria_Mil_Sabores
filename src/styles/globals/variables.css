@@ -1,0 +1,23 @@
+/* Variables globales */
+:root {
+    /* Colores */
+    --primary-bg-color: #FFF5E1;
+    --accent-pink: #FFC0CB;
+    --accent-chocolate: #8B4513;
+    --text-primary-color: #5D4037;
+    --text-secondary-color: #B0BEC5;
+    --white-color: #FFFFFF;
+    --black-color: #000000;
+
+    /* Fuentes */
+    --font-primary: 'Lato', sans-serif;
+    --font-heading: 'Pacifico', cursive;
+
+    /* Sombras */
+    --shadow-rose: 0 0 0 0.25rem rgba(255, 105, 180, 0.25);
+    --shadow-light: 0 4px 8px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 6px 12px rgba(0, 0, 0, 0.15);
+
+    /* Tamaño Scrollbar */
+    --scrollbar-size: 12px;
+}

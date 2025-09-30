@@ -1,0 +1,11 @@
+/* Estilos para el encabezado */
+.site-header {
+    background-color: var(--accent-chocolate) !important;
+    /* Chocolate */
+    color: var(--primary-bg-color);
+    /* Crema Pastel */
+    font-family: var(--font-primary);
+    /* Lato */
+    font-size: 1rem;
+    /* Tamaño de fuente legible */
+}

@@ -1,0 +1,4 @@
+/* Importar variables y tipografía */
+@import './variables.css';
+@import './typography.css';
+@import './reset.css';

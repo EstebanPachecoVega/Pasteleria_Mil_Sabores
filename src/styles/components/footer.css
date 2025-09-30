@@ -1,0 +1,49 @@
+/* Pie de Página */
+.bg-footer {
+    background-color: var(--accent-chocolate) !important;
+    /* Chocolate */
+}
+
+.footer-column {
+    color: var(--primary-bg-color);
+    margin-bottom: 1.5rem;
+    padding: 0 15px;
+    box-sizing: border-box;
+    font-family: var(--font-primary);
+}
+
+.footer-links a {
+    color: var(--primary-bg-color);
+    font-family: var(--font-primary);
+    margin-bottom: 1rem;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+    color: var(--accent-pink);
+    text-decoration: underline;
+}
+
+.footer-divisor {
+    border-top: 1px solid var(--primary-bg-color);
+}
+
+.footer-copyrigth {
+    color: var(--primary-bg-color);
+    font-family: var(--font-primary);
+    font-size: 0.9rem;
+}
+
+.icon-social-red {
+    font-size: 1.5rem;
+    transition: color 0.3s ease;
+}
+
+.icon-social-red a {
+    color: var(--primary-bg-color);
+}
+
+.icon-social-red a:hover {
+    color: var(--accent-pink);
+}
