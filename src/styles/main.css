@@ -1,0 +1,41 @@
+/* Importar estilos globales */
+@import './globals/index.css';
+
+/* Importar componentes */
+@import './components/buttons.css';
+@import './components/header.css';
+@import './components/navbar.css';
+@import './components/product-card.css';
+@import './components/product-detail.css';
+@import './components/cart.css';
+@import './components/footer.css';
+@import './components/hero.css';
+
+/* ---- Firefox ---- */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-chocolate) var(--primary-bg-color);
+}
+
+/* ---- WebKit / Blink (Chrome, Edge, Safari) ---- */
+::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--primary-bg-color);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--accent-chocolate);
+  border-radius: 999px;
+  border: 3px solid var(--primary-bg-color);
+}
+
+/* Hover/active */
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: color-mix(in srgb, var(--accent-chocolate) 80%, black 20%);
+}

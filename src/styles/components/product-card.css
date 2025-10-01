@@ -1,0 +1,43 @@
+/* Tarjeta de Producto Personalizada */
+.product-card-link {
+  display: block;
+}
+
+.product-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: var(--accent-pink);
+}
+
+/* Efecto hover en la imagen */
+.product-card:hover .card-img-top {
+  opacity: 0.9;
+  transition: opacity 0.3s ease;
+}
+
+.product-title {
+    font-family: var(--font-heading);
+    color: var(--text-primary-color);
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.product-price {
+    font-family: var(--font-primary);
+    /* Aseguramos que use la fuente primaria */
+    color: var(--text-primary-color);
+    /* Color marrón oscuro */
+    font-size: 1.4rem;
+    /* Tamaño de fuente más grande para destacar el precio */
+    margin-bottom: 1rem;
+    /* Espacio debajo del precio */
+    font-weight: 800;
+    /* Negrita para resaltar el precio */
+}
