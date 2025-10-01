@@ -186,12 +186,12 @@ const ProductDetails = () => {
                       className="form-control text-center input-number"
                       value={quantity}
                       min="1"
-                      max="10"
-                      onChange={(e) => setQuantity(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+                      max="100"
+                      onChange={(e) => setQuantity(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
                     />
                     <Button
                       className="increase-quantity-detail"
-                      onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                      onClick={() => setQuantity(q => Math.min(100, q + 1))}
                     >
                       <i className="bi bi-plus"></i>
                     </Button>

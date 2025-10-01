@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { formatPrice } from '../../utils/formatters';
 
 const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveItem }) => {
@@ -10,16 +10,27 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     birthday: false
   });
 
-  // Calcular totales
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  
-  // Calcular descuentos
-  const ageDiscount = appliedDiscounts.age ? subtotal * 0.5 : 0;
-  const codeDiscount = appliedDiscounts.code ? subtotal * 0.1 : 0;
-  const birthdayDiscount = appliedDiscounts.birthday ? 0 : 0;
-  
-  const totalDiscounts = ageDiscount + codeDiscount + birthdayDiscount;
-  const total = subtotal - totalDiscounts;
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [editQuantity, setEditQuantity] = useState('');
+
+  // Calcular totales con useMemo para optimización
+  const { subtotal, ageDiscount, codeDiscount, birthdayDiscount, totalDiscounts, total } = useMemo(() => {
+    const subtotalValue = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const ageDiscountValue = appliedDiscounts.age ? subtotalValue * 0.5 : 0;
+    const codeDiscountValue = appliedDiscounts.code ? subtotalValue * 0.1 : 0;
+    const birthdayDiscountValue = appliedDiscounts.birthday ? 0 : 0;
+    const totalDiscountsValue = ageDiscountValue + codeDiscountValue + birthdayDiscountValue;
+    const totalValue = subtotalValue - totalDiscountsValue;
+
+    return {
+      subtotal: subtotalValue,
+      ageDiscount: ageDiscountValue,
+      codeDiscount: codeDiscountValue,
+      birthdayDiscount: birthdayDiscountValue,
+      totalDiscounts: totalDiscountsValue,
+      total: totalValue
+    };
+  }, [cartItems, appliedDiscounts]);
 
   // Aplicar código de descuento
   const applyDiscountCode = () => {
@@ -31,7 +42,42 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     }
   };
 
-  // Resetear descuentos cuando se cierra el carrito
+  // Funciones para manejar la edición del quantity
+  const startEditing = (item) => {
+    setEditingItemId(item.id);
+    setEditQuantity(item.quantity.toString());
+  };
+
+  const cancelEditing = () => {
+    setEditingItemId(null);
+    setEditQuantity('');
+  };
+
+  const saveQuantity = (itemId) => {
+    let newQuantity = parseInt(editQuantity);
+
+    // Validaciones
+    if (isNaN(newQuantity) || newQuantity < 1) {
+      onRemoveItem(itemId);
+    } else if (newQuantity > 100) {
+      onUpdateQuantity(itemId, 100);
+    } else {
+      onUpdateQuantity(itemId, newQuantity);
+    }
+
+    setEditingItemId(null);
+    setEditQuantity('');
+  };
+
+  const handleQuantityKeyPress = (e, itemId) => {
+    if (e.key === 'Enter') {
+      saveQuantity(itemId);
+    } else if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  };
+
+  // Resetear descuentos y edición cuando se cierra el carrito
   useEffect(() => {
     if (!show) {
       setDiscountCode('');
@@ -41,6 +87,8 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
         code: false,
         birthday: false
       });
+      setEditingItemId(null);
+      setEditQuantity('');
     }
   }, [show]);
 
@@ -53,9 +101,9 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
   };
 
   return (
-    <div 
+    <div
       className={`offcanvas offcanvas-end cart-offcanvas-main ${show ? 'show' : ''}`}
-      style={{ 
+      style={{
         visibility: show ? 'visible' : 'hidden',
         width: show ? '400px' : '0px'
       }}
@@ -65,14 +113,14 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
         <h5 className="offcanvas-title">
           <i className="bi bi-cart3 me-2"></i>Tu Carrito
         </h5>
-        <button 
-          type="button" 
-          className="btn-close" 
+        <button
+          type="button"
+          className="btn-close"
           onClick={onClose}
           aria-label="Close"
         ></button>
       </div>
-      
+
       <div className="offcanvas-body">
         {cartItems.length === 0 ? (
           <div id="cart-empty-state" className="text-center py-5">
@@ -86,62 +134,104 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
           <div id="cart-items-container">
             <div className="cart-items-list">
               {cartItems.map(item => (
-                <div key={item.id} className="cart-item d-flex align-items-start p-2 border-bottom">
-                  <img 
-                    src={item.image} 
+                <div key={item.id} className="cart-item d-flex align-items-center p-2 border-bottom">
+                  <img
+                    src={item.image}
                     alt={item.name}
-                    className="cart-item-image rounded"
+                    className="cart-item-image rounded me-3"
                     style={{ width: '60px', height: '60px', objectFit: 'cover' }}
                   />
-                  <div className="flex-grow-1 ms-3">
-                    <h6 className="mb-1">{item.name}</h6>
-                    <div className="d-flex align-items-center">
-                      <div className="quantity-selector d-flex align-items-center border rounded">
-                        <button 
-                          className="cart-item-decrease btn btn-sm border-0"
+                  <div className="cart-item-details flex-grow-1">
+                    <h6 className="mb-2">{item.name}</h6>
+                    <div className="cart-item-controls d-flex align-items-center justify-content-between w-100">
+                      <div className="quantity-selector d-flex align-items-center">
+                        <button
+                          className="cart-item-decrease"
                           onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
                           disabled={item.quantity <= 1}
+                          aria-label="Disminuir cantidad"
                         >
                           -
                         </button>
-                        <span className="px-2">{item.quantity}</span>
-                        <button 
-                          className="cart-item-increase btn btn-sm border-0"
-                          onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                        {editingItemId === item.id ? (
+                          <div className="quantity-edit-container position-relative">
+                            <input
+                              type="number"
+                              className="quantity-input"
+                              value={editQuantity}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/[^0-9]/g, '');
+                                // Limitar a máximo 100
+                                const numericValue = parseInt(value) || 0;
+                                if (numericValue <= 100) {
+                                  setEditQuantity(value);
+                                } else {
+                                  setEditQuantity('100');
+                                }
+                              }}
+                              onKeyPress={(e) => handleQuantityKeyPress(e, item.id)}
+                              onBlur={() => saveQuantity(item.id)}
+                              autoFocus
+                              min="1"
+                              max="100"
+                              aria-label="Editar cantidad"
+                            />
+                          </div>
+                        ) : (
+                          <span
+                            className="quantity-number editable"
+                            onClick={() => startEditing(item)}
+                            title="Haz clic para editar la cantidad"
+                          >
+                            {item.quantity}
+                          </span>
+                        )}
+                        <button
+                          className="cart-item-increase"
+                          onClick={() => {
+                            if (item.quantity < 100) {
+                              onUpdateQuantity(item.id, item.quantity + 1);
+                            }
+                          }}
+                          disabled={item.quantity >= 100}
+                          aria-label="Aumentar cantidad"
                         >
                           +
                         </button>
                       </div>
-                      <div className="cart-item-price ms-3 fw-bold">
-                        ${formatPrice(item.price * item.quantity)}
+                      <div className="d-flex align-items-center">
+                        <div className="cart-item-price fw-bold me-3">
+                          ${formatPrice(item.price * item.quantity)}
+                        </div>
+                        <button
+                          className="cart-item-remove btn btn-outline-danger btn-sm"
+                          onClick={() => onRemoveItem(item.id)}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
                       </div>
-                      <button 
-                        className="cart-item-remove btn btn-outline-danger btn-sm ms-2"
-                        onClick={() => onRemoveItem(item.id)}
-                      >
-                        <i className="bi bi-trash"></i>
-                      </button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
+            {/* Sección de descuentos y resumen */}
             <div className="discount-section mt-3 p-3 bg-light rounded">
               <h6 className="mb-2">¿Tienes un código de descuento?</h6>
               <div className="input-group mb-2">
-                <input 
-                  type="text" 
-                  className="form-control" 
-                  placeholder="Ingresa tu código" 
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Ingresa tu código"
                   id="discount-code-input"
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value)}
                   onKeyPress={handleKeyPress}
                 />
-                <button 
-                  className="btn btn-outline-primary" 
-                  type="button" 
+                <button
+                  className="btn btn-outline-primary"
+                  type="button"
                   id="apply-discount-btn"
                   onClick={applyDiscountCode}
                 >
@@ -178,19 +268,19 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                 <span>Subtotal:</span>
                 <span id="cart-subtotal">${formatPrice(subtotal)}</span>
               </div>
-              
+
               {totalDiscounts > 0 && (
                 <div className="d-flex justify-content-between align-items-center mb-2 text-success">
                   <span>Descuentos:</span>
                   <span id="cart-discounts">-${formatPrice(totalDiscounts)}</span>
                 </div>
               )}
-              
+
               <div className="d-flex justify-content-between align-items-center mb-3 fw-bold fs-5">
                 <span>Total:</span>
                 <span id="cart-total">${formatPrice(total)}</span>
               </div>
-              
+
               <div className="d-grid gap-2">
                 <button className="btn proceed-payment-btn btn-primary" id="proceed-to-checkout">
                   Proceder al Pago

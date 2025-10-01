@@ -34,7 +34,7 @@
     /* Aseguramos que use la fuente primaria */
     color: var(--text-primary-color);
     /* Color marrón oscuro */
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     /* Tamaño de fuente más grande para destacar el precio */
     margin-bottom: 1rem;
     /* Espacio debajo del precio */
