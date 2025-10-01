@@ -1,7 +1,7 @@
 // src/components/products/ProductDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Container, Row, Col, Button, Breadcrumb, Badge, InputGroup } from 'react-bootstrap';
+import { Container, Row, Col, Button, Breadcrumb, Badge, InputGroup, Alert } from 'react-bootstrap';
 import { getProductById } from '../../data/products';
 import { formatPrice } from '../../utils/formatters';
 
@@ -10,9 +10,10 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [showAlert, setShowAlert] = useState(false);
 
   useEffect(() => {
-    // Simular carga de producto con timeout para demostración
     const loadProduct = () => {
       setLoading(true);
       const foundProduct = getProductById(productId);
@@ -20,7 +21,7 @@ const ProductDetails = () => {
       setTimeout(() => {
         setProduct(foundProduct);
         setLoading(false);
-      }, 500); // Pequeño delay para simular carga
+      }, 500);
     };
 
     loadProduct();
@@ -40,10 +41,14 @@ const ProductDetails = () => {
 
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
-
-    // Opcional: Mostrar mensaje de éxito
-    alert(`${quantity} ${product.name} agregado(s) al carrito!`);
+    
+    // Mostrar alerta en lugar de alert nativo
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 3000);
   };
+
+  // Obtener las imágenes del producto (usar array de imágenes o crear uno con la imagen principal)
+  const productImages = product?.images || (product ? [product.image] : []);
 
   if (loading) {
     return (
@@ -93,24 +98,48 @@ const ProductDetails = () => {
         </Col>
       </Row>
 
+      {showAlert && (
+        <Alert variant="success" className="text-center">
+          <i className="bi bi-check-circle-fill me-2"></i>
+          ¡{quantity} {product.name} agregado(s) al carrito!
+        </Alert>
+      )}
+
       <Row className="my-4">
-        {/* Imagen del producto */}
+        {/* GALERÍA DE IMÁGENES - ACTUALIZADA */}
         <Col lg={6} md={12} className="mb-4">
-          <div className="main-image-container text-center">
-            <img
-              src={product.image}
-              alt={product.name}
-              className="img-fluid rounded shadow-sm"
-              style={{
-                maxHeight: '500px',
-                width: 'auto',
-                objectFit: 'cover'
-              }}
-            />
+          <div className="product-gallery">
+            {/* Imagen principal */}
+            <div className="main-image-container text-center mb-3">
+              <img
+                src={productImages[selectedImage]}
+                alt={product.name}
+                className="main-image img-fluid rounded shadow-sm"
+              />
+            </div>
+
+            {/* Miniaturas - Mostrar máximo 4 imágenes */}
+            <div className="thumbnails-container">
+              <div className="thumbnails-row">
+                {productImages.slice(0, 4).map((image, index) => (
+                  <div 
+                    key={index}
+                    className={`thumbnail-item ${selectedImage === index ? 'active' : ''}`}
+                    onClick={() => setSelectedImage(index)}
+                  >
+                    <img
+                      src={image}
+                      alt={`${product.name} ${index + 1}`}
+                      className="thumbnail-image"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </Col>
 
-        {/* Información del producto */}
+        {/* Información del producto - MANTENIENDO TU ESTRUCTURA ORIGINAL */}
         <Col lg={6} md={12}>
           <div className="product-info">
             <h1 className="product-title-detail mb-3">

@@ -7,6 +7,12 @@ export const products = {
             description: 'Postre individual cremoso y suave, hecho con chocolate de alta calidad, ideal para los amantes del chocolate.',
             price: 5000,
             image: '/images/productos/mousse_de_chocolate.png',
+            images: [
+                '/images/productos/mousse_de_chocolate.png',
+                '/images/productos/tiramisu_clasico.png',
+                '/images/productos/torta_sin_azucar_de_naranja.png',
+                '/images/productos/cheesecake_sin_azucar.png'
+            ],
             category: 'individuales'
         },
         {

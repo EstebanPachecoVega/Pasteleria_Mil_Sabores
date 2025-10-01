@@ -1,4 +1,66 @@
 /* Estilos para la página de detalles */
+/* Galería de imágenes */
+.product-gallery {
+    position: sticky;
+    top: 20px;
+}
+
+/* Contenedor de la imagen principal */
+/* Contenedor de la imagen principal */
+.main-image-container {
+    background: var(--primary-bg-color);
+    overflow: hidden;
+    border-radius: 20px;
+    border: 2px solid var(--accent-pink);
+    box-shadow: var(--shadow-medium);
+}
+
+.main-image {
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.thumbnails-container {
+    margin-top: 1rem;
+}
+
+.thumbnails-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.thumbnail-item {
+    width: 80px;
+    height: 80px;
+    border: 2px solid var(--text-secondary-color);
+    border-radius: 8px;
+    padding: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: var(--primary-bg-color);
+}
+
+.thumbnail-item:hover {
+    border-color: var(--accent-pink);
+    transform: translateY(-2px);
+}
+
+.thumbnail-item.active {
+    border-color: var(--accent-pink);
+    border-width: 3px;
+}
+
+.thumbnail-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+
 .product-title-detail {
     font-family: var(--font-heading);
     color: var(--text-primary-color);
@@ -37,25 +99,18 @@
     margin-bottom: 1rem;
 }
 
-/* Contenedor de la imagen principal */
-.main-image-container {
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: var(--shadow-medium);
-}
-
 /* Estilos para la sección de compra */
 .purchase-section .btn-add-to-cart,
 .purchase-section .btn-add-to-cart:hover {
-  background-color: var(--accent-chocolate);
-  border-color: var(--accent-chocolate);
-  color: var(--primary-bg-color);
+    background-color: var(--accent-chocolate);
+    border-color: var(--accent-chocolate);
+    color: var(--primary-bg-color);
 }
 
 .purchase-section .btn-add-to-cart:hover {
-  background-color: var(--accent-pink);
-  border-color: var(--accent-pink);
-  color: var(--text-primary-color);
+    background-color: var(--accent-pink);
+    border-color: var(--accent-pink);
+    color: var(--text-primary-color);
 }
 
 /* Botones de cantidad */
