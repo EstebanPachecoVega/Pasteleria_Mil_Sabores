@@ -8,7 +8,7 @@ import Productos from './components/pages/Productos';
 import Nosotros from './components/pages/Nosotros';
 import Contacto from './components/pages/Contacto';
 import SearchResults from './components/pages/SearchResults';
-import ProductDetails from './components/products/ProductDetails';
+import ProductDetails from './components/products/ProductDetail';
 import CategoryProducts from './components/pages/CategoryProducts';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';

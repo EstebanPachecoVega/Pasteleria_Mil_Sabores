@@ -41,7 +41,7 @@ const ProductDetails = () => {
 
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
-    
+
     // Mostrar alerta en lugar de alert nativo
     setShowAlert(true);
     setTimeout(() => setShowAlert(false), 3000);
@@ -122,7 +122,7 @@ const ProductDetails = () => {
             <div className="thumbnails-container">
               <div className="thumbnails-row">
                 {productImages.slice(0, 4).map((image, index) => (
-                  <div 
+                  <div
                     key={index}
                     className={`thumbnail-item ${selectedImage === index ? 'active' : ''}`}
                     onClick={() => setSelectedImage(index)}
@@ -177,6 +177,7 @@ const ProductDetails = () => {
                     <Button
                       className="decrease-quantity-detail"
                       onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                      disabled={quantity <= 1}
                     >
                       <i className="bi bi-dash"></i>
                     </Button>
@@ -187,11 +188,15 @@ const ProductDetails = () => {
                       value={quantity}
                       min="1"
                       max="100"
-                      onChange={(e) => setQuantity(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 1;
+                        setQuantity(Math.max(1, Math.min(100, value)));
+                      }}
                     />
                     <Button
                       className="increase-quantity-detail"
                       onClick={() => setQuantity(q => Math.min(100, q + 1))}
+                      disabled={quantity >= 100}
                     >
                       <i className="bi bi-plus"></i>
                     </Button>
