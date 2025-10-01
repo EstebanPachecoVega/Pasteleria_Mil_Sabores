@@ -161,6 +161,7 @@
 /* Botón "-" */
 .cart-item-decrease {
     border: 1px solid #d9534f;
+    border-radius: 1rem;
     color: #d9534f;
     background-color: transparent;
 }
@@ -183,6 +184,7 @@
 /* Botón "+" */
 .cart-item-increase {
     border: 1px solid #28a745;
+    border-radius: 1rem;
     color: #28a745;
     background-color: transparent;
 }
@@ -225,14 +227,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: 1rem;
     font-size: 1rem;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .cart-item-remove i {
     color: #d9534f;
-    /* rojo del botón */
 }
 
 .cart-item-remove:hover {
@@ -256,7 +257,7 @@
 
 #discount-code-input {
     border: 2px solid var(--accent-chocolate);
-    border-radius: 6px 0 0 6px;
+    border-radius: 10px 0 0 10px;
     /* bordes redondeados solo en la izquierda */
     padding: 0.5rem;
     font-size: 0.95rem;
@@ -272,7 +273,7 @@
 
 /* --- Botón Aplicar --- */
 #apply-discount-btn {
-    border-radius: 0 6px 6px 0;
+    border-radius: 0 10px 10px 0;
     /* bordes redondeados solo derecha */
     border: 1px solid var(--accent-chocolate);
     background-color: var(--accent-chocolate);
@@ -336,7 +337,7 @@
     background-color: var(--accent-pink);
     color: var(--text-primary-color);
     border: var(--accent-pink);
-    border-radius: 10px;
+    border-radius: 1rem;
     padding: 10px 20px;
     transition: background-color .25s ease, transform .15s ease, box-shadow .15s ease;
 }
@@ -353,7 +354,7 @@
 .btn.continue-shopping-btn {
     color: var(--text-primary-color);
     border-color: var(--accent-chocolate);
-    border-radius: 10px;
+    border-radius: 1rem;
     padding: 10px 20px;
     transition: background-color .25s ease, transform .15s ease, box-shadow .15s ease;
 }

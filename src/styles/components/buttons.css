@@ -59,36 +59,12 @@
     background-color: var(--accent-pink);
     color: var(--text-primary-color);
     border: none;
+    border-radius: 2rem;
 }
 
 .ver-productos-btn:hover {
     background-color: var(--accent-chocolate);
     color: var(--primary-bg-color);
-}
-
-/* Botón del Agregar Carrito */
-.add-cart-btn {
-    background-color: var(--accent-pink);
-    color: var(--accent-chocolate);
-    border: none;
-}
-
-.add-cart-btn:hover {
-    background-color: var(--accent-chocolate);
-    color: var(--accent-pink);
-}
-
-/* Botón Ver Detalles */
-.btn.view-details-btn {
-    font-size: 1.2rem;
-    background-color: var(--accent-chocolate);
-    color: var(--accent-pink);
-    transition: all 0.3s ease;
-}
-
-.btn.view-details-btn:hover {
-    background-color: var(--accent-pink);
-    color: var(--accent-chocolate);
 }
 
 /* Estado normal */

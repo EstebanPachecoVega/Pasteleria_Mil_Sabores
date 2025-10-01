@@ -12,6 +12,11 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showAlert, setShowAlert] = useState(false);
+  const [cartQuantity, setCartQuantity] = useState(0);
+
+  const maxQuantity = 100;
+  const availableToAdd = maxQuantity - cartQuantity;
+  const isMaxInCart = cartQuantity >= maxQuantity;
 
   useEffect(() => {
     const loadProduct = () => {
@@ -27,14 +32,30 @@ const ProductDetails = () => {
     loadProduct();
   }, [productId]);
 
+  useEffect(() => {
+    const updateCartQuantity = () => {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const cartItem = cart.find(item => item.id === productId);
+      setCartQuantity(cartItem ? cartItem.quantity : 0);
+    };
+
+    updateCartQuantity();
+    window.addEventListener('cartUpdated', updateCartQuantity);
+
+    return () => {
+      window.removeEventListener('cartUpdated', updateCartQuantity);
+    };
+  }, [productId]);
+
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || isMaxInCart) return;
 
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find(item => item.id === product.id);
 
     if (existingItem) {
-      existingItem.quantity += quantity;
+      const newQuantity = existingItem.quantity + quantity;
+      existingItem.quantity = Math.min(newQuantity, maxQuantity);
     } else {
       cart.push({ ...product, quantity: quantity });
     }
@@ -42,12 +63,10 @@ const ProductDetails = () => {
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
 
-    // Mostrar alerta en lugar de alert nativo
     setShowAlert(true);
     setTimeout(() => setShowAlert(false), 3000);
   };
 
-  // Obtener las imágenes del producto (usar array de imágenes o crear uno con la imagen principal)
   const productImages = product?.images || (product ? [product.image] : []);
 
   if (loading) {
@@ -83,7 +102,6 @@ const ProductDetails = () => {
 
   return (
     <Container className="my-4">
-      {/* Migas de pan */}
       <Row>
         <Col>
           <Breadcrumb>
@@ -102,14 +120,15 @@ const ProductDetails = () => {
         <Alert variant="success" className="text-center">
           <i className="bi bi-check-circle-fill me-2"></i>
           ¡{quantity} {product.name} agregado(s) al carrito!
+          {quantity > availableToAdd && (
+            <div className="small mt-1">Se ha alcanzado el límite máximo de 100 unidades</div>
+          )}
         </Alert>
       )}
 
       <Row className="my-4">
-        {/* GALERÍA DE IMÁGENES - ACTUALIZADA */}
         <Col lg={6} md={12} className="mb-4">
           <div className="product-gallery">
-            {/* Imagen principal */}
             <div className="main-image-container text-center mb-3">
               <img
                 src={productImages[selectedImage]}
@@ -118,7 +137,6 @@ const ProductDetails = () => {
               />
             </div>
 
-            {/* Miniaturas - Mostrar máximo 4 imágenes */}
             <div className="thumbnails-container">
               <div className="thumbnails-row">
                 {productImages.slice(0, 4).map((image, index) => (
@@ -139,7 +157,6 @@ const ProductDetails = () => {
           </div>
         </Col>
 
-        {/* Información del producto - MANTENIENDO TU ESTRUCTURA ORIGINAL */}
         <Col lg={6} md={12}>
           <div className="product-info">
             <h1 className="product-title-detail mb-3">
@@ -169,55 +186,84 @@ const ProductDetails = () => {
 
             <div className="purchase-section">
               <Row className="align-items-center">
-                <Col md={4} sm={6} className="mb-3">
-                  <label htmlFor="quantity-input" className="form-label fw-bold">
-                    Cantidad:
-                  </label>
-                  <InputGroup>
-                    <Button
-                      className="decrease-quantity-detail"
-                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                      disabled={quantity <= 1}
-                    >
-                      <i className="bi bi-dash"></i>
-                    </Button>
-                    <input
-                      id="quantity-input"
-                      type="number"
-                      className="form-control text-center input-number"
-                      value={quantity}
-                      min="1"
-                      max="100"
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value) || 1;
-                        setQuantity(Math.max(1, Math.min(100, value)));
-                      }}
-                    />
-                    <Button
-                      className="increase-quantity-detail"
-                      onClick={() => setQuantity(q => Math.min(100, q + 1))}
-                      disabled={quantity >= 100}
-                    >
-                      <i className="bi bi-plus"></i>
-                    </Button>
-                  </InputGroup>
+                {/* Columna del selector de cantidad */}
+                <Col md={4} sm={12} className="mb-3">
+                  <div className="quantity-section d-flex flex-column align-items-center align-items-md-start">
+                    <label htmlFor="quantity-input" className="form-label fw-bold mb-2">
+                      Cantidad:
+                    </label>
+                    <InputGroup className="justify-content-center justify-content-md-start">
+                      <Button
+                        className="decrease-quantity-detail"
+                        onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                        disabled={quantity <= 1}
+                      >
+                        <i className="bi bi-dash"></i>
+                      </Button>
+                      <input
+                        id="quantity-input"
+                        type="number"
+                        className="form-control text-center input-number"
+                        style={{ width: '70px' }}
+                        value={quantity}
+                        min="1"
+                        max={availableToAdd}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 1;
+                          setQuantity(Math.max(1, Math.min(availableToAdd, value)));
+                        }}
+                      />
+                      <Button
+                        className="increase-quantity-detail"
+                        onClick={() => setQuantity(q => Math.min(availableToAdd, q + 1))}
+                        disabled={quantity >= availableToAdd}
+                      >
+                        <i className="bi bi-plus"></i>
+                      </Button>
+                    </InputGroup>
+                    <div className="form-text text-center text-md-start mt-1 w-100">
+                      Máximo 100 unidades por producto
+                    </div>
+                  </div>
                 </Col>
 
-                <Col md={8} sm={6} className="mt-3">
-                  <Button
-                    className="btn btn-add-to-cart w-100"
-                    size="lg"
-                    type="button"
-                    onClick={handleAddToCart}
-                  >
-                    <i className="bi bi-cart-plus me-2"></i>
-                    Añadir al Carrito ({quantity})
-                  </Button>
+                {/* Columna del botón agregar al carrito */}
+                <Col md={8} sm={12} className="mb-3">
+                  <div className="add-to-cart-section d-flex flex-column align-items-center align-items-md-start">
+                    <Button
+                      className="btn btn-add-to-cart"
+                      size="lg"
+                      type="button"
+                      onClick={handleAddToCart}
+                      disabled={isMaxInCart || quantity > availableToAdd}
+                      style={{ minWidth: '200px' }}
+                    >
+                      <i className="bi bi-cart-plus me-2"></i>
+                      {isMaxInCart ? 'Límite alcanzado (100)' : `Añadir al Carrito (${quantity})`}
+                    </Button>
+                  </div>
+                </Col>
+              </Row>
+
+              {/* Mensajes debajo de ambas columnas */}
+              <Row>
+                <Col sm={12}>
+                  <div className="cart-messages mt-2 text-center text-md-start">
+                    {isMaxInCart && (
+                      <div className="text-danger">
+                        <small>Has alcanzado el límite máximo de 100 unidades de este producto en el carrito.</small>
+                      </div>
+                    )}
+                    {!isMaxInCart && availableToAdd < maxQuantity && (
+                      <div className="text-muted">
+                        <small>Actualmente tienes {cartQuantity} en el carrito. Puedes agregar hasta {availableToAdd} más.</small>
+                      </div>
+                    )}
+                  </div>
                 </Col>
               </Row>
             </div>
 
-            {/* Información adicional */}
             <div className="product-features mt-3">
               <h5 className="mb-3">Características:</h5>
               <ul className="list-unstyled">
@@ -231,7 +277,6 @@ const ProductDetails = () => {
         </Col>
       </Row>
 
-      {/* Botón para volver */}
       <Row>
         <Col className="text-center">
           <Link to="/productos" className="btn back-detail-btn">
