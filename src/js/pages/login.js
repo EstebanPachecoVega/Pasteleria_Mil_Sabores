@@ -67,7 +67,15 @@ function handleLogin(e) {
         
         // Redirigir después de un breve delay
         setTimeout(() => {
-            window.location.href = '/index.html';
+            // Verificar el tipo de usuario usando AuthManager
+            const userType = authManager.getUserType();
+            
+            if (userType === 'admin') {
+                window.location.href = '/src/pages/admin/index.html';
+            } else {
+                // Para estudiantes, clientes, o cualquier otro tipo de usuario
+                window.location.href = '/index.html';
+            }
         }, 1000);
     } else {
         showAlert(result.message, 'danger');

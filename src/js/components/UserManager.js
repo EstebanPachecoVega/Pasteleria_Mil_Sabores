@@ -27,6 +27,14 @@ export class UserManager {
 
     // Iniciar sesión con verificación mejorada
     login(email, password) {
+        // Determinar tipo de usuario basado en el email ANTES de buscar
+        let userType = 'customer';
+        if (email.endsWith('@duoc.cl') || email.endsWith('@profesor.duoc.cl')) {
+            userType = 'student';
+        } else if (email.endsWith('@company.com')) {
+            userType = 'admin';
+        }
+        
         // Buscar en usuarios locales
         const user = this.users.find(u => u.email === email && u.password === password);
         
@@ -74,9 +82,12 @@ export class UserManager {
         }
 
         // Determinar tipo de usuario basado en el email
-        const userType = userData.email.endsWith('@duoc.cl') || 
-                         userData.email.endsWith('@profesor.duoc.cl') ? 'student' : 'customer';
-
+        let userType = 'customer';
+        if (userData.email.endsWith('@duoc.cl') || userData.email.endsWith('@profesor.duoc.cl')) {
+            userType = 'student';
+        } else if (userData.email.endsWith('@company.com')) {
+            userType = 'admin';
+        }
         // Crear usuario
         const newUser = {
             id: Date.now().toString(),

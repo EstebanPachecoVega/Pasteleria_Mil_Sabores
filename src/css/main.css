@@ -612,3 +612,60 @@ a {
 .icon-social-red a:hover {
     color: var(--accent-pink);
 }
+
+/* ===== ESTILOS PARA PANEL ADMINISTRADOR ===== */
+
+/* Sidebar del admin */
+.admin-sidebar {
+    background-color: var(--accent-chocolate);
+    min-height: 100vh;
+    padding: 0;
+}
+
+/* Enlaces del sidebar del admin */
+.admin-nav-link {
+    color: var(--primary-bg-color);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.admin-nav-link:hover,
+.admin-nav-link.active {
+    background-color: var(--accent-pink);
+    color: var(--text-primary-color);
+}
+
+.admin-nav-link i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Contenido principal del admin */
+.admin-main {
+    background-color: var(--primary-bg-color);
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+/* Header del admin */
+.admin-header {
+    background: white;
+    padding: 1rem 2rem;
+    box-shadow: var(--shadow-light);
+    margin-bottom: 2rem;
+    border-radius: 10px;
+}
+
+/* Centro del contenido admin */
+.admin-content-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    background: white;
+    border-radius: 15px;
+    box-shadow: var(--shadow-light);
+    padding: 3rem;
+}
