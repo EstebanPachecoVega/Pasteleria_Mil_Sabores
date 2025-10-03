@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { formatPrice } from '../../utils/formatters';
 
 const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveItem }) => {
@@ -12,6 +13,7 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
 
   const [editingItemId, setEditingItemId] = useState(null);
   const [editQuantity, setEditQuantity] = useState('');
+  const navigate = useNavigate();
 
   // Calcular totales con useMemo para optimización
   const { subtotal, ageDiscount, codeDiscount, birthdayDiscount, totalDiscounts, total } = useMemo(() => {
@@ -98,6 +100,12 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
       e.preventDefault();
       applyDiscountCode();
     }
+  };
+
+  // Función para proceder al checkout
+  const handleProceedToCheckout = () => {
+    onClose(); // Cerrar el offcanvas
+    navigate('/checkout'); // Navegar al checkout
   };
 
   return (
@@ -206,6 +214,7 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                         <button
                           className="cart-item-remove btn btn-outline-danger btn-sm"
                           onClick={() => onRemoveItem(item.id)}
+                          aria-label='Eliminar producto'
                         >
                           <i className="bi bi-trash"></i>
                         </button>
@@ -282,13 +291,29 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
               </div>
 
               <div className="d-grid gap-2">
-                <button className="btn proceed-payment-btn btn-primary" id="proceed-to-checkout">
+                <button
+                  className="btn proceed-payment-btn"
+                  id="proceed-to-checkout"
+                  onClick={handleProceedToCheckout}  // ← ESTA LÍNEA FUE AGREGADA
+                >
+                  <i className="bi bi-credit-card me-2"></i>
                   Proceder al Pago
                 </button>
                 <button className="btn continue-shopping-btn btn-outline-secondary" onClick={onClose}>
                   Continuar Comprando
                 </button>
               </div>
+              {/* Información adicional del checkout */}
+              <div className="checkout-info mt-3 p-2 bg-light rounded small">
+                <div className="d-flex align-items-center mb-1">
+                  <i className="bi bi-shield-check text-success me-2"></i>
+                  <span>Compra 100% segura</span>
+                </div>
+                <div className="d-flex align-items-center mb-1">
+                  <i className="bi bi-truck text-primary me-2"></i>
+                  <span>Envío gratis sobre $50.000</span>
+                </div>
+              </div>              
             </div>
           </div>
         )}

@@ -10,6 +10,7 @@ import Contacto from './components/pages/Contacto';
 import SearchResults from './components/pages/SearchResults';
 import ProductDetails from './components/products/ProductDetail';
 import CategoryProducts from './components/pages/CategoryProducts';
+import Checkout from './components/checkout/Checkout';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/buscar" element={<SearchResults />} />
             <Route path="/producto/:productId" element={<ProductDetails />} />
             <Route path="/categoria/:category" element={<CategoryProducts />} />
+            <Route path="/checkout" element={<Checkout />} />
           </Routes>
         </main>
         <Footer />
