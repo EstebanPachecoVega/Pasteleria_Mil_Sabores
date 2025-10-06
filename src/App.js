@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import Header from './components/layout/Header';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
@@ -11,31 +12,37 @@ import SearchResults from './components/pages/SearchResults';
 import ProductDetails from './components/products/ProductDetail';
 import CategoryProducts from './components/pages/CategoryProducts';
 import Checkout from './components/checkout/Checkout';
+import Profile from './components/user/Profile';
+import OrderHistory from './components/user/OrderHistory';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Header />
-        <Navbar />
-        <main>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/productos" element={<Productos />} />
-            <Route path="/nosotros" element={<Nosotros />} />
-            <Route path="/contacto" element={<Contacto />} />
-            <Route path="/buscar" element={<SearchResults />} />
-            <Route path="/producto/:productId" element={<ProductDetails />} />
-            <Route path="/categoria/:category" element={<CategoryProducts />} />
-            <Route path="/checkout" element={<Checkout />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="App">
+          <Header />
+          <Navbar />
+          <main>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/productos" element={<Productos />} />
+              <Route path="/nosotros" element={<Nosotros />} />
+              <Route path="/contacto" element={<Contacto />} />
+              <Route path="/buscar" element={<SearchResults />} />
+              <Route path="/producto/:productId" element={<ProductDetails />} />
+              <Route path="/categoria/:category" element={<CategoryProducts />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/perfil" element={<Profile />} />
+              <Route path="/mis-pedidos" element={<OrderHistory />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

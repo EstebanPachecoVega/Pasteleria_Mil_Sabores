@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { calculateUserDiscounts } from '../../data/users';
 import { formatPrice } from '../../utils/formatters';
 
 const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveItem }) => {
@@ -14,13 +16,30 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
   const [editingItemId, setEditingItemId] = useState(null);
   const [editQuantity, setEditQuantity] = useState('');
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   // Calcular totales con useMemo para optimización
   const { subtotal, ageDiscount, codeDiscount, birthdayDiscount, totalDiscounts, total } = useMemo(() => {
     const subtotalValue = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-    const ageDiscountValue = appliedDiscounts.age ? subtotalValue * 0.5 : 0;
-    const codeDiscountValue = appliedDiscounts.code ? subtotalValue * 0.1 : 0;
-    const birthdayDiscountValue = appliedDiscounts.birthday ? 0 : 0;
+    
+    // NUEVO: Calcular descuentos basados en el usuario
+    const userDiscounts = currentUser ? calculateUserDiscounts(currentUser, subtotalValue) : { specialDiscounts: {} };
+    
+    const ageDiscountValue = userDiscounts.specialDiscounts?.seniorDiscount ? subtotalValue * 0.5 : 0;
+    const codeDiscountValue = userDiscounts.specialDiscounts?.codeDiscount ? subtotalValue * 0.1 : 0;
+    
+    // Calcular descuento de torta gratis para cumpleaños
+    let birthdayDiscountValue = 0;
+    if (userDiscounts.specialDiscounts?.birthdayDiscount) {
+      const cake = cartItems.find(item => 
+        item.category.includes('tortas') || 
+        item.name.toLowerCase().includes('torta')
+      );
+      if (cake) {
+        birthdayDiscountValue = cake.price;
+      }
+    }
+
     const totalDiscountsValue = ageDiscountValue + codeDiscountValue + birthdayDiscountValue;
     const totalValue = subtotalValue - totalDiscountsValue;
 
@@ -32,7 +51,7 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
       totalDiscounts: totalDiscountsValue,
       total: totalValue
     };
-  }, [cartItems, appliedDiscounts]);
+  }, [cartItems, currentUser]);
 
   // Aplicar código de descuento
   const applyDiscountCode = () => {
@@ -254,20 +273,24 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
               )}
 
               <div id="applied-discounts" className="mt-2">
-                {appliedDiscounts.age && (
-                  <div className="alert alert-success py-2 small mb-2">
-                    <i className="bi bi-coin me-2"></i> 50% de descuento para mayores de 50 años
-                  </div>
-                )}
-                {appliedDiscounts.code && (
-                  <div className="alert alert-success py-2 small mb-2">
-                    <i className="bi bi-tag me-2"></i> 10% de descuento con código FELICES50
-                  </div>
-                )}
-                {appliedDiscounts.birthday && (
-                  <div className="alert alert-success py-2 small mb-2">
-                    <i className="bi bi-gift me-2"></i> ¡Torta gratis en tu cumpleaños!
-                  </div>
+                {currentUser && (
+                  <>
+                    {ageDiscount > 0 && (
+                      <div className="alert alert-success py-2 small mb-2">
+                        <i className="bi bi-coin me-2"></i> 50% de descuento para mayores de 50 años
+                      </div>
+                    )}
+                    {codeDiscount > 0 && (
+                      <div className="alert alert-success py-2 small mb-2">
+                        <i className="bi bi-tag me-2"></i> 10% de descuento con código FELICES50
+                      </div>
+                    )}
+                    {birthdayDiscount > 0 && (
+                      <div className="alert alert-success py-2 small mb-2">
+                        <i className="bi bi-gift me-2"></i> ¡Torta gratis en tu cumpleaños!
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -313,7 +336,7 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                   <i className="bi bi-truck text-primary me-2"></i>
                   <span>Envío gratis sobre $50.000</span>
                 </div>
-              </div>              
+              </div>
             </div>
           </div>
         )}

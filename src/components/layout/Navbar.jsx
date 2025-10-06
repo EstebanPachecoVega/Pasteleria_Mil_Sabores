@@ -2,15 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../../hooks/useSearch';
 import CartOffCanvas from '../cart/CartOffCanvas';
+import { useAuth } from '../../context/AuthContext';
+import AuthModal from '../auth/AuthModal';
 import '../../styles/components/cart.css';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { currentUser, logout } = useAuth();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [cartCount, setCartCount] = useState(0);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [cartItems, setCartItems] = useState([]);
@@ -41,7 +42,7 @@ const Navbar = () => {
 
   const updateCartQuantity = (productId, newQuantity) => {
     if (newQuantity < 1) return;
-    
+
     setCartItems(prevItems => {
       const updatedItems = prevItems.map(item =>
         item.id === productId ? { ...item, quantity: newQuantity } : item
@@ -66,7 +67,6 @@ const Navbar = () => {
   useEffect(() => {
     // Cargar estado inicial
     loadCart();
-    checkUserStatus();
 
     // Configurar listener para actualizaciones del carrito
     const handleCartUpdate = () => {
@@ -155,18 +155,10 @@ const Navbar = () => {
   };
 
   // === MANEJO DE USUARIO ===
-  const checkUserStatus = () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (user) {
-      setIsLoggedIn(true);
-      setUserName(user.name);
-    }
-  };
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    setUserName('');
+    logout();
+    if (isMobile) setIsMenuOpen(false);
   };
 
   // Focus en input cuando se muestran sugerencias en móvil
@@ -418,18 +410,82 @@ const Navbar = () => {
               </button>
 
               {/* Usuario */}
-              {isLoggedIn ? (
+              {currentUser ? (
                 <div className="dropdown">
-                  <button className="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i className="bi bi-person-circle"></i> {userName}
+                  <button
+                    className="btn btn-outline-secondary dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown" // ← AGREGAR ESTO
+                    aria-expanded="false"     // ← AGREGAR ESTO
+                  >
+                    <i className="bi bi-person-circle me-1"></i>
+                    {currentUser.name}
+                    {currentUser.discountCode === 'FELICES50' && (
+                      <span className="badge bg-success ms-1" title="10% descuento permanente">
+                        <i className="bi bi-star-fill"></i>
+                      </span>
+                    )}
+                    {currentUser.birthDate && (() => {
+                      const birthDate = new Date(currentUser.birthDate);
+                      const today = new Date();
+                      const age = today.getFullYear() - birthDate.getFullYear();
+                      return age >= 50 && (
+                        <span className="badge bg-warning ms-1" title="50% descuento">
+                          <i className="bi bi-coin"></i>
+                        </span>
+                      );
+                    })()}
                   </button>
                   <ul className="dropdown-menu dropdown-menu-end">
-                    <li><Link className="dropdown-item" to="/perfil">Mi Perfil</Link></li>
-                    <li><Link className="dropdown-item" to="/pedidos">Mis Pedidos</Link></li>
-                    <li><hr className="dropdown-divider" /></li>
                     <li>
-                      <button className="dropdown-item" onClick={handleLogout}>
-                        Cerrar Sesión
+                      <Link
+                        className="dropdown-item"
+                        to="/perfil"
+                        onClick={() => isMobile && setIsMenuOpen(false)}
+                      >
+                        <i className="bi bi-person me-2"></i>Mi Perfil
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        className="dropdown-item"
+                        to="/mis-pedidos"
+                        onClick={() => isMobile && setIsMenuOpen(false)}
+                      >
+                        <i className="bi bi-bag me-2"></i>Mis Pedidos
+                      </Link>
+                    </li>
+                    <li><hr className="dropdown-divider" /></li>
+
+                    {/* Mostrar beneficios del usuario */}
+                    {currentUser.discountCode === 'FELICES50' && (
+                      <li>
+                        <span className="dropdown-item text-success small">
+                          <i className="bi bi-check-circle me-2"></i>
+                          10% descuento permanente
+                        </span>
+                      </li>
+                    )}
+                    {currentUser.birthDate && (() => {
+                      const birthDate = new Date(currentUser.birthDate);
+                      const today = new Date();
+                      const age = today.getFullYear() - birthDate.getFullYear();
+                      return age >= 50 && (
+                        <li>
+                          <span className="dropdown-item text-warning small">
+                            <i className="bi bi-coin me-2"></i>
+                            50% descuento
+                          </span>
+                        </li>
+                      );
+                    })()}
+
+                    <li>
+                      <button
+                        className="dropdown-item"
+                        onClick={handleLogout}
+                      >
+                        <i className="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
                       </button>
                     </li>
                   </ul>
@@ -445,6 +501,12 @@ const Navbar = () => {
                   <i className="bi bi-person"></i>
                 </button>
               )}
+
+              {/* AuthModal */}
+              <AuthModal
+                show={showAuthModal}
+                onHide={() => setShowAuthModal(false)}
+              />
             </div>
           </div>
         </div>

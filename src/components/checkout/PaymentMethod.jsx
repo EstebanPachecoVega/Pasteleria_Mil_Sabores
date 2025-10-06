@@ -1,12 +1,52 @@
 // src/components/checkout/PaymentMethod.jsx
 import React from 'react';
 import { Row, Col, Button } from 'react-bootstrap';
+import { useAuth } from '../../context/AuthContext'; // ← Importación necesaria
+import { createOrder } from '../../data/orders';
 
-const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete }) => {
+const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total }) => {
+  // AGREGAR ESTE HOOK DENTRO DEL COMPONENTE
+  const { currentUser, updateUser } = useAuth();
+
   const handlePlaceOrder = () => {
-    // Simular creación de orden
-    const orderId = `ORD-${Date.now()}`;
-    onOrderComplete(orderId);
+    // Crear objeto de orden con información del usuario
+    const completeOrderData = {
+      ...orderData,
+      items: cartItems,
+      total: total,
+      // Calcular descuentos si es necesario
+      discounts: orderData.discounts || 0,
+      subtotal: orderData.subtotal || total,
+      shippingCost: orderData.shippingCost || 0,
+      // Información del usuario
+      userId: currentUser?.id,
+      userName: currentUser?.name,
+      userEmail: currentUser?.email
+    };
+
+    // Crear la orden
+    const order = createOrder(completeOrderData);
+    
+    // Agregar orden al usuario si está logueado
+    if (currentUser) {
+      const userOrders = currentUser.orders || [];
+      userOrders.unshift({
+        id: order.id,
+        date: new Date().toISOString(),
+        items: cartItems,
+        total: total,
+        discounts: orderData.discounts || 0,
+        status: 'confirmado'
+      });
+      
+      // Actualizar usuario
+      updateUser({
+        ...currentUser,
+        orders: userOrders
+      });
+    }
+
+    onOrderComplete(order.id);
   };
 
   return (
