@@ -155,6 +155,18 @@ const Navbar = () => {
   };
 
   // === MANEJO DE USUARIO ===
+  const formatUserName = (fullName) => {
+    if (!fullName) return 'Usuario';
+
+    const nameParts = fullName.split(' ');
+    if (nameParts.length >= 2) {
+      const firstName = nameParts[0];
+      const firstLetter = nameParts[1].charAt(0);
+      return `${firstName} ${firstLetter}.`;
+    }
+
+    return fullName;
+  };
 
   const handleLogout = () => {
     logout();
@@ -491,15 +503,37 @@ const Navbar = () => {
                   </ul>
                 </div>
               ) : (
-                <button
-                  className="btn navbar-person-btn"
-                  onClick={() => {
-                    setShowAuthModal(true);
-                    if (isMobile) setIsMenuOpen(false);
-                  }}
-                >
-                  <i className="bi bi-person"></i>
-                </button>
+                <div className="dropdown">
+                  <button
+                    className="btn btn-outline-secondary dropdown-toggle"
+                    type="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i className="bi bi-person-circle me-1"></i>
+                    Acceso
+                  </button>
+                  <ul className="dropdown-menu dropdown-menu-end">
+                    <li>
+                      <Link
+                        className="dropdown-item"
+                        to="/login"
+                        onClick={() => isMobile && setIsMenuOpen(false)}
+                      >
+                        <i className="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        className="dropdown-item"
+                        to="/registro"
+                        onClick={() => isMobile && setIsMenuOpen(false)}
+                      >
+                        <i className="bi bi-person-plus me-2"></i>Registrarse
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
               )}
 
               {/* AuthModal */}

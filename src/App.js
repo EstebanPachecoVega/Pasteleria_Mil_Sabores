@@ -12,6 +12,8 @@ import SearchResults from './components/pages/SearchResults';
 import ProductDetails from './components/products/ProductDetail';
 import CategoryProducts from './components/pages/CategoryProducts';
 import Checkout from './components/checkout/Checkout';
+import Login from './components/pages/Login';
+import Registro from './components/pages/Registro';
 import Profile from './components/user/Profile';
 import OrderHistory from './components/user/OrderHistory';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -35,6 +37,8 @@ function App() {
               <Route path="/producto/:productId" element={<ProductDetails />} />
               <Route path="/categoria/:category" element={<CategoryProducts />} />
               <Route path="/checkout" element={<Checkout />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/registro" element={<Registro />} />
               <Route path="/perfil" element={<Profile />} />
               <Route path="/mis-pedidos" element={<OrderHistory />} />
             </Routes>
