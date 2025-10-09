@@ -1,3 +1,4 @@
+// src/components/checkout/CheckoutSummary.jsx
 import React from 'react';
 import { Row, Col, Button, Card } from 'react-bootstrap';
 import { formatPrice } from '../../utils/formatters';
@@ -9,11 +10,30 @@ const CheckoutSummary = ({
   onNextStep, 
   subtotal, 
   shippingCost, 
-  total 
+  total,
+  discountAmount,
+  userDiscounts 
 }) => {
   return (
     <div className="checkout-summary">
       <h4 className="mb-4">Resumen de tu Pedido</h4>
+      
+      {/* Mostrar descuentos aplicados */}
+      {discountAmount > 0 && (
+        <Card className="mb-3 border-success">
+          <Card.Body className="py-2">
+            <div className="d-flex justify-content-between align-items-center text-success">
+              <div>
+                <i className="bi bi-tag-fill me-2"></i>
+                <strong>Descuentos aplicados:</strong>
+                {userDiscounts.seniorDiscount && <span className="ms-2">50% (Mayor de 50 años)</span>}
+                {userDiscounts.codeDiscount && <span className="ms-2">10% (Código promocional)</span>}
+              </div>
+              <strong>-${formatPrice(discountAmount)}</strong>
+            </div>
+          </Card.Body>
+        </Card>
+      )}
       
       <div className="cart-items mb-4">
         {cartItems.map(item => (
@@ -70,7 +90,32 @@ const CheckoutSummary = ({
         ))}
       </div>
 
-      <div className="checkout-actions">
+      {/* Resumen de totales */}
+      <Card className="bg-light">
+        <Card.Body>
+          <div className="d-flex justify-content-between mb-2">
+            <span>Subtotal:</span>
+            <span>${formatPrice(subtotal)}</span>
+          </div>
+          {discountAmount > 0 && (
+            <div className="d-flex justify-content-between mb-2 text-success">
+              <span>Descuentos:</span>
+              <span>-${formatPrice(discountAmount)}</span>
+            </div>
+          )}
+          <div className="d-flex justify-content-between mb-2">
+            <span>Envío:</span>
+            <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
+          </div>
+          <hr />
+          <div className="d-flex justify-content-between fw-bold fs-5">
+            <span>Total:</span>
+            <span>${formatPrice(total)}</span>
+          </div>
+        </Card.Body>
+      </Card>
+
+      <div className="checkout-actions mt-4">
         <Row>
           <Col className="text-end">
             <Button 

@@ -1,12 +1,13 @@
-// src/components/checkout/Checkout.jsx
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Breadcrumb, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext'; // ← Agregar este import
 import CheckoutSummary from './CheckoutSummary';
 import ShippingInfo from './ShippingInfo';
 import PaymentMethod from './PaymentMethod';
 import OrderConfirmation from './OrderConfirmation';
 import { formatPrice } from '../../utils/formatters';
+import { getSpecialDiscounts } from '../../data/users'; // ← Agregar para descuentos
 import './../../styles/components/checkout.css';
 
 const Checkout = () => {
@@ -19,23 +20,41 @@ const Checkout = () => {
   });
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
+  const [userDiscounts, setUserDiscounts] = useState({}); // ← Nuevo estado para descuentos
   const navigate = useNavigate();
+  const { currentUser } = useAuth(); // ← Obtener usuario actual
 
-  // Cargar items del carrito
+  // Cargar items del carrito y descuentos del usuario
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     setCartItems(cart);
+
+    // Cargar descuentos del usuario si está logueado
+    if (currentUser) {
+      const discounts = getSpecialDiscounts(currentUser);
+      setUserDiscounts(discounts);
+    }
 
     // Si el carrito está vacío, redirigir a productos
     if (cart.length === 0 && currentStep === 1) {
       navigate('/productos');
     }
-  }, [navigate, currentStep]);
+  }, [navigate, currentStep, currentUser]);
 
-  // Calcular totales
+  // Calcular totales CON DESCUENTOS
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const shippingCost = subtotal > 50000 ? 0 : 3000; // Envío gratis sobre $50,000
-  const total = subtotal + shippingCost;
+  
+  // Aplicar descuentos
+  let discountAmount = 0;
+  if (userDiscounts.seniorDiscount) {
+    discountAmount += subtotal * 0.5; // 50% descuento por edad
+  }
+  if (userDiscounts.codeDiscount) {
+    discountAmount += subtotal * 0.1; // 10% descuento adicional
+  }
+  
+  const shippingCost = subtotal > 50000 ? 0 : 3000;
+  const total = subtotal - discountAmount + shippingCost;
 
   const updateCartQuantity = (productId, newQuantity) => {
     const updatedItems = cartItems.map(item =>
@@ -66,7 +85,6 @@ const Checkout = () => {
   const handleOrderComplete = (orderId) => {
     setOrderComplete(true);
     setOrderNumber(orderId);
-    // Limpiar carrito después de completar la orden
     localStorage.removeItem('cart');
     window.dispatchEvent(new Event('cartUpdated'));
   };
@@ -84,14 +102,12 @@ const Checkout = () => {
 
   return (
     <Container className="checkout-container py-4">
-      {/* Migas de pan */}
       <Breadcrumb className="mb-4">
         <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/' }}>Inicio</Breadcrumb.Item>
         <Breadcrumb.Item linkAs={Link} linkProps={{ to: '/productos' }}>Productos</Breadcrumb.Item>
         <Breadcrumb.Item active>Checkout</Breadcrumb.Item>
       </Breadcrumb>
 
-      {/* Progreso del checkout */}
       <Row className="mb-5">
         <Col>
           <div className="checkout-progress">
@@ -106,7 +122,6 @@ const Checkout = () => {
       </Row>
 
       <Row className="g-4">
-        {/* Columna principal - Pasos del checkout */}
         <Col lg={8}>
           <Card className="checkout-card">
             <Card.Body className="p-4">
@@ -119,6 +134,8 @@ const Checkout = () => {
                   subtotal={subtotal}
                   shippingCost={shippingCost}
                   total={total}
+                  discountAmount={discountAmount} // ← Pasar descuentos
+                  userDiscounts={userDiscounts} // ← Pasar descuentos
                 />
               )}
 
@@ -127,6 +144,7 @@ const Checkout = () => {
                   onNextStep={handleNextStep}
                   onPreviousStep={handlePreviousStep}
                   initialData={orderData.shippingInfo}
+                  currentUser={currentUser} // ← Pasar usuario actual
                 />
               )}
 
@@ -138,13 +156,14 @@ const Checkout = () => {
                   orderData={orderData}
                   cartItems={cartItems}
                   total={total}
+                  discountAmount={discountAmount} // ← Pasar descuentos
+                  userDiscounts={userDiscounts} // ← Pasar descuentos
                 />
               )}
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Columna lateral - Resumen del pedido */}
         <Col lg={4}>
           <Card className="order-summary-card">
             <Card.Header>
@@ -171,6 +190,29 @@ const Checkout = () => {
                   <span>Subtotal:</span>
                   <span>${formatPrice(subtotal)}</span>
                 </div>
+                
+                {/* MOSTRAR DESCUENTOS APLICADOS */}
+                {discountAmount > 0 && (
+                  <>
+                    <div className="d-flex justify-content-between mb-2 text-success">
+                      <span>Descuentos:</span>
+                      <span>-${formatPrice(discountAmount)}</span>
+                    </div>
+                    {userDiscounts.seniorDiscount && (
+                      <div className="small text-success mb-1">
+                        <i className="bi bi-coin me-1"></i>
+                        50% descuento (Mayor de 50 años)
+                      </div>
+                    )}
+                    {userDiscounts.codeDiscount && (
+                      <div className="small text-success mb-1">
+                        <i className="bi bi-tag me-1"></i>
+                        10% descuento adicional
+                      </div>
+                    )}
+                  </>
+                )}
+                
                 <div className="d-flex justify-content-between mb-2">
                   <span>Envío:</span>
                   <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
@@ -190,7 +232,6 @@ const Checkout = () => {
             </Card.Body>
           </Card>
 
-          {/* Información de seguridad */}
           <Card className="mt-3 security-info-card">
             <Card.Body className="text-center">
               <i className="bi bi-shield-check text-primary fs-1 mb-3"></i>
