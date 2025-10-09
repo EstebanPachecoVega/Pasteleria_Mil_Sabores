@@ -10,6 +10,7 @@
 @import './components/cart.css';
 @import './components/footer.css';
 @import './components/hero.css';
+@import './components/profile.css';
 
 /* ---- Firefox ---- */
 html {

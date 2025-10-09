@@ -1,0 +1,370 @@
+/* Contenedor principal del perfil */
+/* Estilos para todos los encabezados dentro del perfil */
+.profile-title {
+    font-family: var(--font-heading);
+    color: var(--accent-chocolate);
+    font-weight: 400;
+    font-size: 1.6rem;
+}
+
+.profile-section-title {
+    font-family: var(--font-heading);
+    color: var(--accent-chocolate);
+    font-weight: 400;
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+}
+
+
+.profile-container {
+    background-color: var(--primary-bg-color);
+    min-height: 100vh;
+}
+
+/* Etiquetas de los campos */
+.profile-label {
+    font-family: var(--font-primary);
+    font-weight: 700;
+    color: var(--accent-chocolate);
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Valores de los campos en modo visualización */
+.profile-field-value {
+    background-color: var(--white-color);
+    border: 2px solid var(--accent-pink);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    color: var(--text-primary-color);
+    font-family: var(--font-primary);
+    font-weight: 500;
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-light);
+    font-size: 1rem;
+}
+
+.profile-field-value:hover {
+    background-color: var(--accent-pink);
+    border-color: var(--accent-chocolate);
+    color: var(--white-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Eliminamos el estilo especial del email para que sea consistente */
+.profile-email {
+    background-color: var(--white-color);
+    border-color: var(--accent-pink);
+    color: var(--text-primary-color);
+    font-weight: 500;
+    font-style: normal;
+}
+
+.profile-email:hover {
+    background-color: var(--accent-pink);
+    color: var(--white-color);
+}
+
+/* Dirección completa */
+.profile-address {
+    background-color: var(--white-color);
+    border-color: var(--accent-pink);
+    color: var(--text-primary-color);
+    font-style: italic;
+    line-height: 1.5;
+}
+
+/* Selects en modo edición */
+.profile-select {
+    background-color: var(--white-color);
+    border: 2px solid var(--accent-pink);
+    border-radius: 12px;
+    font-family: var(--font-primary);
+    color: var(--text-primary-color);
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-light);
+    padding: 0.75rem 1rem;
+}
+
+.profile-select:focus {
+    border-color: var(--accent-chocolate);
+    box-shadow: var(--shadow-rose);
+    background-color: var(--white-color);
+    color: var(--text-primary-color);
+}
+
+.profile-select:hover {
+    border-color: var(--accent-chocolate);
+    transform: translateY(-1px);
+}
+
+/* Campos de formulario en modo edición */
+.profile-container .form-control {
+    background-color: var(--white-color);
+    border: 2px solid var(--accent-pink);
+    border-radius: 12px;
+    font-family: var(--font-primary);
+    color: var(--text-primary-color);
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-light);
+    padding: 0.75rem 1rem;
+}
+
+.profile-container .form-control:focus {
+    border-color: var(--accent-chocolate);
+    box-shadow: var(--shadow-rose);
+    background-color: var(--white-color);
+    color: var(--text-primary-color);
+}
+
+.profile-container .form-control:hover {
+    border-color: var(--accent-chocolate);
+    transform: translateY(-1px);
+}
+
+/* Botón principal - Guardar Cambios */
+.profile-submit-btn {
+    font-family: var(--font-primary);
+    font-weight: 700;
+    padding: 0.75rem 2rem;
+    border-radius: 25px;
+    background: linear-gradient(135deg, var(--accent-pink), var(--accent-chocolate));
+    border: none;
+    color: var(--white-color);
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profile-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(139, 69, 19, 0.3);
+    background: linear-gradient(135deg, var(--accent-chocolate), var(--accent-pink));
+    color: var(--white-color);
+}
+
+.profile-submit-btn:disabled {
+    background: var(--text-secondary-color);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Botón de editar perfil - Consistente con el tema */
+.profile-edit-btn {
+    font-family: var(--font-primary);
+    font-weight: 700;
+    border: 2px solid var(--accent-pink);
+    background: linear-gradient(135deg, var(--accent-pink), var(--white-color));
+    color: var(--accent-chocolate);
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profile-edit-btn:hover {
+    background: linear-gradient(135deg, var(--accent-chocolate), var(--accent-pink));
+    border-color: var(--accent-chocolate);
+    color: var(--white-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Botón de cancelar - Consistente con el tema */
+.profile-cancel-btn {
+    font-family: var(--font-primary);
+    font-weight: 700;
+    border: 2px solid var(--accent-chocolate);
+    background: linear-gradient(135deg, var(--white-color), var(--accent-pink));
+    color: var(--accent-chocolate);
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.profile-cancel-btn:hover {
+    background: linear-gradient(135deg, var(--accent-chocolate), var(--text-secondary-color));
+    border-color: var(--accent-chocolate);
+    color: var(--white-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Títulos de sección */
+.profile-container h4,
+.profile-container h5 {
+    font-family: var(--font-heading);
+    color: var(--accent-chocolate);
+    font-weight: 400;
+}
+
+.profile-container h4 {
+    font-size: 2rem;
+    margin-bottom: 0;
+    color: var(--accent-chocolate);
+}
+
+.profile-container h5 {
+    font-size: 1.5rem;
+    border-bottom: 3px solid var(--accent-pink);
+    padding-bottom: 0.5rem;
+    color: var(--accent-chocolate);
+}
+
+/* Tarjetas */
+.profile-container .card {
+    border: none;
+    border-radius: 20px;
+    box-shadow: var(--shadow-medium);
+    background-color: var(--white-color);
+    overflow: hidden;
+}
+
+.profile-container .card-header {
+    background: linear-gradient(135deg, var(--accent-pink), var(--white-color));
+    border-bottom: 3px solid var(--accent-chocolate);
+    padding: 1.5rem;
+    color: var(--accent-chocolate);
+}
+
+.profile-container .card-body {
+    padding: 2rem;
+    background-color: var(--white-color);
+}
+
+/* Mejora visual para los beneficios */
+.benefits-list .benefit-item {
+    transition: all 0.3s ease;
+    border-radius: 15px;
+    border: 2px solid transparent;
+    background-color: var(--white-color);
+}
+
+.benefits-list .benefit-item:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-medium);
+    border-color: var(--accent-pink);
+    background-color: var(--primary-bg-color);
+}
+
+.benefits-list .bi {
+    font-size: 1.5rem;
+    color: var(--accent-chocolate);
+}
+
+/* Texto en beneficios */
+.benefits-list h6 {
+    color: var(--accent-chocolate);
+    font-family: var(--font-primary);
+    font-weight: 700;
+}
+
+.benefits-list .text-muted {
+    color: var(--text-primary-color) !important;
+    font-family: var(--font-primary);
+}
+
+/* Estados vacíos con estilo diferente */
+.profile-field-value:empty::before {
+    content: "No especificado";
+    color: var(--text-secondary-color);
+    font-style: italic;
+    font-weight: normal;
+    font-family: var(--font-primary);
+}
+
+/* Alertas */
+.profile-container .alert {
+    border-radius: 15px;
+    border: none;
+    font-family: var(--font-primary);
+    font-weight: 500;
+    background-color: var(--white-color);
+}
+
+.profile-container .alert-success {
+    background-color: rgba(76, 175, 80, 0.1);
+    color: var(--accent-chocolate);
+    border-left: 4px solid var(--accent-pink);
+}
+
+.profile-container .alert-danger {
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--accent-chocolate);
+    border-left: 4px solid var(--accent-pink);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .profile-field-value {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.9rem;
+        min-height: 2.5rem;
+    }
+
+    .profile-label {
+        font-size: 0.85rem;
+    }
+
+    .profile-container .card-body {
+        padding: 1.5rem;
+    }
+
+    .profile-container h4 {
+        font-size: 1.75rem;
+    }
+
+    .profile-container h5 {
+        font-size: 1.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .profile-container .card-body {
+        padding: 1rem;
+    }
+
+    .profile-field-value {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
+
+    .profile-submit-btn,
+    .profile-edit-btn,
+    .profile-cancel-btn {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Animaciones sutiles */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.profile-container .card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.benefits-list .benefit-item {
+    animation: fadeInUp 0.5s ease-out;
+}

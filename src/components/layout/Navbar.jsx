@@ -425,7 +425,7 @@ const Navbar = () => {
               {currentUser ? (
                 <div className="dropdown">
                   <button
-                    className="btn btn-outline-secondary dropdown-toggle"
+                    className="btn navbar-person-btn dropdown-toggle"
                     type="button"
                     data-bs-toggle="dropdown" // ← AGREGAR ESTO
                     aria-expanded="false"     // ← AGREGAR ESTO
