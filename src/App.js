@@ -16,6 +16,7 @@ import Login from './components/pages/Login';
 import Registro from './components/pages/Registro';
 import Profile from './components/user/Profile';
 import OrderHistory from './components/user/OrderHistory';
+import TerminosCondiciones from './components/pages/TerminosCondiciones';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
@@ -41,6 +42,7 @@ function App() {
               <Route path="/registro" element={<Registro />} />
               <Route path="/perfil" element={<Profile />} />
               <Route path="/mis-pedidos" element={<OrderHistory />} />
+              <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
             </Routes>
           </main>
           <Footer />
