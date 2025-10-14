@@ -146,7 +146,7 @@ const Navbar = () => {
     }
   };
 
-  // === MANEJO DE CATEGORÍAS ===
+  // === FUNCIÓN PARA MANEJO DE CATEGORÍAS ===
   const handleCategoryClick = (path) => {
     navigate(path);
     if (isMobile) {
@@ -154,18 +154,30 @@ const Navbar = () => {
     }
   };
 
-  // === MANEJO DE USUARIO ===
-  const formatUserName = (fullName) => {
-    if (!fullName) return 'Usuario';
-
-    const nameParts = fullName.split(' ');
-    if (nameParts.length >= 2) {
-      const firstName = nameParts[0];
-      const firstLetter = nameParts[1].charAt(0);
-      return `${firstName} ${firstLetter}.`;
+  // === FUNCIÓN PARA MANEJAR USUARIO ===
+  const formatUserName = (user) => {
+    if (!user) return 'Usuario';
+    
+    // Prioridad 1: Si tenemos los campos separados (usuarios nuevos)
+    if (user.primerNombre && user.primerApellido) {
+      return `${user.primerNombre} ${user.primerApellido.charAt(0)}.`;
+    }
+    
+    // Prioridad 2: Fallback al nombre completo (usuarios existentes)
+    if (user.name) {
+      const nameParts = user.name.split(' ').filter(part => part.trim() !== '');
+      
+      if (nameParts.length >= 2) {
+        const firstName = nameParts[0];
+        // Intentar encontrar el primer apellido (generalmente el penúltimo si hay segundo nombre)
+        const firstSurname = nameParts.length >= 3 ? nameParts[nameParts.length - 2] : nameParts[1];
+        return `${firstName} ${firstSurname.charAt(0)}.`;
+      }
+      
+      return user.name;
     }
 
-    return fullName;
+    return 'Usuario';
   };
 
   const handleLogout = () => {
@@ -427,11 +439,11 @@ const Navbar = () => {
                   <button
                     className="btn navbar-person-btn dropdown-toggle"
                     type="button"
-                    data-bs-toggle="dropdown" // ← AGREGAR ESTO
-                    aria-expanded="false"     // ← AGREGAR ESTO
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
                   >
                     <i className="bi bi-person-circle me-1"></i>
-                    {currentUser.name}
+                    {formatUserName(currentUser)}
                     {currentUser.discountCode === 'FELICES50' && (
                       <span className="badge bg-success ms-1" title="10% descuento permanente">
                         <i className="bi bi-star-fill"></i>

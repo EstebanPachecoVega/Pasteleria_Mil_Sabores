@@ -1,17 +1,19 @@
-// src/components/auth/AuthModal.jsx
 import React, { useState } from 'react';
-import { Modal, Tab, Tabs, Form, Button, Alert } from 'react-bootstrap';
+import { Modal, Tab, Tabs, Form, Button, Alert, Row, Col } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 
 const AuthModal = ({ show, onHide }) => {
   const [activeTab, setActiveTab] = useState('login');
   const [formData, setFormData] = useState({
-    name: '',
+    primerNombre: '',
+    segundoNombre: '',
+    primerApellido: '',
+    segundoApellido: '',
     email: '',
     password: '',
     confirmPassword: '',
-    birthDate: '', // ← NUEVO campo
-    discountCode: '' // ← NUEVO campo
+    birthDate: '',
+    discountCode: ''
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,13 +36,35 @@ const AuthModal = ({ show, onHide }) => {
       if (activeTab === 'login') {
         await login(formData.email, formData.password);
       } else {
+        // Validaciones para registro
         if (formData.password !== formData.confirmPassword) {
           throw new Error('Las contraseñas no coinciden');
         }
+
+        if (!formData.primerNombre.trim() || !formData.primerApellido.trim() || !formData.segundoApellido.trim()) {
+          throw new Error('Primer nombre, primer apellido y segundo apellido son obligatorios');
+        }
+
+        // Crear nombre completo para compatibilidad
+        const nameParts = [
+          formData.primerNombre,
+          formData.segundoNombre,
+          formData.primerApellido,
+          formData.segundoApellido
+        ].filter(Boolean);
+
+        const fullName = nameParts.join(' ');
+
         await register({
-          name: formData.name,
+          name: fullName,
+          primerNombre: formData.primerNombre.trim(),
+          segundoNombre: formData.segundoNombre.trim(),
+          primerApellido: formData.primerApellido.trim(),
+          segundoApellido: formData.segundoApellido.trim(),
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          birthDate: formData.birthDate,
+          discountCode: formData.discountCode
         });
       }
       onHide();
@@ -54,10 +78,15 @@ const AuthModal = ({ show, onHide }) => {
 
   const resetForm = () => {
     setFormData({
-      name: '',
+      primerNombre: '',
+      segundoNombre: '',
+      primerApellido: '',
+      segundoApellido: '',
       email: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      birthDate: '',
+      discountCode: ''
     });
     setError('');
   };
@@ -68,7 +97,7 @@ const AuthModal = ({ show, onHide }) => {
   };
 
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal show={show} onHide={onHide} centered size="lg">
       <Modal.Header closeButton>
         <Modal.Title>
           {activeTab === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
@@ -92,6 +121,7 @@ const AuthModal = ({ show, onHide }) => {
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  placeholder="tu@email.com"
                 />
               </Form.Group>
 
@@ -103,6 +133,7 @@ const AuthModal = ({ show, onHide }) => {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  placeholder="Tu contraseña"
                 />
               </Form.Group>
 
@@ -121,52 +152,110 @@ const AuthModal = ({ show, onHide }) => {
             <Form onSubmit={handleSubmit}>
               {error && <Alert variant="danger">{error}</Alert>}
 
-              <Form.Group className="mb-3">
-                <Form.Label>Nombre Completo</Form.Label>
-                <Form.Control
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Primer Nombre *</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="primerNombre"
+                      value={formData.primerNombre}
+                      onChange={handleChange}
+                      required
+                      maxLength={25}
+                      placeholder="Ej: María"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Segundo Nombre</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="segundoNombre"
+                      value={formData.segundoNombre}
+                      onChange={handleChange}
+                      maxLength={25}
+                      placeholder="Ej: José (opcional)"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Primer Apellido *</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="primerApellido"
+                      value={formData.primerApellido}
+                      onChange={handleChange}
+                      required
+                      maxLength={25}
+                      placeholder="Ej: González"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Segundo Apellido *</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="segundoApellido"
+                      value={formData.segundoApellido}
+                      onChange={handleChange}
+                      required
+                      maxLength={25}
+                      placeholder="Ej: López"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
 
               <Form.Group className="mb-3">
-                <Form.Label>Email</Form.Label>
+                <Form.Label>Email *</Form.Label>
                 <Form.Control
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  placeholder="ejemplo@correo.com"
                 />
               </Form.Group>
 
-              <Form.Group className="mb-3">
-                <Form.Label>Contraseña</Form.Label>
-                <Form.Control
-                  type="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
+              <Row>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Contraseña *</Form.Label>
+                    <Form.Control
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      minLength={4}
+                      placeholder="Mínimo 4 caracteres"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Confirmar Contraseña *</Form.Label>
+                    <Form.Control
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
 
               <Form.Group className="mb-3">
-                <Form.Label>Confirmar Contraseña</Form.Label>
-                <Form.Control
-                  type="password"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Fecha de Nacimiento</Form.Label>
+                <Form.Label>Fecha de Nacimiento *</Form.Label>
                 <Form.Control
                   type="date"
                   name="birthDate"
@@ -184,7 +273,11 @@ const AuthModal = ({ show, onHide }) => {
                   value={formData.discountCode}
                   onChange={handleChange}
                   placeholder="Ej: FELICES50"
+                  maxLength={20}
                 />
+                <Form.Text className="text-muted">
+                  Si tienes un código de descuento especial, ingrésalo aquí
+                </Form.Text>
               </Form.Group>
 
               <Button
