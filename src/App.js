@@ -17,6 +17,10 @@ import Registro from './components/pages/Registro';
 import Profile from './components/user/Profile';
 import OrderHistory from './components/user/OrderHistory';
 import TerminosCondiciones from './components/pages/TerminosCondiciones';
+import PrivacidadSeguridad from './components/pages/PrivacidadSeguridad';
+import DevolucionReembolso from './components/pages/DevolucionReembolso';
+import CalidadInocuidad from './components/pages/CalidadInocuidad';
+import EntregaEnvios from './components/pages/EntregaEnvios';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
@@ -43,6 +47,10 @@ function App() {
               <Route path="/perfil" element={<Profile />} />
               <Route path="/mis-pedidos" element={<OrderHistory />} />
               <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
+              <Route path="/privacidad-y-seguridad" element={<PrivacidadSeguridad />} />
+              <Route path="/devolucion-y-reembolso" element={<DevolucionReembolso />} />
+              <Route path="/calidad-e-inocuidad" element={<CalidadInocuidad />} />
+              <Route path="/entrega-y-envios" element={<EntregaEnvios />} />
             </Routes>
           </main>
           <Footer />

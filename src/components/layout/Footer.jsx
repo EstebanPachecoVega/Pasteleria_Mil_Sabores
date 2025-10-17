@@ -32,9 +32,10 @@ const Footer = () => {
             <h5>Políticas</h5>
             <ul className="list-unstyled footer-links">
               <li><a href="/terminos-y-condiciones">Términos y Condiciones</a></li>
-              <li><a href="/privacidad-y-seguridad">Políticas de Privacidad y Seguridad</a></li>
-              <li><a href="/devolucion-y-reembolso">Políticas de Devolución y Reembolso</a></li>
-              <li><a href="/seguridad-en-redes">Seguridad en Redes Sociales</a></li>
+              <li><a href="/privacidad-y-seguridad">Privacidad y Seguridad</a></li>
+              <li><a href="/devolucion-y-reembolso">Devolución y Reembolso</a></li>
+              <li><a href="/calidad-e-inocuidad">Calidad e Inocuidad</a></li>
+              <li><a href="/entrega-y-envios">Entrega y Envíos</a></li>
             </ul>
           </div>
 
@@ -50,10 +51,6 @@ const Footer = () => {
               <i className="bi bi-cash-coin"></i>
               <i className="bi bi-wallet2"></i>
             </div>
-
-            <ul className="list-unstyled footer-links">
-              <li><a href="/informacion-de-envios">Información de Envíos</a></li>
-            </ul>
           </div>
         </div>
 
