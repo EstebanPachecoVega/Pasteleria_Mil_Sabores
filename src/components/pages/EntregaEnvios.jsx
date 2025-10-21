@@ -22,7 +22,7 @@ const EntregaEnvios = () => {
                                 <div className="mb-4">
                                     <h5 className="text-chocolate">🏙️ Región Metropolitana</h5>
                                     <ul className="list-unstyled">
-                                        <li>• <strong>Costo:</strong> $3.000 (Gratis sobre $30.000)</li>
+                                        <li>• <strong>Costo:</strong> $3.000 (Gratis sobre $50.000)</li>
                                         <li>• <strong>Tiempo:</strong> Mismo día (pedidos antes de 12:00)</li>
                                         <li>• <strong>Horario:</strong> 9:00 - 20:00 hrs</li>
                                         <li>• <strong>Zonas:</strong> Todas las comunas</li>

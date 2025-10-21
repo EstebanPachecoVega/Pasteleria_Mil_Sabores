@@ -21,3 +21,19 @@
     /* Tamaño Scrollbar */
     --scrollbar-size: 12px;
 }
+
+.card {
+    --bs-card-bg: var(--primary-bg-color);
+    --bs-card-border-color: var(--accent-pink);
+}
+
+.table {
+    --bs-table-bg: var(--primary-bg-color);
+    --bs-table-color: var(--text-primary-color);
+    --bs-table-border-color: var(--accent-pink);
+}
+
+.badge {
+    --bs-badge-bg: var(--accent-chocolate);
+    --bs-badge-color: var(--primary-bg-color);
+}

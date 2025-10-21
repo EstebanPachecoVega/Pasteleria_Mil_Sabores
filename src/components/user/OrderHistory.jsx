@@ -86,20 +86,20 @@ const OrderHistory = () => {
     <Container className="my-4">
       <Row>
         <Col>
-          <Card>
+          <Card className='custom-card'>
             <Card.Header className="d-flex justify-content-between align-items-center">
-              <h4 className="mb-0">Mis Pedidos</h4>
+              <h4 className="order-title mb-0">Mis Pedidos</h4>
               <Badge bg="primary">{orders.length} pedidos</Badge>
             </Card.Header>
             <Card.Body>
               {orders.length === 0 ? (
                 <div className="text-center py-5">
-                  <i className="bi bi-bag-x" style={{ fontSize: '3rem' }}></i>
+                  <i className="icon-custom bi bi-bag-x" style={{ fontSize: '3rem' }}></i>
                   <h5 className="mt-3">No tienes pedidos aún</h5>
                   <p className="text-muted mb-4">
                     Cuando realices tu primer pedido, aparecerá aquí.
                   </p>
-                  <Button variant="primary" href="/productos">
+                  <Button className='custom-button' href="/productos">
                     Comenzar a Comprar
                   </Button>
                 </div>

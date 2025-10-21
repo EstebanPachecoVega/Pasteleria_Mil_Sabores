@@ -460,7 +460,7 @@ const Navbar = () => {
                       );
                     })()}
                   </button>
-                  <ul className="dropdown-menu dropdown-menu-end">
+                  <ul className="dropdown-menu dropdown-menu-end dropdown-menu-bg">
                     <li>
                       <Link
                         className="dropdown-item"

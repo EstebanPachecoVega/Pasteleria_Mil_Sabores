@@ -11,6 +11,7 @@
 @import './components/footer.css';
 @import './components/hero.css';
 @import './components/profile.css';
+@import './components/orderhistory.css';
 
 /* ---- Firefox ---- */
 html {

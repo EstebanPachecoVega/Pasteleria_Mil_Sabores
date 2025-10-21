@@ -1,0 +1,22 @@
+.order-title {
+    font-family: var(--font-heading);
+    color: var(--accent-chocolate);
+    font-weight: 400;
+    font-size: 1.6rem;
+}
+
+.custom-button {
+    background-color: var(--accent-chocolate);
+    border-color: var(--accent-chocolate);
+    color: var(--primary-bg-color);
+}
+
+.custom-button:hover {
+    background-color: var(--accent-pink);
+    border-color: var(--accent-pink);
+    color: var(--text-primary-color);
+}
+
+.icon-custom {
+    color: var(--accent-chocolate);
+}
