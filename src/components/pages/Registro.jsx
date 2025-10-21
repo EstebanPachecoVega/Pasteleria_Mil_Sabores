@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { addUser } from '../../services/firestoreService';
+import { validarCorreo, validarRun, esMayorEdad } from '../../utils/validations';
 
 const Registro = () => {
     const [formData, setFormData] = useState({
@@ -31,7 +32,7 @@ const Registro = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
-    const { register } = useAuth();
+    const navigate = useNavigate();
 
     // Datos de ejemplo para regiones y comunas
     const regions = [
@@ -70,113 +71,14 @@ const Registro = () => {
         { value: 'otro', label: 'Otro' }
     ];
 
-    // Función para calcular el dígito verificador esperado
-    const calcularDigitoVerificador = (runBody) => {
-        let factor = 2;
-        let sum = 0;
-        
-        // Recorrer el cuerpo del RUN de derecha a izquierda
-        for (let i = runBody.length - 1; i >= 0; i--) {
-            sum += parseInt(runBody.charAt(i), 10) * factor;
-            factor = factor === 7 ? 2 : factor + 1;
-        }
-        
-        const expectedVerifier = 11 - (sum % 11);
-        
-        if (expectedVerifier === 11) {
-            return '0';
-        } else if (expectedVerifier === 10) {
-            return 'K';
-        } else {
-            return expectedVerifier.toString();
-        }
-    };
-
-    // Función para validar RUN chileno completo (con dígito verificador)
-    const validateRun = (run) => {
-        if (!run || run.trim() === '') return false;
-        
-        // Limpiar el RUN: eliminar espacios y convertir a mayúsculas
-        const cleanRun = run.replace(/\s/g, '').toUpperCase();
-        
-        // Validar formato: 7-8 dígitos + 1 dígito verificador (0-9 o K)
-        if (!/^\d{7,8}[0-9K]$/i.test(cleanRun)) {
-            return false;
-        }
-        
-        const runBody = cleanRun.slice(0, -1);
-        const verifier = cleanRun.slice(-1).toUpperCase();
-        
-        const expectedVerifier = calcularDigitoVerificador(runBody);
-        
-        return expectedVerifier === verifier;
-    };
-
-    // Función para formatear RUN - permite números y K, sin guión
-    const formatRun = (input) => {
-        // Limpiar el input: eliminar todo excepto números y K, convertir a mayúsculas
-        const cleanInput = input.replace(/[^\dkK]/gi, '').toUpperCase();
-        
-        if (cleanInput.length === 0) return '';
-        
-        // Limitar a 9 caracteres máximo (7-8 dígitos + 1 dígito verificador)
-        const limitedInput = cleanInput.slice(0, 9);
-        
-        return limitedInput;
-    };
-
-    // Función para obtener el RUN con formato para el backend
-    const getRunFormateado = (run) => {
-        if (!validateRun(run)) return run;
-        
-        const cleanRun = run.replace(/\s/g, '').toUpperCase();
-        const runBody = cleanRun.slice(0, -1);
-        const verifier = cleanRun.slice(-1);
-        
-        return `${runBody}-${verifier}`;
-    };
-
-    // Función para validar si es mayor de edad
-    const isAdult = (birthDate) => {
-        if (!birthDate) return true;
-        
-        const today = new Date();
-        const birth = new Date(birthDate);
-        const age = today.getFullYear() - birth.getFullYear();
-        const monthDiff = today.getMonth() - birth.getMonth();
-        
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-            return age - 1 >= 18;
-        }
-        
-        return age >= 18;
-    };
-
-    // Función para validar contraseña
-    const validatePassword = (password) => {
-        if (password.length < 4 || password.length > 10) {
-            return 'La contraseña debe tener entre 4 y 10 caracteres';
-        }
-        if (!/(?=.*[a-z])/.test(password)) {
-            return 'La contraseña debe contener al menos una minúscula';
-        }
-        if (!/(?=.*[A-Z])/.test(password)) {
-            return 'La contraseña debe contener al menos una mayúscula';
-        }
-        if (!/(?=.*\d)/.test(password)) {
-            return 'La contraseña debe contener al menos un número';
-        }
-        return null;
-    };
-
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         
         let newValue = type === 'checkbox' ? checked : value;
 
-        // Formatear RUN mientras se escribe
+        // Formatear RUN mientras se escribe (solo números y K)
         if (name === 'run') {
-            newValue = formatRun(newValue);
+            newValue = value.replace(/[^\dkK]/gi, '').toUpperCase().slice(0, 9);
         }
         
         setFormData({
@@ -184,62 +86,11 @@ const Registro = () => {
             [name]: newValue
         });
 
-        // Validaciones en tiempo real
-        if (validated) {
+        // Limpiar errores cuando el usuario escribe
+        setError('');
+        if (fieldErrors[name]) {
             const newErrors = { ...fieldErrors };
-            
-            switch (name) {
-                case 'run':
-                    if (!validateRun(newValue)) {
-                        newErrors.run = 'RUN no válido. Verifica el número y dígito verificador';
-                    } else {
-                        delete newErrors.run;
-                    }
-                    break;
-                    
-                case 'email':
-                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newValue)) {
-                        newErrors.email = 'Email no válido';
-                    } else {
-                        delete newErrors.email;
-                    }
-                    break;
-                    
-                case 'password':
-                    const passwordError = validatePassword(newValue);
-                    if (passwordError) {
-                        newErrors.password = passwordError;
-                    } else {
-                        delete newErrors.password;
-                    }
-                    // Si cambia la contraseña, validar también la confirmación
-                    if (formData.confirmPassword && newValue !== formData.confirmPassword) {
-                        newErrors.confirmPassword = 'Las contraseñas no coinciden';
-                    } else if (formData.confirmPassword) {
-                        delete newErrors.confirmPassword;
-                    }
-                    break;
-                    
-                case 'confirmPassword':
-                    if (newValue !== formData.password) {
-                        newErrors.confirmPassword = 'Las contraseñas no coinciden';
-                    } else {
-                        delete newErrors.confirmPassword;
-                    }
-                    break;
-                    
-                case 'birthDate':
-                    if (newValue && !isAdult(newValue)) {
-                        newErrors.birthDate = 'Debes ser mayor de 18 años';
-                    } else {
-                        delete newErrors.birthDate;
-                    }
-                    break;
-                    
-                default:
-                    break;
-            }
-            
+            delete newErrors[name];
             setFieldErrors(newErrors);
         }
     };
@@ -254,32 +105,53 @@ const Registro = () => {
             return;
         }
 
-        // Validaciones adicionales antes del envío
-        const errors = {};
-        
-        if (!validateRun(formData.run)) {
-            errors.run = 'RUN no válido. Verifica el número y dígito verificador';
-        }
-        
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-            errors.email = 'Email no válido';
-        }
-        
-        const passwordError = validatePassword(formData.password);
-        if (passwordError) {
-            errors.password = passwordError;
-        }
-        
-        if (formData.password !== formData.confirmPassword) {
-            errors.confirmPassword = 'Las contraseñas no coinciden';
-        }
-        
-        if (formData.birthDate && !isAdult(formData.birthDate)) {
-            errors.birthDate = 'Debes ser mayor de 18 años';
+        // ✅ VALIDACIONES USANDO LAS FUNCIONES DE TU PROFESORA
+        const runFormateado = formData.run.trim().toUpperCase();
+
+        if (!validarRun(runFormateado)) {
+            setError('RUN incorrecto. Debe tener 8 dígitos + número o K verificador');
+            setValidated(true);
+            return;
         }
 
-        if (Object.keys(errors).length > 0) {
-            setFieldErrors(errors);
+        if (!formData.primerNombre.trim()) {
+            setError('El primer nombre es obligatorio');
+            setValidated(true);
+            return;
+        }
+
+        if (!formData.primerApellido.trim()) {
+            setError('El primer apellido es obligatorio');
+            setValidated(true);
+            return;
+        }
+
+        if (!validarCorreo(formData.email)) {
+            setError('El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com');
+            setValidated(true);
+            return;
+        }
+
+        if (!formData.birthDate || !esMayorEdad(formData.birthDate)) {
+            setError('Debe ser mayor de 18 años para registrarse');
+            setValidated(true);
+            return;
+        }
+
+        if (formData.password.length < 4) {
+            setError('La contraseña debe tener al menos 4 caracteres');
+            setValidated(true);
+            return;
+        }
+
+        if (formData.password !== formData.confirmPassword) {
+            setError('Las contraseñas no coinciden');
+            setValidated(true);
+            return;
+        }
+
+        if (!formData.terms) {
+            setError('Debes aceptar los términos y condiciones');
             setValidated(true);
             return;
         }
@@ -289,45 +161,40 @@ const Registro = () => {
         setValidated(true);
 
         try {
-            // Construir el nombre completo con todos los componentes
-            const nameParts = [
-                formData.primerNombre,
-                formData.segundoNombre,
-                formData.primerApellido,
-                formData.segundoApellido
-            ].filter(Boolean);
+            // ✅ USANDO EL SERVICIO addUser DE TU PROFESORA
+            const nombreCompleto = `${formData.primerNombre} ${formData.segundoNombre || ''} ${formData.primerApellido} ${formData.segundoApellido || ''}`.trim().replace(/\s+/g, ' ');
 
-            const fullName = nameParts.join(' ');
-
-            // Construir dirección completa
-            const direccionCompleta = `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${formData.tipoVivienda}` : ''
-                }${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`;
-
-            // Obtener el RUN formateado para el backend
-            const runFormateado = getRunFormateado(formData.run);
-
-            await register({
-                name: fullName,
-                primerNombre: formData.primerNombre,
-                segundoNombre: formData.segundoNombre,
-                primerApellido: formData.primerApellido,
-                segundoApellido: formData.segundoApellido,
-                email: formData.email,
-                password: formData.password,
-                birthDate: formData.birthDate,
-                discountCode: formData.discountCode,
-                run: runFormateado, // Enviamos el RUN formateado con guión
-                telefono: formData.telefono,
-                region: formData.region,
-                comuna: formData.comuna,
-                nombreCalle: formData.nombreCalle,
-                numeroCalle: formData.numeroCalle,
-                tipoVivienda: formData.tipoVivienda,
-                codigoPostal: formData.codigoPostal,
-                direccionCompleta: direccionCompleta
+            await addUser({
+                run: runFormateado,
+                nombre: nombreCompleto,
+                correo: formData.email,
+                clave: formData.password,
+                fecha: formData.birthDate,
+                // Campos adicionales que quieras guardar
+                telefono: formData.telefono || '',
+                discountCode: formData.discountCode || '',
+                region: formData.region || '',
+                comuna: formData.comuna || '',
+                direccion: `${formData.nombreCalle || ''} ${formData.numeroCalle || ''}`.trim(),
+                tipoVivienda: formData.tipoVivienda || '',
+                codigoPostal: formData.codigoPostal || ''
             });
+
+            // Éxito - mostrar mensaje y redirigir
+            setError('');
+            
+            // Redirección como en el código de tu profesora
+            setTimeout(() => {
+                if (formData.email.toLowerCase() === 'admin@duoc.cl') {
+                    navigate('/perfil-admin');
+                } else {
+                    navigate('/perfil');
+                }
+            }, 1000);
+
         } catch (err) {
-            setError(err.message);
+            console.error('Error al guardar usuario: ', err);
+            setError('Error al guardar usuario en Firebase');
         } finally {
             setLoading(false);
         }
@@ -351,7 +218,12 @@ const Registro = () => {
                             </h4>
                         </Card.Header>
                         <Card.Body className="p-4">
-                            {error && <Alert variant="danger">{error}</Alert>}
+                            {error && (
+                                <Alert variant="danger" className="mb-4">
+                                    <i className="bi bi-exclamation-triangle me-2"></i>
+                                    {error}
+                                </Alert>
+                            )}
 
                             <Form
                                 noValidate
@@ -378,30 +250,14 @@ const Registro = () => {
                                             placeholder="123456789 (sin guión)"
                                             required
                                             maxLength={9}
-                                            isInvalid={validated && fieldErrors.run}
+                                            isInvalid={validated && error.includes('RUN')}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            {fieldErrors.run || 'Por favor ingresa un RUN válido'}
+                                            RUN incorrecto
                                         </Form.Control.Feedback>
                                         <Form.Text className="text-muted">
                                             Ingresa tu RUN completo (8 dígitos + dígito verificador sin guión)
                                         </Form.Text>
-                                        {formData.run && validateRun(formData.run) && (
-                                            <div className="mt-2">
-                                                <Form.Text className="text-success">
-                                                    <strong>✓ RUN válido</strong>
-                                                </Form.Text>
-                                                <br />
-                                                <Form.Text className="text-muted">
-                                                    Se enviará como: {getRunFormateado(formData.run)}
-                                                </Form.Text>
-                                            </div>
-                                        )}
-                                        {formData.run && !validateRun(formData.run) && formData.run.length >= 8 && (
-                                            <Form.Text className="text-warning">
-                                                Verifica el dígito verificador
-                                            </Form.Text>
-                                        )}
                                     </Col>
 
                                     <Col md={6} className="mb-3">
@@ -437,6 +293,7 @@ const Registro = () => {
                                             placeholder="Tu primer nombre"
                                             required
                                             maxLength={25}
+                                            isInvalid={validated && error.includes('nombre')}
                                         />
                                         <Form.Control.Feedback type="invalid">
                                             El primer nombre es requerido
@@ -473,6 +330,7 @@ const Registro = () => {
                                             placeholder="Tu primer apellido"
                                             required
                                             maxLength={25}
+                                            isInvalid={validated && error.includes('apellido')}
                                         />
                                         <Form.Control.Feedback type="invalid">
                                             El primer apellido es requerido
@@ -490,12 +348,8 @@ const Registro = () => {
                                             value={formData.segundoApellido}
                                             onChange={handleChange}
                                             placeholder="Tu segundo apellido"
-                                            required
                                             maxLength={25}
                                         />
-                                        <Form.Control.Feedback type="invalid">
-                                            El segundo apellido es requerido
-                                        </Form.Control.Feedback>
                                     </Col>
                                 </Row>
 
@@ -517,16 +371,16 @@ const Registro = () => {
                                             onChange={handleChange}
                                             placeholder="Ej: tu@email.com"
                                             required
-                                            isInvalid={validated && fieldErrors.email}
+                                            isInvalid={validated && error.includes('correo')}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            {fieldErrors.email || 'Por favor ingresa un correo válido'}
+                                            Correo incorrecto
                                         </Form.Control.Feedback>
                                     </Col>
 
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerTelefono">
-                                            Teléfono <span className="text-danger">*</span>
+                                            Teléfono
                                         </Form.Label>
                                         <Form.Control
                                             type="tel"
@@ -535,11 +389,7 @@ const Registro = () => {
                                             value={formData.telefono}
                                             onChange={handleChange}
                                             placeholder="Ej: +56912345678"
-                                            required
                                         />
-                                        <Form.Control.Feedback type="invalid">
-                                            Por favor ingresa un teléfono válido
-                                        </Form.Control.Feedback>
                                     </Col>
                                 </Row>
 
@@ -559,7 +409,7 @@ const Registro = () => {
                                                 required
                                                 minLength={4}
                                                 maxLength={10}
-                                                isInvalid={validated && fieldErrors.password}
+                                                isInvalid={validated && error.includes('contraseña')}
                                             />
                                             <Button
                                                 variant="outline-secondary"
@@ -569,11 +419,11 @@ const Registro = () => {
                                                 <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
                                             </Button>
                                             <Form.Control.Feedback type="invalid">
-                                                {fieldErrors.password || 'La contraseña debe tener entre 4 y 10 caracteres'}
+                                                Contraseña muy corta
                                             </Form.Control.Feedback>
                                         </InputGroup>
                                         <Form.Text className="text-muted">
-                                            La contraseña debe tener 4-10 caracteres, al menos una mayúscula, una minúscula y un número
+                                            Mínimo 4 caracteres
                                         </Form.Text>
                                     </Col>
 
@@ -592,7 +442,7 @@ const Registro = () => {
                                                 required
                                                 minLength={4}
                                                 maxLength={10}
-                                                isInvalid={validated && fieldErrors.confirmPassword}
+                                                isInvalid={validated && error.includes('coinciden')}
                                             />
                                             <Button
                                                 variant="outline-secondary"
@@ -602,7 +452,7 @@ const Registro = () => {
                                                 <i className={`bi bi-eye${showConfirmPassword ? '-slash' : ''}`}></i>
                                             </Button>
                                             <Form.Control.Feedback type="invalid">
-                                                {fieldErrors.confirmPassword || 'Las contraseñas deben coincidir'}
+                                                Las contraseñas no coinciden
                                             </Form.Control.Feedback>
                                         </InputGroup>
                                     </Col>
@@ -611,7 +461,7 @@ const Registro = () => {
                                 <Row>
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerBirthdate">
-                                            Fecha de Nacimiento (opcional)
+                                            Fecha de Nacimiento <span className="text-danger">*</span>
                                         </Form.Label>
                                         <Form.Control
                                             type="date"
@@ -619,35 +469,30 @@ const Registro = () => {
                                             name="birthDate"
                                             value={formData.birthDate}
                                             onChange={handleChange}
-                                            isInvalid={validated && fieldErrors.birthDate}
+                                            required
+                                            isInvalid={validated && error.includes('18 años')}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            {fieldErrors.birthDate}
+                                            Debes ser mayor de 18 años
                                         </Form.Control.Feedback>
-                                        <Form.Text className="text-muted">
-                                            {formData.birthDate && !isAdult(formData.birthDate) && 
-                                                'Debes ser mayor de 18 años para registrarte'
-                                            }
-                                        </Form.Text>
                                     </Col>
                                 </Row>
 
                                 {/* Sección de ubicación */}
                                 <h5 className="mb-3 mt-4 border-bottom pb-2">
-                                    <i className="bi bi-geo-alt me-2"></i>Ubicación
+                                    <i className="bi bi-geo-alt me-2"></i>Ubicación (Opcional)
                                 </h5>
 
                                 <Row>
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerRegion">
-                                            Región <span className="text-danger">*</span>
+                                            Región
                                         </Form.Label>
                                         <Form.Select
                                             id="registerRegion"
                                             name="region"
                                             value={formData.region}
                                             onChange={handleChange}
-                                            required
                                         >
                                             <option value="">Selecciona una región</option>
                                             {regions.map(region => (
@@ -656,21 +501,17 @@ const Registro = () => {
                                                 </option>
                                             ))}
                                         </Form.Select>
-                                        <Form.Control.Feedback type="invalid">
-                                            Por favor selecciona una región
-                                        </Form.Control.Feedback>
                                     </Col>
 
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerComuna">
-                                            Comuna <span className="text-danger">*</span>
+                                            Comuna
                                         </Form.Label>
                                         <Form.Select
                                             id="registerComuna"
                                             name="comuna"
                                             value={formData.comuna}
                                             onChange={handleChange}
-                                            required
                                             disabled={!formData.region}
                                         >
                                             <option value="">
@@ -682,9 +523,6 @@ const Registro = () => {
                                                 </option>
                                             ))}
                                         </Form.Select>
-                                        <Form.Control.Feedback type="invalid">
-                                            Por favor selecciona una comuna
-                                        </Form.Control.Feedback>
                                     </Col>
                                 </Row>
 
@@ -692,7 +530,7 @@ const Registro = () => {
                                 <Row>
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerNombreCalle">
-                                            Nombre de Calle <span className="text-danger">*</span>
+                                            Nombre de Calle
                                         </Form.Label>
                                         <Form.Control
                                             type="text"
@@ -701,17 +539,13 @@ const Registro = () => {
                                             value={formData.nombreCalle}
                                             onChange={handleChange}
                                             placeholder="Nombre de la calle, avenida, etc."
-                                            required
                                             maxLength={100}
                                         />
-                                        <Form.Control.Feedback type="invalid">
-                                            El nombre de calle es requerido
-                                        </Form.Control.Feedback>
                                     </Col>
 
                                     <Col md={4} className="mb-3">
                                         <Form.Label htmlFor="registerNumeroCalle">
-                                            Número <span className="text-danger">*</span>
+                                            Número
                                         </Form.Label>
                                         <Form.Control
                                             type="text"
@@ -720,19 +554,15 @@ const Registro = () => {
                                             value={formData.numeroCalle}
                                             onChange={handleChange}
                                             placeholder="Ej: 1340"
-                                            required
                                             maxLength={10}
                                         />
-                                        <Form.Control.Feedback type="invalid">
-                                            El número es requerido
-                                        </Form.Control.Feedback>
                                     </Col>
                                 </Row>
 
                                 <Row>
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerTipoVivienda">
-                                            Tipo de Vivienda (opcional)
+                                            Tipo de Vivienda
                                         </Form.Label>
                                         <Form.Select
                                             id="registerTipoVivienda"
@@ -750,7 +580,7 @@ const Registro = () => {
 
                                     <Col md={4} className="mb-3">
                                         <Form.Label htmlFor="registerCodigoPostal">
-                                            Código Postal (opcional)
+                                            Código Postal
                                         </Form.Label>
                                         <Form.Control
                                             type="text"
@@ -772,6 +602,7 @@ const Registro = () => {
                                         checked={formData.terms}
                                         onChange={handleChange}
                                         required
+                                        isInvalid={validated && error.includes('términos')}
                                         label={
                                             <span>
                                                 Acepto los <Link to="/terminos-y-condiciones">términos y condiciones</Link> y las{' '}
@@ -788,7 +619,7 @@ const Registro = () => {
                                     variant="primary"
                                     type="submit"
                                     className="w-100 py-2"
-                                    disabled={loading || Object.keys(fieldErrors).length > 0}
+                                    disabled={loading}
                                 >
                                     <i className="bi bi-person-plus me-2"></i>
                                     {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
