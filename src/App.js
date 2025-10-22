@@ -21,6 +21,8 @@ import PrivacidadSeguridad from './components/pages/PrivacidadSeguridad';
 import DevolucionReembolso from './components/pages/DevolucionReembolso';
 import CalidadInocuidad from './components/pages/CalidadInocuidad';
 import EntregaEnvios from './components/pages/EntregaEnvios';
+import PerfilAdmin from './components/pages/PerfilAdmin';
+import PerfilCliente from './components/pages/PerfilCliente';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
@@ -51,6 +53,9 @@ function App() {
               <Route path="/devolucion-y-reembolso" element={<DevolucionReembolso />} />
               <Route path="/calidad-e-inocuidad" element={<CalidadInocuidad />} />
               <Route path="/entrega-y-envios" element={<EntregaEnvios />} />
+              {/* NUEVAS RUTAS */}
+              <Route path="/perfil-admin" element={<PerfilAdmin />} />
+              <Route path="/perfil-cliente" element={<PerfilCliente />} />
             </Routes>
           </main>
           <Footer />

@@ -158,30 +158,30 @@ const Navbar = () => {
   const formatUserName = (user) => {
     if (!user) return 'Usuario';
     
-    // Prioridad 1: Si tenemos los campos separados (usuarios nuevos)
-    if (user.primerNombre && user.primerApellido) {
-      return `${user.primerNombre} ${user.primerApellido.charAt(0)}.`;
+    // Si es admin
+    if (user.rol === 'admin') {
+      return 'Administrador';
     }
     
-    // Prioridad 2: Fallback al nombre completo (usuarios existentes)
-    if (user.name) {
-      const nameParts = user.name.split(' ').filter(part => part.trim() !== '');
+    // Para clientes, usar el nombre del contexto
+    if (user.nombre) {
+      const nameParts = user.nombre.split(' ').filter(part => part.trim() !== '');
       
       if (nameParts.length >= 2) {
         const firstName = nameParts[0];
-        // Intentar encontrar el primer apellido (generalmente el penúltimo si hay segundo nombre)
         const firstSurname = nameParts.length >= 3 ? nameParts[nameParts.length - 2] : nameParts[1];
         return `${firstName} ${firstSurname.charAt(0)}.`;
       }
       
-      return user.name;
+      return user.nombre;
     }
 
     return 'Usuario';
   };
 
   const handleLogout = () => {
-    logout();
+    logout(); // Esto limpia el contexto y localStorage
+    navigate('/'); // Redirige al home después del logout
     if (isMobile) setIsMenuOpen(false);
   };
 
@@ -348,6 +348,15 @@ const Navbar = () => {
                   </li>
                 </ul>
               </li>
+
+              {/* Enlaces para Admin */}
+              {currentUser?.rol === 'admin' && (
+                <li className="nav-item">
+                  <Link className="nav-link" to="/perfil-admin" onClick={() => setIsMenuOpen(false)}>
+                    Panel Admin
+                  </Link>
+                </li>
+              )}
             </ul>
 
             {/* Buscador */}
@@ -444,41 +453,52 @@ const Navbar = () => {
                   >
                     <i className="bi bi-person-circle me-1"></i>
                     {formatUserName(currentUser)}
+                    {currentUser.rol === 'admin' && (
+                      <span className="badge bg-danger ms-1" title="Administrador">
+                        <i className="bi bi-shield-check"></i>
+                      </span>
+                    )}
                     {currentUser.discountCode === 'FELICES50' && (
                       <span className="badge bg-success ms-1" title="10% descuento permanente">
                         <i className="bi bi-star-fill"></i>
                       </span>
                     )}
-                    {currentUser.birthDate && (() => {
-                      const birthDate = new Date(currentUser.birthDate);
-                      const today = new Date();
-                      const age = today.getFullYear() - birthDate.getFullYear();
-                      return age >= 50 && (
-                        <span className="badge bg-warning ms-1" title="50% descuento">
-                          <i className="bi bi-coin"></i>
-                        </span>
-                      );
-                    })()}
                   </button>
                   <ul className="dropdown-menu dropdown-menu-end dropdown-menu-bg">
-                    <li>
-                      <Link
-                        className="dropdown-item"
-                        to="/perfil"
-                        onClick={() => isMobile && setIsMenuOpen(false)}
-                      >
-                        <i className="bi bi-person me-2"></i>Mi Perfil
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        className="dropdown-item"
-                        to="/mis-pedidos"
-                        onClick={() => isMobile && setIsMenuOpen(false)}
-                      >
-                        <i className="bi bi-bag me-2"></i>Mis Pedidos
-                      </Link>
-                    </li>
+                    {/* Enlaces según el rol */}
+                    {currentUser.rol === 'admin' ? (
+                      <li>
+                        <Link
+                          className="dropdown-item"
+                          to="/perfil-admin"
+                          onClick={() => isMobile && setIsMenuOpen(false)}
+                        >
+                          <i className="bi bi-speedometer2 me-2"></i>Panel Administrador
+                        </Link>
+                      </li>
+                    ) : (
+                      <>
+                        <li>
+                          <Link
+                            className="dropdown-item"
+                            to="/perfil-cliente"
+                            onClick={() => isMobile && setIsMenuOpen(false)}
+                          >
+                            <i className="bi bi-person me-2"></i>Mi Perfil
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            className="dropdown-item"
+                            to="/mis-pedidos"
+                            onClick={() => isMobile && setIsMenuOpen(false)}
+                          >
+                            <i className="bi bi-bag me-2"></i>Mis Pedidos
+                          </Link>
+                        </li>
+                      </>
+                    )}
+                    
                     <li><hr className="dropdown-divider" /></li>
 
                     {/* Mostrar beneficios del usuario */}
@@ -490,19 +510,6 @@ const Navbar = () => {
                         </span>
                       </li>
                     )}
-                    {currentUser.birthDate && (() => {
-                      const birthDate = new Date(currentUser.birthDate);
-                      const today = new Date();
-                      const age = today.getFullYear() - birthDate.getFullYear();
-                      return age >= 50 && (
-                        <li>
-                          <span className="dropdown-item text-warning small">
-                            <i className="bi bi-coin me-2"></i>
-                            50% descuento
-                          </span>
-                        </li>
-                      );
-                    })()}
 
                     <li>
                       <button
