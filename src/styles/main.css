@@ -12,6 +12,8 @@
 @import './components/hero.css';
 @import './components/profile.css';
 @import './components/orderhistory.css';
+@import './components/checkout.css';
+@import './components/spinner.css';
 
 /* ---- Firefox ---- */
 html {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Badge } from 'react-bootstrap';
-import { useAuth } from '../../context/AuthContext';
-import { getSpecialDiscounts } from '../../data/users';
+import { useAuth } from '../../../context/AuthContext';
+import { getSpecialDiscounts } from '../../../data/users';
 
 
 const Profile = () => {
@@ -42,17 +42,18 @@ const Profile = () => {
       { id: 2, name: 'Providencia' },
       { id: 3, name: 'Las Condes' },
       { id: 4, name: 'Ñuñoa' },
-      { id: 5, name: 'Maipú' }
+      { id: 5, name: 'Maipú' },
+      { id: 6, name: 'Puente Alto' },
     ],
     2: [
-      { id: 6, name: 'Valparaíso' },
-      { id: 7, name: 'Viña del Mar' },
-      { id: 8, name: 'Quilpué' }
+      { id: 7, name: 'Valparaíso' },
+      { id: 8, name: 'Viña del Mar' },
+      { id: 9, name: 'Quilpué' }
     ],
     3: [
-      { id: 9, name: 'Concepción' },
-      { id: 10, name: 'Talcahuano' },
-      { id: 11, name: 'Chiguayante' }
+      { id: 10, name: 'Concepción' },
+      { id: 11, name: 'Talcahuano' },
+      { id: 12, name: 'Chiguayante' }
     ]
   };
 

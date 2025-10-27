@@ -14,15 +14,17 @@ import CategoryProducts from './components/pages/CategoryProducts';
 import Checkout from './components/checkout/Checkout';
 import Login from './components/pages/Login';
 import Registro from './components/pages/Registro';
-import Profile from './components/user/Profile';
-import OrderHistory from './components/user/OrderHistory';
+import Profile from './components/pages/user/Profile';
+import OrderHistory from './components/pages/user/OrderHistory';
+import ProfileAdmin from './components/pages/admin/ProfileAdmin';
 import TerminosCondiciones from './components/pages/TerminosCondiciones';
 import PrivacidadSeguridad from './components/pages/PrivacidadSeguridad';
 import DevolucionReembolso from './components/pages/DevolucionReembolso';
 import CalidadInocuidad from './components/pages/CalidadInocuidad';
 import EntregaEnvios from './components/pages/EntregaEnvios';
-import PerfilAdmin from './components/pages/PerfilAdmin';
-import PerfilCliente from './components/pages/PerfilCliente';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import PublicRoute from './components/auth/PublicRoute';
+import AdminRoute from './components/auth/AdminRoute';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
@@ -36,6 +38,7 @@ function App() {
           <Navbar />
           <main>
             <Routes>
+              {/* Rutas Públicas */}
               <Route path="/" element={<Home />} />
               <Route path="/productos" element={<Productos />} />
               <Route path="/nosotros" element={<Nosotros />} />
@@ -43,19 +46,37 @@ function App() {
               <Route path="/buscar" element={<SearchResults />} />
               <Route path="/producto/:productId" element={<ProductDetails />} />
               <Route path="/categoria/:category" element={<CategoryProducts />} />
+
+              {/* Rutas Protegidas */}
               <Route path="/checkout" element={<Checkout />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/registro" element={<Registro />} />
               <Route path="/perfil" element={<Profile />} />
-              <Route path="/mis-pedidos" element={<OrderHistory />} />
+              <Route path="/mis-pedidos" element={
+                <ProtectedRoute>
+                  <OrderHistory />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <ProfileAdmin />
+                </AdminRoute>
+              } />
+
+              {/* Rutas Públicas */}
+              <Route path="/login" element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              } />
+              <Route path="/registro" element={
+                <PublicRoute>
+                  <Registro />
+                </PublicRoute>
+              } />
               <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
               <Route path="/privacidad-y-seguridad" element={<PrivacidadSeguridad />} />
               <Route path="/devolucion-y-reembolso" element={<DevolucionReembolso />} />
               <Route path="/calidad-e-inocuidad" element={<CalidadInocuidad />} />
               <Route path="/entrega-y-envios" element={<EntregaEnvios />} />
-              {/* NUEVAS RUTAS */}
-              <Route path="/perfil-admin" element={<PerfilAdmin />} />
-              <Route path="/perfil-cliente" element={<PerfilCliente />} />
             </Routes>
           </main>
           <Footer />

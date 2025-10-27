@@ -3,13 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../../hooks/useSearch';
 import CartOffCanvas from '../cart/CartOffCanvas';
 import { useAuth } from '../../context/AuthContext';
-import AuthModal from '../auth/AuthModal';
 import '../../styles/components/cart.css';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { currentUser, logout } = useAuth();
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -157,23 +155,23 @@ const Navbar = () => {
   // === FUNCIÓN PARA MANEJAR USUARIO ===
   const formatUserName = (user) => {
     if (!user) return 'Usuario';
-    
+
     // Si es admin
     if (user.rol === 'admin') {
       return 'Administrador';
     }
-    
+
     // Para clientes, usar el nombre del contexto
-    if (user.nombre) {
-      const nameParts = user.nombre.split(' ').filter(part => part.trim() !== '');
-      
+    if (user.name) {
+      const nameParts = user.name.split(' ').filter(part => part.trim() !== '');
+
       if (nameParts.length >= 2) {
         const firstName = nameParts[0];
         const firstSurname = nameParts.length >= 3 ? nameParts[nameParts.length - 2] : nameParts[1];
         return `${firstName} ${firstSurname.charAt(0)}.`;
       }
-      
-      return user.nombre;
+
+      return user.name;
     }
 
     return 'Usuario';
@@ -348,15 +346,6 @@ const Navbar = () => {
                   </li>
                 </ul>
               </li>
-
-              {/* Enlaces para Admin */}
-              {currentUser?.rol === 'admin' && (
-                <li className="nav-item">
-                  <Link className="nav-link" to="/perfil-admin" onClick={() => setIsMenuOpen(false)}>
-                    Panel Admin
-                  </Link>
-                </li>
-              )}
             </ul>
 
             {/* Buscador */}
@@ -470,7 +459,7 @@ const Navbar = () => {
                       <li>
                         <Link
                           className="dropdown-item"
-                          to="/perfil-admin"
+                          to="/admin"
                           onClick={() => isMobile && setIsMenuOpen(false)}
                         >
                           <i className="bi bi-speedometer2 me-2"></i>Panel Administrador
@@ -481,7 +470,7 @@ const Navbar = () => {
                         <li>
                           <Link
                             className="dropdown-item"
-                            to="/perfil-cliente"
+                            to="/perfil"
                             onClick={() => isMobile && setIsMenuOpen(false)}
                           >
                             <i className="bi bi-person me-2"></i>Mi Perfil
@@ -498,7 +487,7 @@ const Navbar = () => {
                         </li>
                       </>
                     )}
-                    
+
                     <li><hr className="dropdown-divider" /></li>
 
                     {/* Mostrar beneficios del usuario */}
@@ -554,12 +543,6 @@ const Navbar = () => {
                   </ul>
                 </div>
               )}
-
-              {/* AuthModal */}
-              <AuthModal
-                show={showAuthModal}
-                onHide={() => setShowAuthModal(false)}
-              />
             </div>
           </div>
         </div>

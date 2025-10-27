@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Button } from 'react-bootstrap';
-import { useAuth } from '../../context/AuthContext';
-import { formatPrice } from '../../utils/formatters';
+import { useAuth } from '../../../context/AuthContext';
+import { formatPrice } from '../../../utils/formatters';
 
 const OrderHistory = () => {
   const { currentUser } = useAuth();

@@ -1,10 +1,8 @@
+// src/components/auth/Login.jsx
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { auth, db } from '../../config/firebase';
 
 const Login = () => {
     const [formData, setFormData] = useState({
@@ -39,70 +37,19 @@ const Login = () => {
         }
 
         try {
-            // ✅ ADMIN: Firebase Authentication
-            if (correo === "admin@duoc.cl") {
-                const userCredential = await signInWithEmailAndPassword(auth, correo, password);
-                const user = userCredential.user;
+            // Usar el AuthContext unificado
+            await login(correo, password);
+            
+            // Redirección única - el rol lo maneja AuthContext
+            setTimeout(() => {
+                navigate('/perfil');
+            }, 1000);
 
-                const usuario = { 
-                    nombre: "Administrador", 
-                    email: correo, 
-                    rol: "admin",
-                    uid: user.uid
-                };
-
-                // Usar la función login del contexto
-                login(usuario);
-                
-                // Redirigir DESPUÉS del login
-                navigate('/perfil-admin');
-
-            } else {
-                // ✅ CLIENTE: Buscar en Firestore
-                const userData = await buscarUsuarioEnFirestore(correo, password);
-                
-                if (userData) {
-                    const usuario = {
-                        nombre: userData.nombre || correo,
-                        email: correo,
-                        rol: "cliente",
-                        uid: userData.run,
-                        ...userData
-                    };
-
-                    // Usar la función login del contexto
-                    login(usuario);
-                    
-                    // Redirigir DESPUÉS del login
-                    navigate('/perfil-cliente');
-                } else {
-                    setError('Correo o clave incorrectos');
-                }
-            }
-        } catch (error) {
-            console.error('Error en login:', error);
+        } catch (err) {
+            console.error('Error en login:', err);
             setError('Credenciales incorrectas');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const buscarUsuarioEnFirestore = async (correo, clave) => {
-        try {
-            const usersRef = collection(db, 'usuario');
-            const q = query(usersRef, 
-                where('correo', '==', correo), 
-                where('clave', '==', clave)
-            );
-            const querySnapshot = await getDocs(q);
-            
-            if (!querySnapshot.empty) {
-                return querySnapshot.docs[0].data();
-            }
-            return null;
-        } catch (error) {
-            console.error('Error buscando usuario:', error);
-            return null;
         }
     };
 

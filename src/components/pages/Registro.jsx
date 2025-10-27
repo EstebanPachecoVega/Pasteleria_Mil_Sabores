@@ -1,8 +1,18 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, InputGroup } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { addUser } from '../../services/firestoreService';
-import { validarCorreo, validarRun, esMayorEdad } from '../../utils/validations';
+import { useAuth } from '../../context/AuthContext';
+import {
+    validateRun,
+    formatRun,
+    getRunFormateado,
+    isAdult,
+    validatePassword,
+    validateEmail,
+    validatePhone,
+    formatPhone,
+    validateText
+} from '../../utils/validations';
 
 const Registro = () => {
     const [formData, setFormData] = useState({
@@ -32,6 +42,7 @@ const Registro = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [fieldErrors, setFieldErrors] = useState({});
 
+    const { register } = useAuth();
     const navigate = useNavigate();
 
     // Datos de ejemplo para regiones y comunas
@@ -73,24 +84,130 @@ const Registro = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        
+
         let newValue = type === 'checkbox' ? checked : value;
 
-        // Formatear RUN mientras se escribe (solo números y K)
+        // Formatear RUN mientras se escribe
         if (name === 'run') {
-            newValue = value.replace(/[^\dkK]/gi, '').toUpperCase().slice(0, 9);
+            newValue = formatRun(newValue);
         }
-        
+
         setFormData({
             ...formData,
             [name]: newValue
         });
 
-        // Limpiar errores cuando el usuario escribe
-        setError('');
-        if (fieldErrors[name]) {
+        // Formatear teléfono mientras se escribe
+        if (name === 'telefono') {
+            newValue = formatPhone(newValue);
+        }
+
+        // Validaciones en tiempo real
+        if (validated) {
             const newErrors = { ...fieldErrors };
-            delete newErrors[name];
+
+            switch (name) {
+                case 'run':
+                    if (!validateRun(newValue)) {
+                        newErrors.run = 'RUN no válido. Verifica el número y dígito verificador';
+                    } else {
+                        delete newErrors.run;
+                    }
+                    break;
+
+                case 'primerNombre':
+                    const primerNombreError = validateText(newValue, 'Primer nombre');
+                    if (primerNombreError) {
+                        newErrors.primerNombre = primerNombreError;
+                    } else {
+                        delete newErrors.primerNombre;
+                    }
+                    break;
+
+                case 'segundoNombre':
+                    if (newValue) {
+                        const segundoNombreError = validateText(newValue, 'Segundo nombre');
+                        if (segundoNombreError) {
+                            newErrors.segundoNombre = segundoNombreError;
+                        } else {
+                            delete newErrors.segundoNombre;
+                        }
+                    }
+                    break;
+
+                case 'primerApellido':
+                    const primerApellidoError = validateText(newValue, 'Primer apellido');
+                    if (primerApellidoError) {
+                        newErrors.primerApellido = primerApellidoError;
+                    } else {
+                        delete newErrors.primerApellido;
+                    }
+                    break;
+
+                case 'segundoApellido':
+                    const segundoApellidoError = validateText(newValue, 'Segundo apellido');
+                    if (segundoApellidoError) {
+                        newErrors.segundoApellido = segundoApellidoError;
+                    } else {
+                        delete newErrors.segundoApellido;
+                    }
+                    break;
+
+                case 'email':
+                    const emailError = validateEmail(newValue);
+                    if (emailError) {
+                        newErrors.email = emailError;
+                    } else {
+                        delete newErrors.email;
+                    }
+                    break;
+
+                case 'telefono':
+                    if (newValue) {
+                        const phoneError = validatePhone(newValue);
+                        if (phoneError) {
+                            newErrors.telefono = phoneError;
+                        } else {
+                            delete newErrors.telefono;
+                        }
+                    }
+                    break;
+
+                case 'password':
+                    const passwordError = validatePassword(newValue);
+                    if (passwordError) {
+                        newErrors.password = passwordError;
+                    } else {
+                        delete newErrors.password;
+                    }
+                    // Si cambia la contraseña, validar también la confirmación
+                    if (formData.confirmPassword && newValue !== formData.confirmPassword) {
+                        newErrors.confirmPassword = 'Las contraseñas no coinciden';
+                    } else if (formData.confirmPassword) {
+                        delete newErrors.confirmPassword;
+                    }
+                    break;
+
+                case 'confirmPassword':
+                    if (newValue !== formData.password) {
+                        newErrors.confirmPassword = 'Las contraseñas no coinciden';
+                    } else {
+                        delete newErrors.confirmPassword;
+                    }
+                    break;
+
+                case 'birthDate':
+                    if (newValue && !isAdult(newValue)) {
+                        newErrors.birthDate = 'Debes ser mayor de 18 años';
+                    } else {
+                        delete newErrors.birthDate;
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+
             setFieldErrors(newErrors);
         }
     };
@@ -105,53 +222,54 @@ const Registro = () => {
             return;
         }
 
-        // ✅ VALIDACIONES USANDO LAS FUNCIONES DE TU PROFESORA
-        const runFormateado = formData.run.trim().toUpperCase();
+        // Validaciones adicionales antes del envío
+        const errors = {};
 
-        if (!validarRun(runFormateado)) {
-            setError('RUN incorrecto. Debe tener 8 dígitos + número o K verificador');
-            setValidated(true);
-            return;
+        // Validar RUN
+        if (!validateRun(formData.run)) {
+            errors.run = 'RUN no válido. Verifica el número y dígito verificador';
         }
 
-        if (!formData.primerNombre.trim()) {
-            setError('El primer nombre es obligatorio');
-            setValidated(true);
-            return;
+        // Validar campos de nombre
+        const primerNombreError = validateText(formData.primerNombre, 'Primer nombre');
+        if (primerNombreError) errors.primerNombre = primerNombreError;
+
+        const primerApellidoError = validateText(formData.primerApellido, 'Primer apellido');
+        if (primerApellidoError) errors.primerApellido = primerApellidoError;
+
+        const segundoApellidoError = validateText(formData.segundoApellido, 'Segundo apellido');
+        if (segundoApellidoError) errors.segundoApellido = segundoApellidoError;
+
+        // Validar email
+        const emailError = validateEmail(formData.email);
+        if (emailError) errors.email = emailError;
+
+        // Validar teléfono
+        if (formData.telefono) {
+            const phoneError = validatePhone(formData.telefono);
+            if (phoneError) errors.telefono = phoneError;
         }
 
-        if (!formData.primerApellido.trim()) {
-            setError('El primer apellido es obligatorio');
-            setValidated(true);
-            return;
-        }
-
-        if (!validarCorreo(formData.email)) {
-            setError('El correo debe ser @duoc.cl, @profesor.duoc.cl o @gmail.com');
-            setValidated(true);
-            return;
-        }
-
-        if (!formData.birthDate || !esMayorEdad(formData.birthDate)) {
-            setError('Debe ser mayor de 18 años para registrarse');
-            setValidated(true);
-            return;
-        }
-
-        if (formData.password.length < 4) {
-            setError('La contraseña debe tener al menos 4 caracteres');
-            setValidated(true);
-            return;
-        }
+        // Validar contraseña
+        const passwordError = validatePassword(formData.password);
+        if (passwordError) errors.password = passwordError;
 
         if (formData.password !== formData.confirmPassword) {
-            setError('Las contraseñas no coinciden');
-            setValidated(true);
-            return;
+            errors.confirmPassword = 'Las contraseñas no coinciden';
+        }
+
+        if (formData.birthDate && !isAdult(formData.birthDate)) {
+            errors.birthDate = 'Debes ser mayor de 18 años';
         }
 
         if (!formData.terms) {
             setError('Debes aceptar los términos y condiciones');
+            setValidated(true);
+            return;
+        }
+
+        if (Object.keys(errors).length > 0) {
+            setFieldErrors(errors);
             setValidated(true);
             return;
         }
@@ -161,40 +279,93 @@ const Registro = () => {
         setValidated(true);
 
         try {
-            // ✅ USANDO EL SERVICIO addUser DE TU PROFESORA
-            const nombreCompleto = `${formData.primerNombre} ${formData.segundoNombre || ''} ${formData.primerApellido} ${formData.segundoApellido || ''}`.trim().replace(/\s+/g, ' ');
+            // Construir el nombre completo con todos los componentes
+            const nameParts = [
+                formData.primerNombre,
+                formData.segundoNombre,
+                formData.primerApellido,
+                formData.segundoApellido
+            ].filter(Boolean);
 
-            await addUser({
+            const fullName = nameParts.join(' ');
+
+            // Construir dirección completa
+            const direccionCompleta = `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${formData.tipoVivienda}` : ''
+                }${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`;
+
+            // Obtener el RUN formateado para el backend
+            const runFormateado = getRunFormateado(formData.run);
+
+            // ✅ DATOS ACTUALIZADOS PARA FIREBASE
+            const firebaseUserData = {
+                // Datos principales
                 run: runFormateado,
-                nombre: nombreCompleto,
-                correo: formData.email,
-                clave: formData.password,
-                fecha: formData.birthDate,
-                // Campos adicionales que quieras guardar
+                name: fullName,
+                rol: 'cliente',
+                email: formData.email,
+                password: formData.password,
+                birthDate: formData.birthDate,
+
+                // Nombres separados
+                primerNombre: formData.primerNombre,
+                segundoNombre: formData.segundoNombre,
+                primerApellido: formData.primerApellido,
+                segundoApellido: formData.segundoApellido,
+
+                // Contacto y ubicación
                 telefono: formData.telefono || '',
                 discountCode: formData.discountCode || '',
                 region: formData.region || '',
                 comuna: formData.comuna || '',
-                direccion: `${formData.nombreCalle || ''} ${formData.numeroCalle || ''}`.trim(),
+                nombreCalle: formData.nombreCalle || '',
+                numeroCalle: formData.numeroCalle || '',
                 tipoVivienda: formData.tipoVivienda || '',
-                codigoPostal: formData.codigoPostal || ''
-            });
+                codigoPostal: formData.codigoPostal || '',
+                direccionCompleta: direccionCompleta,
 
-            // Éxito - mostrar mensaje y redirigir
-            setError('');
-            
-            // Redirección como en el código de tu profesora
+                // Metadatos
+                createdAt: new Date(),
+            };
+
+            // Datos para el AuthContext
+            const authUserData = {
+                name: fullName,
+                primerNombre: formData.primerNombre,
+                segundoNombre: formData.segundoNombre,
+                primerApellido: formData.primerApellido,
+                segundoApellido: formData.segundoApellido,
+                email: formData.email,
+                password: formData.password,
+                birthDate: formData.birthDate,
+                discountCode: formData.discountCode,
+                run: runFormateado,
+                telefono: formData.telefono,
+                region: formData.region,
+                comuna: formData.comuna,
+                nombreCalle: formData.nombreCalle,
+                numeroCalle: formData.numeroCalle,
+                tipoVivienda: formData.tipoVivienda,
+                codigoPostal: formData.codigoPostal,
+                direccionCompleta: direccionCompleta
+            };
+
+            // Registrar en el AuthContext (que maneja Firebase)
+            await register(authUserData);
+
+            // Redirección según el tipo de usuario (ahora basado en rol)
             setTimeout(() => {
-                if (formData.email.toLowerCase() === 'admin@duoc.cl') {
-                    navigate('/perfil-admin');
-                } else {
-                    navigate('/perfil');
-                }
+                navigate('/perfil');
             }, 1000);
 
         } catch (err) {
-            console.error('Error al guardar usuario: ', err);
-            setError('Error al guardar usuario en Firebase');
+            console.error('Error en registro:', err);
+            if (err.message.includes('email ya está registrado')) {
+                setError('El email ya está registrado');
+            } else if (err.message.includes('Firebase')) {
+                setError('Error al guardar usuario en la base de datos');
+            } else {
+                setError(err.message);
+            }
         } finally {
             setLoading(false);
         }
@@ -250,14 +421,25 @@ const Registro = () => {
                                             placeholder="123456789 (sin guión)"
                                             required
                                             maxLength={9}
-                                            isInvalid={validated && error.includes('RUN')}
+                                            isInvalid={validated && fieldErrors.run}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            RUN incorrecto
+                                            {fieldErrors.run || 'Por favor ingresa un RUN válido'}
                                         </Form.Control.Feedback>
                                         <Form.Text className="text-muted">
                                             Ingresa tu RUN completo (8 dígitos + dígito verificador sin guión)
                                         </Form.Text>
+                                        {formData.run && validateRun(formData.run) && (
+                                            <div className="mt-2">
+                                                <Form.Text className="text-success">
+                                                    <strong>✓ RUN válido</strong>
+                                                </Form.Text>
+                                                <br />
+                                                <Form.Text className="text-muted">
+                                                    Se enviará como: {getRunFormateado(formData.run)}
+                                                </Form.Text>
+                                            </div>
+                                        )}
                                     </Col>
 
                                     <Col md={6} className="mb-3">
@@ -270,7 +452,7 @@ const Registro = () => {
                                             name="discountCode"
                                             value={formData.discountCode}
                                             onChange={handleChange}
-                                            placeholder="Ej: PROMO2025"
+                                            placeholder="Ej: FELICES50"
                                         />
                                         <Form.Text className="text-muted">
                                             Si tienes código de descuento para registro
@@ -293,10 +475,10 @@ const Registro = () => {
                                             placeholder="Tu primer nombre"
                                             required
                                             maxLength={25}
-                                            isInvalid={validated && error.includes('nombre')}
+                                            isInvalid={validated && fieldErrors.primerNombre}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            El primer nombre es requerido
+                                            {fieldErrors.primerNombre || 'El primer nombre es requerido'}
                                         </Form.Control.Feedback>
                                     </Col>
 
@@ -312,7 +494,11 @@ const Registro = () => {
                                             onChange={handleChange}
                                             placeholder="Tu segundo nombre"
                                             maxLength={25}
+                                            isInvalid={validated && fieldErrors.segundoNombre}
                                         />
+                                        <Form.Control.Feedback type="invalid">
+                                            {fieldErrors.segundoNombre}
+                                        </Form.Control.Feedback>
                                     </Col>
                                 </Row>
 
@@ -330,16 +516,16 @@ const Registro = () => {
                                             placeholder="Tu primer apellido"
                                             required
                                             maxLength={25}
-                                            isInvalid={validated && error.includes('apellido')}
+                                            isInvalid={validated && fieldErrors.primerApellido}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            El primer apellido es requerido
+                                            {fieldErrors.primerApellido || 'El primer apellido es requerido'}
                                         </Form.Control.Feedback>
                                     </Col>
 
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerSegundoApellido">
-                                            Segundo Apellido
+                                            Segundo Apellido <span className="text-danger">*</span>
                                         </Form.Label>
                                         <Form.Control
                                             type="text"
@@ -348,8 +534,13 @@ const Registro = () => {
                                             value={formData.segundoApellido}
                                             onChange={handleChange}
                                             placeholder="Tu segundo apellido"
+                                            required
                                             maxLength={25}
+                                            isInvalid={validated && fieldErrors.segundoApellido}
                                         />
+                                        <Form.Control.Feedback type="invalid">
+                                            {fieldErrors.segundoApellido || 'El segundo apellido es requerido'}
+                                        </Form.Control.Feedback>
                                     </Col>
                                 </Row>
 
@@ -369,13 +560,16 @@ const Registro = () => {
                                             name="email"
                                             value={formData.email}
                                             onChange={handleChange}
-                                            placeholder="Ej: tu@email.com"
+                                            placeholder="Ej: tu@duoc.cl"
                                             required
-                                            isInvalid={validated && error.includes('correo')}
+                                            isInvalid={validated && fieldErrors.email}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            Correo incorrecto
+                                            {fieldErrors.email || 'Por favor ingresa un correo válido'}
                                         </Form.Control.Feedback>
+                                        <Form.Text className="text-muted">
+                                            Solo se permiten: @duoc.cl, @profesor.duoc.cl, @gmail.com
+                                        </Form.Text>
                                     </Col>
 
                                     <Col md={6} className="mb-3">
@@ -389,7 +583,22 @@ const Registro = () => {
                                             value={formData.telefono}
                                             onChange={handleChange}
                                             placeholder="Ej: +56912345678"
+                                            maxLength={15}
+                                            isInvalid={validated && fieldErrors.telefono}
                                         />
+                                        <Form.Control.Feedback type="invalid">
+                                            {fieldErrors.telefono}
+                                        </Form.Control.Feedback>
+                                        <Form.Text className="text-muted">
+                                            Ej: +56912345678 o 912345678 (máx. 15 caracteres)
+                                        </Form.Text>
+                                        {formData.telefono && (
+                                            <div className="mt-1">
+                                                <small className="text-muted">
+                                                    Caracteres: {formData.telefono.length}/15
+                                                </small>
+                                            </div>
+                                        )}
                                     </Col>
                                 </Row>
 
@@ -409,7 +618,7 @@ const Registro = () => {
                                                 required
                                                 minLength={4}
                                                 maxLength={10}
-                                                isInvalid={validated && error.includes('contraseña')}
+                                                isInvalid={validated && fieldErrors.password}
                                             />
                                             <Button
                                                 variant="outline-secondary"
@@ -419,11 +628,11 @@ const Registro = () => {
                                                 <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
                                             </Button>
                                             <Form.Control.Feedback type="invalid">
-                                                Contraseña muy corta
+                                                {fieldErrors.password || 'La contraseña debe tener entre 4 y 10 caracteres'}
                                             </Form.Control.Feedback>
                                         </InputGroup>
                                         <Form.Text className="text-muted">
-                                            Mínimo 4 caracteres
+                                            4-10 caracteres, al menos una mayúscula, minúscula y número
                                         </Form.Text>
                                     </Col>
 
@@ -442,7 +651,7 @@ const Registro = () => {
                                                 required
                                                 minLength={4}
                                                 maxLength={10}
-                                                isInvalid={validated && error.includes('coinciden')}
+                                                isInvalid={validated && fieldErrors.confirmPassword}
                                             />
                                             <Button
                                                 variant="outline-secondary"
@@ -452,7 +661,7 @@ const Registro = () => {
                                                 <i className={`bi bi-eye${showConfirmPassword ? '-slash' : ''}`}></i>
                                             </Button>
                                             <Form.Control.Feedback type="invalid">
-                                                Las contraseñas no coinciden
+                                                {fieldErrors.confirmPassword || 'Las contraseñas deben coincidir'}
                                             </Form.Control.Feedback>
                                         </InputGroup>
                                     </Col>
@@ -470,15 +679,15 @@ const Registro = () => {
                                             value={formData.birthDate}
                                             onChange={handleChange}
                                             required
-                                            isInvalid={validated && error.includes('18 años')}
+                                            isInvalid={validated && fieldErrors.birthDate}
                                         />
                                         <Form.Control.Feedback type="invalid">
-                                            Debes ser mayor de 18 años
+                                            {fieldErrors.birthDate || 'Debes ser mayor de 18 años'}
                                         </Form.Control.Feedback>
                                     </Col>
                                 </Row>
 
-                                {/* Sección de ubicación */}
+                                {/* Sección de ubicación (Opcional) */}
                                 <h5 className="mb-3 mt-4 border-bottom pb-2">
                                     <i className="bi bi-geo-alt me-2"></i>Ubicación (Opcional)
                                 </h5>
@@ -526,7 +735,6 @@ const Registro = () => {
                                     </Col>
                                 </Row>
 
-                                {/* Dirección separada */}
                                 <Row>
                                     <Col md={6} className="mb-3">
                                         <Form.Label htmlFor="registerNombreCalle">
@@ -602,7 +810,6 @@ const Registro = () => {
                                         checked={formData.terms}
                                         onChange={handleChange}
                                         required
-                                        isInvalid={validated && error.includes('términos')}
                                         label={
                                             <span>
                                                 Acepto los <Link to="/terminos-y-condiciones">términos y condiciones</Link> y las{' '}
@@ -619,7 +826,7 @@ const Registro = () => {
                                     variant="primary"
                                     type="submit"
                                     className="w-100 py-2"
-                                    disabled={loading}
+                                    disabled={loading || Object.keys(fieldErrors).length > 0}
                                 >
                                     <i className="bi bi-person-plus me-2"></i>
                                     {loading ? 'Creando cuenta...' : 'Crear Cuenta'}

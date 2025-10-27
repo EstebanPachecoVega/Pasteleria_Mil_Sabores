@@ -62,7 +62,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
   useEffect(() => {
     if (currentUser) {
       const userData = {
-        primerNombre: currentUser.primerNombre || '',
+        primerNombre: currentUser.primerNombre || currentUser.name?.split(' ')[0] || '',
         segundoNombre: currentUser.segundoNombre || '',
         primerApellido: currentUser.primerApellido || '',
         segundoApellido: currentUser.segundoApellido || '',
