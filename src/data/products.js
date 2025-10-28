@@ -1,4 +1,8 @@
-// Datos de productos organizados por categorías
+import { 
+  getAllProducts as getAllProductsFromFirebase, 
+  getProductsByCategory as getProductsByCategoryFromFirebase 
+} from '../services/productService'; 
+// Datos de productos organizados por categorías (como respaldo)
 export const products = {
     individuales: [
         {
@@ -187,17 +191,33 @@ export const getSearchSuggestions = (query, limit = 5) => {
     return results.slice(0, limit);
 };
 
-// Función para obtener todos los productos
-export const getAllProducts = () => {
-    return Object.values(products).flat();
+// 🔄 FUNCIONES ACTUALIZADAS PARA USAR FIREBASE (con respaldo local)
+
+// Función para obtener todos los productos (AHORA DESDE FIREBASE)
+export const getAllProducts = async () => {
+    try {
+        const productosFirebase = await getAllProductsFromFirebase();
+        return productosFirebase;
+    } catch (error) {
+        console.error("Error cargando productos de Firebase, usando datos locales:", error);
+        // Si falla Firebase, usar datos locales
+        return Object.values(products).flat();
+    }
 };
 
-// Función para obtener productos por categoría
-export const getProductsByCategory = (category) => {
-    return products[category] || [];
+// Función para obtener productos por categoría (AHORA DESDE FIREBASE)
+export const getProductsByCategory = async (category) => {
+    try {
+        const productosFirebase = await getProductsByCategoryFromFirebase(category);
+        return productosFirebase;
+    } catch (error) {
+        console.error("Error cargando productos de Firebase, usando datos locales:", error);
+        // Si falla Firebase, usar datos locales
+        return products[category] || [];
+    }
 };
 
-// Función existente para obtener producto por ID
+// Función existente para obtener producto por ID (MANTENER LOCAL)
 export function getProductById(productId) {
     for (const category in products) {
         const product = products[category].find(p => p.id === productId);
@@ -206,19 +226,25 @@ export function getProductById(productId) {
     return null;
 }
 
-export const getProductsByCategoryRoute = (categoryKey) => {
-    // Mapeo de URLs del navbar a keys del objeto products
-    const routeToCategoryMap = {
-        'individuales': 'individuales',
-        'cuadradas': 'cuadradas',
-        'circulares': 'circulares',
-        'especiales': 'especiales',
-        'sin_azucar': 'sin_azucar',
-        'sin_gluten': 'sin_gluten',
-        'veganos': 'veganos',
-        'tradicional': 'tradicional'
-    };
-
-    const category = routeToCategoryMap[categoryKey];
-    return products[category] || [];
+// Función para rutas (AHORA DESDE FIREBASE)
+export const getProductsByCategoryRoute = async (categoryKey) => {
+    try {
+        const productosFirebase = await getProductsByCategoryFromFirebase(categoryKey);
+        return productosFirebase;
+    } catch (error) {
+        console.error("Error cargando productos de Firebase, usando datos locales:", error);
+        // Si falla Firebase, usar datos locales
+        const routeToCategoryMap = {
+            'individuales': 'individuales',
+            'cuadradas': 'cuadradas',
+            'circulares': 'circulares',
+            'especiales': 'especiales',
+            'sin_azucar': 'sin_azucar',
+            'sin_gluten': 'sin_gluten',
+            'veganos': 'veganos',
+            'tradicional': 'tradicional'
+        };
+        const category = routeToCategoryMap[categoryKey];
+        return products[category] || [];
+    }
 };

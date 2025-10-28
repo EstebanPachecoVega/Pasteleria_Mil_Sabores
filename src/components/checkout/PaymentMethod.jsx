@@ -2,14 +2,18 @@ import React, { useState } from 'react';
 import { Row, Col, Button, Card, Form } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../services/firestoreService';
+import { createOrder } from '../../data/orders';
+import { updateUser } from '../../services/firestoreService'; // ← AGREGAR ESTE IMPORT
+import { decreaseProductStock } from '../../services/productService'; // ← YA DEBERÍA ESTAR
 
 const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total, discountAmount, userDiscounts }) => {
-  const { currentUser, updateUser } = useAuth();
+  const { currentUser } = useAuth(); // ← SOLO currentUser, sin updateUser
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [loading, setLoading] = useState(false);
 
   const handlePlaceOrder = async () => {
     setLoading(true);
+    console.log('🛒 Iniciando proceso de compra...');
 
     try {
       // Validaciones básicas
@@ -22,6 +26,24 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
       }
 
       // Crear objeto de orden limpio
+      // ✅ 1. PRIMERO DESCONTAR STOCK EN FIREBASE
+      console.log('📦 Descontando stock de productos...');
+      for (const item of cartItems) {
+        console.log(`➖ Producto: ${item.name}, Cantidad: ${item.quantity}`);
+        try {
+          await decreaseProductStock(item.id, item.quantity);
+          console.log(`✅ Stock actualizado: ${item.quantity} unidades de ${item.name}`);
+        } catch (error) {
+          console.error(`❌ Error actualizando stock de ${item.name}:`, error);
+          alert(`Error: ${error.message}. No se pudo completar la compra.`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      console.log('✅ Todo el stock fue actualizado correctamente');
+
+      // ✅ 2. LUEGO CREAR LA ORDEN (solo si el stock se actualizó correctamente)
       const cleanCartItems = cartItems.map(item => ({
         id: item.id,
         name: item.name,
@@ -120,12 +142,13 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
       onOrderComplete(customOrderId);
 
     } catch (error) {
-      console.error('Error al crear la orden:', error);
+      console.error('❌ Error al crear la orden:', error);
       setLoading(false);
       alert('Error al procesar la orden: ' + error.message);
     }
   };
 
+  // ... el resto del código se mantiene igual
   const paymentMethods = [
     {
       id: 'cash',
@@ -158,8 +181,7 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         {paymentMethods.map(method => (
           <Card
             key={method.id}
-            className={`mb-3 ${!method.available ? 'opacity-50' : ''} ${selectedPayment === method.id ? 'border-primary' : ''
-              }`}
+            className={`mb-3 ${!method.available ? 'opacity-50' : ''} ${selectedPayment === method.id ? 'border-primary' : ''}`}
             style={{ cursor: method.available ? 'pointer' : 'not-allowed' }}
             onClick={() => method.available && setSelectedPayment(method.id)}
           >
