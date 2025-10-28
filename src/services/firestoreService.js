@@ -1,4 +1,4 @@
-// src/services/firestoreService.js - VERSIÓN ACTUALIZADA
+// src/services/firestoreService.js - VERSIÓN ORGANIZADA
 import { db } from "../config/firebase";
 import {
     collection,
@@ -14,7 +14,10 @@ import {
     serverTimestamp
 } from "firebase/firestore";
 
-// Funciones de usuario (existentes)
+// =============================================
+// 📋 FUNCIONES DE USUARIO
+// =============================================
+
 export async function addUser(user) {
     try {
         const docRef = await addDoc(collection(db, "usuario"), {
@@ -74,11 +77,14 @@ export async function updateUser(userId, userData) {
     }
 }
 
-// Funciones para Comunas y Region
+// =============================================
+// 🗺️ FUNCIONES DE DATOS MAESTROS (REGIONES/COMUNAS)
+// =============================================
+
 export async function getRegions() {
     try {
-        const regionsRef = collection(db, "region"); // ← Cambiado a singular
-        const q = query(regionsRef, orderBy("orden")); // ← Ordenar por orden norte-sur
+        const regionsRef = collection(db, "region");
+        const q = query(regionsRef, orderBy("orden"));
         const querySnapshot = await getDocs(q);
         const regions = [];
         
@@ -96,9 +102,34 @@ export async function getRegions() {
     }
 }
 
+export async function getRegionById(regionId) {
+    try {
+        const regionRef = doc(db, "region", regionId.toString());
+        const regionSnap = await getDoc(regionRef);
+        
+        if (regionSnap.exists()) {
+            return { id: regionSnap.id, ...regionSnap.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error al obtener región por ID: ", error);
+        throw error;
+    }
+}
+
+export async function getRegionName(regionId) {
+    try {
+        const regionData = await getRegionById(regionId);
+        return regionData ? regionData.name : '';
+    } catch (error) {
+        console.error("Error al obtener nombre de región: ", error);
+        return '';
+    }
+}
+
 export async function getCommunesByRegion(regionId) {
     try {
-        const communesRef = collection(db, "comuna"); // ← Cambiado a singular
+        const communesRef = collection(db, "comuna");
         const q = query(
             communesRef, 
             where("regionId", "==", parseInt(regionId)),
@@ -121,9 +152,34 @@ export async function getCommunesByRegion(regionId) {
     }
 }
 
+export async function getCommuneById(communeId) {
+    try {
+        const communeRef = doc(db, "comuna", communeId.toString());
+        const communeSnap = await getDoc(communeRef);
+        
+        if (communeSnap.exists()) {
+            return { id: communeSnap.id, ...communeSnap.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error al obtener comuna por ID: ", error);
+        throw error;
+    }
+}
+
+export async function getCommuneName(communeId) {
+    try {
+        const communeData = await getCommuneById(communeId);
+        return communeData ? communeData.name : '';
+    } catch (error) {
+        console.error("Error al obtener nombre de comuna: ", error);
+        return '';
+    }
+}
+
 export async function getHousingTypes() {
     try {
-        const housingRef = collection(db, "tipo_vivienda"); // ← Cambiado a singular
+        const housingRef = collection(db, "tipo_vivienda");
         const q = query(housingRef, orderBy("name"));
         const querySnapshot = await getDocs(q);
         const housingTypes = [];
@@ -142,37 +198,10 @@ export async function getHousingTypes() {
     }
 }
 
-export async function getRegionById(regionId) {
-    try {
-        const regionRef = doc(db, "region", regionId.toString());
-        const regionSnap = await getDoc(regionRef);
-        
-        if (regionSnap.exists()) {
-            return { id: regionSnap.id, ...regionSnap.data() };
-        }
-        return null;
-    } catch (error) {
-        console.error("Error al obtener región por ID: ", error);
-        throw error;
-    }
-}
+// =============================================
+// 📦 FUNCIONES DE ÓRDENES
+// =============================================
 
-export async function getCommuneById(communeId) {
-    try {
-        const communeRef = doc(db, "comuna", communeId.toString());
-        const communeSnap = await getDoc(communeRef);
-        
-        if (communeSnap.exists()) {
-            return { id: communeSnap.id, ...communeSnap.data() };
-        }
-        return null;
-    } catch (error) {
-        console.error("Error al obtener comuna por ID: ", error);
-        throw error;
-    }
-}
-
-// Funciones para crear y obtener órdenes
 export async function createOrder(orderData) {
     try {
         if (!orderData.orderId) {
@@ -190,7 +219,7 @@ export async function createOrder(orderData) {
 
         console.log("Orden creada con ID personalizado: ", orderData.orderId);
         return {
-            id: orderData.orderId, // 🆕 DEVOLVER EL ID PERSONALIZADO
+            id: orderData.orderId,
             ...orderData
         };
     } catch (error) {
