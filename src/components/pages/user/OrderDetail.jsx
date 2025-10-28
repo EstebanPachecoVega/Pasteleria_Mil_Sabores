@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Badge, Table, Button, Spinner, Alert } from 'react-bootstrap';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { getOrderById } from '../../../services/firestoreService';
 import { formatPrice } from '../../../utils/formatters';
@@ -17,10 +17,10 @@ const OrderDetail = () => {
     const loadOrder = async () => {
       try {
         setLoading(true);
-        console.log('Cargando orden:', orderId);
+        console.log('📦 Cargando orden:', orderId);
 
         const orderData = await getOrderById(orderId);
-        console.log('Datos de orden cargados:', orderData);
+        console.log('✅ Datos de orden cargados:', orderData);
 
         if (orderData) {
           // Verificar que la orden pertenece al usuario actual
@@ -33,7 +33,7 @@ const OrderDetail = () => {
           setError('Orden no encontrada');
         }
       } catch (err) {
-        console.error('Error al cargar la orden:', err);
+        console.error('❌ Error al cargar la orden:', err);
         setError('Error al cargar la orden: ' + err.message);
       } finally {
         setLoading(false);
@@ -44,49 +44,6 @@ const OrderDetail = () => {
       loadOrder();
     }
   }, [orderId, currentUser]);
-
-  // Datos de regiones y comunas
-  const regions = [
-    { id: 1, name: 'Región Metropolitana' },
-    { id: 2, name: 'Región de Valparaíso' },
-    { id: 3, name: 'Región del Biobío' },
-  ];
-
-  const communes = {
-    1: [
-      { id: 1, name: 'Santiago' },
-      { id: 2, name: 'Providencia' },
-      { id: 3, name: 'Las Condes' },
-      { id: 4, name: 'Ñuñoa' },
-      { id: 5, name: 'Maipú' },
-      { id: 6, name: 'Puente Alto' },
-    ],
-    2: [
-      { id: 7, name: 'Valparaíso' },
-      { id: 8, name: 'Viña del Mar' },
-      { id: 9, name: 'Quilpué' }
-    ],
-    3: [
-      { id: 10, name: 'Concepción' },
-      { id: 11, name: 'Talcahuano' },
-      { id: 12, name: 'Chiguayante' }
-    ]
-  };
-
-  // Función para obtener nombre de región
-  const getRegionName = (regionId) => {
-    if (!regionId) return '';
-    const region = regions.find(r => r.id == regionId);
-    return region ? region.name : '';
-  };
-
-  // Función para obtener nombre de comuna
-  const getComunaName = (comunaId, regionId) => {
-    if (!comunaId || !regionId) return '';
-    const regionCommunes = communes[regionId] || [];
-    const comuna = regionCommunes.find(c => c.id == comunaId);
-    return comuna ? comuna.name : '';
-  };
 
   const getStatusVariant = (status) => {
     switch (status) {
@@ -297,21 +254,31 @@ const OrderDetail = () => {
                     <p className="mb-1">
                       <strong>Dirección:</strong> {order.shippingInfo.direccionCompleta}
                     </p>
-                    {order.shippingInfo.region && (
+
+                    {order.shippingInfo.regionName && (
                       <p className="mb-1">
-                        <strong>Región:</strong> {getRegionName(order.shippingInfo.region)}
+                        <strong>Región:</strong> {order.shippingInfo.regionName}
                       </p>
                     )}
-                    {order.shippingInfo.comuna && (
+
+                    {order.shippingInfo.comunaName && (
                       <p className="mb-1">
-                        <strong>Comuna:</strong> {getComunaName(order.shippingInfo.comuna, order.shippingInfo.region)}
+                        <strong>Comuna:</strong> {order.shippingInfo.comunaName}
                       </p>
                     )}
+
+                    {order.shippingInfo.tipoViviendaName && (
+                      <p className="mb-1">
+                        <strong>Tipo de vivienda:</strong> {order.shippingInfo.tipoViviendaName}
+                      </p>
+                    )}
+
                     {order.shippingInfo.codigoPostal && (
                       <p className="mb-1">
                         <strong>Código Postal:</strong> {order.shippingInfo.codigoPostal}
                       </p>
                     )}
+
                     {order.shippingInfo.notes && (
                       <div className="mt-2 p-2 bg-light rounded">
                         <strong>Notas de entrega:</strong><br />

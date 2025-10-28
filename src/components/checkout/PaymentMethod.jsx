@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Row, Col, Button, Card, Form } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
-import { createOrder} from '../../services/firestoreService';
+import { createOrder } from '../../services/firestoreService';
 import { decreaseProductStock } from '../../services/productService';
 
 const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total, discountAmount, userDiscounts }) => {
-  const { currentUser, updateUser } = useAuth(); // ← SOLO currentUser, sin updateUser
+  const { currentUser, updateUser } = useAuth();
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [loading, setLoading] = useState(false);
 
@@ -14,7 +14,11 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
     console.log('🛒 Iniciando proceso de compra...');
 
     try {
-      // Validaciones básicas
+      // Validaciones básicas antes de proceder
+      if (!selectedPayment) {
+        throw new Error('Por favor, selecciona un método de pago');
+      }
+      
       if (!orderData.shippingInfo) {
         throw new Error('Información de envío incompleta');
       }
@@ -23,7 +27,7 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         throw new Error('El carrito está vacío');
       }
 
-      // ✅ 1. PRIMERO DESCONTAR STOCK EN FIREBASE
+      // Actualizar stock de productos
       console.log('📦 Descontando stock de productos...');
       for (const item of cartItems) {
         console.log(`➖ Producto: ${item.name}, Cantidad: ${item.quantity}`);
@@ -58,16 +62,19 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         email: orderData.shippingInfo.email,
         telefono: orderData.shippingInfo.telefono,
         region: orderData.shippingInfo.region,
+        regionName: orderData.shippingInfo.regionName,
         comuna: orderData.shippingInfo.comuna,
+        comunaName: orderData.shippingInfo.comunaName,
         nombreCalle: orderData.shippingInfo.nombreCalle,
         numeroCalle: orderData.shippingInfo.numeroCalle,
         tipoVivienda: orderData.shippingInfo.tipoVivienda,
+        tipoViviendaName: orderData.shippingInfo.tipoViviendaName,
         codigoPostal: orderData.shippingInfo.codigoPostal,
         direccionCompleta: orderData.shippingInfo.direccionCompleta,
         notes: orderData.shippingInfo.notes
       } : {};
 
-      // Generar un ID de orden personalizado
+      // Generar un ID de orden compra personalizado
       const generateOrderId = (user) => {
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -104,6 +111,10 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
       };
 
       console.log('Creando orden en Firebase...');
+
+      console.log('🔍 DEBUG - OrderData a guardar en Firebase:', JSON.stringify({
+        shippingInfo: completeOrderData.shippingInfo
+      }, null, 2));
 
       const order = await createOrder(completeOrderData);
       console.log('Orden creada exitosamente:', order.id);

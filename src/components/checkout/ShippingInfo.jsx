@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Form, Button, Card, Alert, Spinner } from 'react-bootstrap';
+import { Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  getRegions, 
-  getCommunesByRegion, 
+import {
+  getRegions,
+  getCommunesByRegion,
   getHousingTypes,
   getRegionName,
-  getCommuneName 
+  getCommuneName
 } from '../../services/firestoreService';
 
 const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
@@ -26,8 +26,8 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
     codigoPostal: '',
     notes: ''
   });
-  
-  // ESTADOS PARA DATOS DE FIREBASE
+
+  // Estados para datos maestros firebase
   const [regions, setRegions] = useState([]);
   const [communes, setCommunes] = useState([]);
   const [tipoViviendaOptions, setTipoViviendaOptions] = useState([]);
@@ -40,12 +40,12 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
   const [saveToProfile, setSaveToProfile] = useState(true);
   const [isModified, setIsModified] = useState(false);
 
-  // CARGAR DATOS MAESTROS DESDE FIREBASE
+  // cargar datos maestros al montar el componente desde firebase
   useEffect(() => {
     const loadMasterData = async () => {
       try {
         setError('');
-        
+
         // Cargar regiones
         console.log('📡 Cargando regiones desde Firebase...');
         const regionsData = await getRegions();
@@ -77,7 +77,8 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
     loadMasterData();
   }, []);
 
-  // CARGAR DATOS DEL USUARIO ACTUAL
+  // cargar datos del usuario al montar el componente o cuando cambia currentUser 
+  // y cargar sus comunas si tiene región
   useEffect(() => {
     if (currentUser) {
       const userData = {
@@ -104,7 +105,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
     }
   }, [currentUser, initialData]);
 
-  // FUNCIÓN PARA CARGAR COMUNAS POR REGIÓN
+  // función para cargar comunas según región seleccionada
   const loadCommunesForRegion = async (regionId) => {
     if (!regionId) {
       setCommunes([]);
@@ -114,10 +115,10 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
     try {
       setLoading(prev => ({ ...prev, communes: true }));
       console.log(`📡 Cargando comunas para región ${regionId}...`);
-      
+
       const communesData = await getCommunesByRegion(regionId);
       setCommunes(communesData);
-      
+
       console.log(`✅ Comunas cargadas: ${communesData.length} para región ${regionId}`);
       setLoading(prev => ({ ...prev, communes: false }));
     } catch (err) {
@@ -135,11 +136,11 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
     }));
     setIsModified(true);
 
-    // SI CAMBIA LA REGIÓN, CARGAR SUS COMUNAS
+    // Si cambia la región, resetear comuna y cargar nuevas comunas
     if (name === 'region') {
       setFormData(prev => ({
         ...prev,
-        comuna: '' // Reset comuna cuando cambia región
+        comuna: ''
       }));
       loadCommunesForRegion(value);
     }
@@ -150,7 +151,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
     setError('');
 
     try {
-      // OBTENER NOMBRES COMPLETOS DESDE FIREBASE
+      // Obtener nombres de región, comuna y tipo de vivienda desde Firebase
       let regionName = '';
       let comunaName = '';
       let housingTypeName = '';
@@ -158,7 +159,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
       if (formData.region) {
         regionName = await getRegionName(formData.region);
       }
-      
+
       if (formData.comuna && formData.region) {
         comunaName = await getCommuneName(formData.comuna);
       }
@@ -168,7 +169,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
         housingTypeName = housingType ? housingType.label : formData.tipoVivienda;
       }
 
-      // ACTUALIZAR PERFIL DEL USUARIO SI ES NECESARIO
+      // Actualizar perfil si es necesario
       if (saveToProfile && currentUser && isModified) {
         try {
           const nameParts = [
@@ -196,7 +197,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
         }
       }
 
-      // CONSTRUIR SHIPPING INFO CON NOMBRES COMPLETOS
+      // Preparar datos de envío para el siguiente paso
       const shippingInfo = {
         // Información personal
         primerNombre: formData.primerNombre,
@@ -204,30 +205,32 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
         primerApellido: formData.primerApellido,
         segundoApellido: formData.segundoApellido,
         nombreCompleto: `${formData.primerNombre} ${formData.primerApellido}`.trim(),
-        
+
         // Contacto
         email: formData.email,
         telefono: formData.telefono,
-        
-        // UBICACIÓN - GUARDAR TANTO IDs COMO NOMBRES
+
+        // Ubicación
         region: formData.region,
         regionName: regionName,
-        comuna: formData.comuna, 
+        comuna: formData.comuna,
         comunaName: comunaName,
         nombreCalle: formData.nombreCalle,
         numeroCalle: formData.numeroCalle,
         tipoVivienda: formData.tipoVivienda,
         tipoViviendaName: housingTypeName,
         codigoPostal: formData.codigoPostal,
-        
+
         // Dirección completa formateada
         direccionCompleta: `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${housingTypeName}` : ''}${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`,
-        
+
         // Notas adicionales
         notes: formData.notes
       };
 
-      console.log('📦 Enviando información de envío:', shippingInfo);
+      // DEBUG - VERIFICAR QUÉ SE ESTÁ ENVIANDO
+      console.log('🔍 DEBUG - ShippingInfo a enviar:', JSON.stringify(shippingInfo, null, 2));
+
       onNextStep({ shippingInfo });
 
     } catch (error) {
@@ -239,7 +242,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
   return (
     <div className="shipping-info">
       <h4 className="mb-4">Información de Envío</h4>
-      
+
       {error && (
         <Alert variant="danger" className="mb-4">
           <i className="bi bi-exclamation-triangle me-2"></i>
@@ -341,7 +344,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
         {/* Ubicación */}
         <div className="mb-4">
           <h6 className="border-bottom pb-2 mb-3">Ubicación</h6>
-          
+
           {/* Región */}
           <Row>
             <Col md={6} className="mb-3">
@@ -384,10 +387,10 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
                   disabled={!formData.region || communes.length === 0}
                 >
                   <option value="">
-                    {!formData.region 
-                      ? 'Primero selecciona una región' 
-                      : communes.length === 0 
-                        ? 'No hay comunas disponibles' 
+                    {!formData.region
+                      ? 'Primero selecciona una región'
+                      : communes.length === 0
+                        ? 'No hay comunas disponibles'
                         : 'Selecciona una comuna'
                     }
                   </option>
@@ -472,7 +475,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
               {formData.tipoVivienda && `, ${tipoViviendaOptions.find(t => t.value === formData.tipoVivienda)?.label}`}
               {formData.codigoPostal && `, Código Postal: ${formData.codigoPostal}`}
               {formData.region && formData.comuna && (
-                <>, {communes.find(c => c.id == formData.comuna)?.name}, {regions.find(r => r.id == formData.region)?.name}</>
+                <>, {communes.find(c => c.id === formData.comuna)?.name}, {regions.find(r => r.id === formData.region)?.name}</>
               )}
             </div>
           )}
@@ -511,15 +514,15 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
         <div className="checkout-actions">
           <Row>
             <Col>
-              <Button 
-                variant="outline-secondary" 
+              <Button
+                variant="outline-secondary"
                 onClick={onPreviousStep}
                 className="me-3"
               >
                 Volver al Resumen
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="checkout-btn-primary"
                 disabled={loading.regions || loading.communes || loading.housing}
               >

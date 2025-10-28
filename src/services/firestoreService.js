@@ -1,4 +1,3 @@
-// src/services/firestoreService.js - VERSIÓN ORGANIZADA
 import { db } from "../config/firebase";
 import {
     collection,
@@ -15,9 +14,10 @@ import {
 } from "firebase/firestore";
 
 // =============================================
-// 📋 FUNCIONES DE USUARIO
+// FUNCIONES DE USUARIO
 // =============================================
 
+// Registrar nuevo usuario
 export async function addUser(user) {
     try {
         const docRef = await addDoc(collection(db, "usuario"), {
@@ -32,6 +32,7 @@ export async function addUser(user) {
     }
 }
 
+// Buscar usuario por email
 export async function findUserByEmail(email) {
     try {
         const q = query(collection(db, "usuario"), where("email", "==", email));
@@ -48,6 +49,7 @@ export async function findUserByEmail(email) {
     }
 }
 
+// Buscar usuario por ID
 export async function findUserById(userId) {
     try {
         const docRef = doc(db, "usuario", userId);
@@ -63,6 +65,7 @@ export async function findUserById(userId) {
     }
 }
 
+// Actualizar datos del usuario
 export async function updateUser(userId, userData) {
     try {
         const docRef = doc(db, "usuario", userId);
@@ -77,24 +80,25 @@ export async function updateUser(userId, userData) {
     }
 }
 
-// =============================================
-// 🗺️ FUNCIONES DE DATOS MAESTROS (REGIONES/COMUNAS)
-// =============================================
+// ================================================================
+// FUNCIONES DE DATOS MAESTROS (REGIONES/COMUNAS/TIPOS DE VIVIENDA)
+// ================================================================
 
+// Obtener todas las regiones
 export async function getRegions() {
     try {
         const regionsRef = collection(db, "region");
         const q = query(regionsRef, orderBy("orden"));
         const querySnapshot = await getDocs(q);
         const regions = [];
-        
+
         querySnapshot.forEach((doc) => {
             regions.push({
                 id: doc.id,
                 ...doc.data()
             });
         });
-        
+
         return regions;
     } catch (error) {
         console.error("Error al obtener regiones: ", error);
@@ -102,11 +106,12 @@ export async function getRegions() {
     }
 }
 
+// Obtener región por ID
 export async function getRegionById(regionId) {
     try {
         const regionRef = doc(db, "region", regionId.toString());
         const regionSnap = await getDoc(regionRef);
-        
+
         if (regionSnap.exists()) {
             return { id: regionSnap.id, ...regionSnap.data() };
         }
@@ -117,6 +122,7 @@ export async function getRegionById(regionId) {
     }
 }
 
+// Obtener nombre de región por ID
 export async function getRegionName(regionId) {
     try {
         const regionData = await getRegionById(regionId);
@@ -127,24 +133,25 @@ export async function getRegionName(regionId) {
     }
 }
 
+// Obtener comunas por región
 export async function getCommunesByRegion(regionId) {
     try {
         const communesRef = collection(db, "comuna");
         const q = query(
-            communesRef, 
+            communesRef,
             where("regionId", "==", parseInt(regionId)),
             orderBy("name")
         );
         const querySnapshot = await getDocs(q);
         const communes = [];
-        
+
         querySnapshot.forEach((doc) => {
             communes.push({
                 id: doc.id,
                 ...doc.data()
             });
         });
-        
+
         return communes;
     } catch (error) {
         console.error("Error al obtener comunas: ", error);
@@ -152,11 +159,12 @@ export async function getCommunesByRegion(regionId) {
     }
 }
 
+// Obtener comuna por ID
 export async function getCommuneById(communeId) {
     try {
         const communeRef = doc(db, "comuna", communeId.toString());
         const communeSnap = await getDoc(communeRef);
-        
+
         if (communeSnap.exists()) {
             return { id: communeSnap.id, ...communeSnap.data() };
         }
@@ -167,6 +175,7 @@ export async function getCommuneById(communeId) {
     }
 }
 
+// Obtener nombre de comuna por ID
 export async function getCommuneName(communeId) {
     try {
         const communeData = await getCommuneById(communeId);
@@ -177,20 +186,21 @@ export async function getCommuneName(communeId) {
     }
 }
 
+// Obtener tipos de vivienda
 export async function getHousingTypes() {
     try {
         const housingRef = collection(db, "tipo_vivienda");
         const q = query(housingRef, orderBy("name"));
         const querySnapshot = await getDocs(q);
         const housingTypes = [];
-        
+
         querySnapshot.forEach((doc) => {
             housingTypes.push({
                 id: doc.id,
                 ...doc.data()
             });
         });
-        
+
         return housingTypes;
     } catch (error) {
         console.error("Error al obtener tipos de vivienda: ", error);
@@ -199,9 +209,10 @@ export async function getHousingTypes() {
 }
 
 // =============================================
-// 📦 FUNCIONES DE ÓRDENES
+// FUNCIONES DE ÓRDENES
 // =============================================
 
+// Crear orden con ID personalizado
 export async function createOrder(orderData) {
     try {
         if (!orderData.orderId) {
@@ -228,6 +239,7 @@ export async function createOrder(orderData) {
     }
 }
 
+// Obtener órdenes por usuario
 export async function getUserOrders(userId) {
     try {
         const ordersRef = collection(db, "order");
@@ -258,6 +270,7 @@ export async function getUserOrders(userId) {
     }
 }
 
+// Obtener orden por ID
 export async function getOrderById(orderId) {
     try {
         const orderDocRef = doc(db, "order", orderId);
@@ -280,6 +293,7 @@ export async function getOrderById(orderId) {
     }
 }
 
+// Obtener todas las órdenes
 export async function getAllOrders() {
     try {
         const ordersRef = collection(db, "order");

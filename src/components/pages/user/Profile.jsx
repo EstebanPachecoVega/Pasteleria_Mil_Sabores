@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Alert, Badge, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../../context/AuthContext';
 import { getSpecialDiscounts } from '../../../data/users';
-
+import {
+  getRegions,
+  getCommunesByRegion,
+  getHousingTypes,
+  getRegionName,
+  getCommuneName
+} from '../../../services/firestoreService';
 
 const Profile = () => {
   const { currentUser, updateProfile } = useAuth();
@@ -29,43 +35,55 @@ const Profile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Datos de ejemplo para regiones y comunas
-  const regions = [
-    { id: 1, name: 'Región Metropolitana' },
-    { id: 2, name: 'Región de Valparaíso' },
-    { id: 3, name: 'Región del Biobío' },
-  ];
+  // Estados para datos maestros firebase
+  const [regions, setRegions] = useState([]);
+  const [communes, setCommunes] = useState([]);
+  const [tipoViviendaOptions, setTipoViviendaOptions] = useState([]);
+  const [loadingData, setLoadingData] = useState({
+    regions: true,
+    communes: false,
+    housing: true
+  });
 
-  const communes = {
-    1: [
-      { id: 1, name: 'Santiago' },
-      { id: 2, name: 'Providencia' },
-      { id: 3, name: 'Las Condes' },
-      { id: 4, name: 'Ñuñoa' },
-      { id: 5, name: 'Maipú' },
-      { id: 6, name: 'Puente Alto' },
-    ],
-    2: [
-      { id: 7, name: 'Valparaíso' },
-      { id: 8, name: 'Viña del Mar' },
-      { id: 9, name: 'Quilpué' }
-    ],
-    3: [
-      { id: 10, name: 'Concepción' },
-      { id: 11, name: 'Talcahuano' },
-      { id: 12, name: 'Chiguayante' }
-    ]
-  };
+  // cargar datos maestros al montar el componente desde firebase
+  useEffect(() => {
+    const loadMasterData = async () => {
+      try {
+        setError('');
 
-  const tipoViviendaOptions = [
-    { value: '', label: 'Selecciona tipo de vivienda' },
-    { value: 'casa', label: 'Casa' },
-    { value: 'departamento', label: 'Departamento' },
-    { value: 'oficina', label: 'Oficina' },
-    { value: 'local', label: 'Local Comercial' },
-    { value: 'otro', label: 'Otro' }
-  ];
+        // Cargar regiones
+        console.log('📡 Cargando regiones desde Firebase...');
+        const regionsData = await getRegions();
+        setRegions(regionsData);
+        setLoadingData(prev => ({ ...prev, regions: false }));
+        console.log('✅ Regiones cargadas:', regionsData.length);
 
+        // Cargar tipos de vivienda
+        console.log('📡 Cargando tipos de vivienda desde Firebase...');
+        const housingTypesData = await getHousingTypes();
+        const housingOptions = [
+          { value: '', label: 'Selecciona tipo de vivienda' },
+          ...housingTypesData.map(type => ({
+            value: type.id.toString(),
+            label: type.name
+          }))
+        ];
+        setTipoViviendaOptions(housingOptions);
+        setLoadingData(prev => ({ ...prev, housing: false }));
+        console.log('✅ Tipos de vivienda cargados:', housingTypesData.length);
+
+      } catch (err) {
+        console.error('❌ Error cargando datos maestros:', err);
+        setError('Error al cargar datos de regiones y comunas. Por favor recarga la página.');
+        setLoadingData({ regions: false, communes: false, housing: false });
+      }
+    };
+
+    loadMasterData();
+  }, []);
+
+  // cargar datos del usuario al montar el componente o cuando cambia currentUser 
+  // y cargar sus comunas si tiene región
   useEffect(() => {
     if (currentUser) {
       const userData = {
@@ -88,8 +106,36 @@ const Profile = () => {
       setFormData(userData);
       setOriginalData(userData);
       setSpecialDiscounts(getSpecialDiscounts(currentUser));
+
+      // Si el usuario tiene región, cargar sus comunas
+      if (userData.region) {
+        loadCommunesForRegion(userData.region);
+      }
     }
   }, [currentUser]);
+
+  // función para cargar comunas según región seleccionada
+  const loadCommunesForRegion = async (regionId) => {
+    if (!regionId) {
+      setCommunes([]);
+      return;
+    }
+
+    try {
+      setLoadingData(prev => ({ ...prev, communes: true }));
+      console.log(`📡 Cargando comunas para región ${regionId}...`);
+
+      const communesData = await getCommunesByRegion(regionId);
+      setCommunes(communesData);
+
+      console.log(`✅ Comunas cargadas: ${communesData.length} para región ${regionId}`);
+      setLoadingData(prev => ({ ...prev, communes: false }));
+    } catch (err) {
+      console.error('❌ Error cargando comunas:', err);
+      setError('Error al cargar las comunas de esta región.');
+      setLoadingData(prev => ({ ...prev, communes: false }));
+    }
+  };
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -102,6 +148,30 @@ const Profile = () => {
     setIsEditing(false);
     setMessage('');
     setError('');
+
+    // Si tenía región, recargar sus comunas
+    if (originalData.region) {
+      loadCommunesForRegion(originalData.region);
+    } else {
+      setCommunes([]);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+
+    // Si cambia la región, resetear comuna y cargar nuevas comunas
+    if (name === 'region') {
+      setFormData(prev => ({
+        ...prev,
+        comuna: ''
+      }));
+      loadCommunesForRegion(value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -111,6 +181,24 @@ const Profile = () => {
     setLoading(true);
 
     try {
+      // Obtener nombres de región, comuna y tipo de vivienda desde Firebase
+      let regionName = '';
+      let comunaName = '';
+      let housingTypeName = '';
+
+      if (formData.region) {
+        regionName = await getRegionName(formData.region);
+      }
+
+      if (formData.comuna && formData.region) {
+        comunaName = await getCommuneName(formData.comuna);
+      }
+
+      if (formData.tipoVivienda) {
+        const housingType = tipoViviendaOptions.find(t => t.value === formData.tipoVivienda);
+        housingTypeName = housingType ? housingType.label : formData.tipoVivienda;
+      }
+
       const nameParts = [
         formData.primerNombre,
         formData.segundoNombre,
@@ -120,13 +208,15 @@ const Profile = () => {
 
       const fullName = nameParts.join(' ');
 
-      const direccionCompleta = `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${formData.tipoVivienda}` : ''
-        }${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`;
+      const direccionCompleta = `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${housingTypeName}` : ''}${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`;
 
       const updateData = {
         ...formData,
         name: fullName,
-        direccionCompleta: direccionCompleta
+        direccionCompleta: direccionCompleta,
+        regionName: regionName,
+        comunaName: comunaName,
+        tipoViviendaName: housingTypeName
       };
 
       await updateProfile(updateData);
@@ -141,29 +231,21 @@ const Profile = () => {
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const getCommunesForRegion = () => {
-    return communes[formData.region] || [];
-  };
-
-  const getRegionName = (regionId) => {
-    const region = regions.find(r => r.id == regionId);
+  // funciones para mostrar nombres de región, comuna y tipo de vivienda
+  const getRegionNameForDisplay = (regionId) => {
+    if (!regionId) return '';
+    const region = regions.find(r => r.id === regionId);
     return region ? region.name : '';
   };
 
-  const getComunaName = (comunaId) => {
-    const regionCommunes = communes[formData.region] || [];
-    const comuna = regionCommunes.find(c => c.id == comunaId);
+  const getComunaNameForDisplay = (comunaId) => {
+    if (!comunaId) return '';
+    const comuna = communes.find(c => c.id === comunaId);
     return comuna ? comuna.name : '';
   };
 
-  const getTipoViviendaLabel = (value) => {
+  const getTipoViviendaLabelForDisplay = (value) => {
+    if (!value) return '';
     const option = tipoViviendaOptions.find(opt => opt.value === value);
     return option ? option.label : '';
   };
@@ -337,22 +419,29 @@ const Profile = () => {
                   <Col md={6} className="mb-3">
                     <Form.Label className="profile-label">Región</Form.Label>
                     {isEditing ? (
-                      <Form.Select
-                        name="region"
-                        value={formData.region}
-                        onChange={handleChange}
-                        className="profile-select"
-                      >
-                        <option value="">Selecciona una región</option>
-                        {regions.map(region => (
-                          <option key={region.id} value={region.id}>
-                            {region.name}
-                          </option>
-                        ))}
-                      </Form.Select>
+                      loadingData.regions ? (
+                        <div className="d-flex align-items-center">
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          <span>Cargando regiones...</span>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="region"
+                          value={formData.region}
+                          onChange={handleChange}
+                          className="profile-select"
+                        >
+                          <option value="">Selecciona una región</option>
+                          {regions.map(region => (
+                            <option key={region.id} value={region.id}>
+                              {region.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      )
                     ) : (
                       <div className="profile-field-value">
-                        {getRegionName(formData.region) || 'No especificada'}
+                        {getRegionNameForDisplay(formData.region) || 'No especificada'}
                       </div>
                     )}
                   </Col>
@@ -360,25 +449,37 @@ const Profile = () => {
                   <Col md={6} className="mb-3">
                     <Form.Label className="profile-label">Comuna</Form.Label>
                     {isEditing ? (
-                      <Form.Select
-                        name="comuna"
-                        value={formData.comuna}
-                        onChange={handleChange}
-                        disabled={!formData.region}
-                        className="profile-select"
-                      >
-                        <option value="">
-                          {formData.region ? 'Selecciona una comuna' : 'Primero selecciona una región'}
-                        </option>
-                        {getCommunesForRegion().map(comuna => (
-                          <option key={comuna.id} value={comuna.id}>
-                            {comuna.name}
+                      loadingData.communes ? (
+                        <div className="d-flex align-items-center">
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          <span>Cargando comunas...</span>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="comuna"
+                          value={formData.comuna}
+                          onChange={handleChange}
+                          disabled={!formData.region || communes.length === 0}
+                          className="profile-select"
+                        >
+                          <option value="">
+                            {!formData.region
+                              ? 'Primero selecciona una región'
+                              : communes.length === 0
+                                ? 'No hay comunas disponibles'
+                                : 'Selecciona una comuna'
+                            }
                           </option>
-                        ))}
-                      </Form.Select>
+                          {communes.map(comuna => (
+                            <option key={comuna.id} value={comuna.id}>
+                              {comuna.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      )
                     ) : (
                       <div className="profile-field-value">
-                        {getComunaName(formData.comuna) || 'No especificada'}
+                        {getComunaNameForDisplay(formData.comuna) || 'No especificada'}
                       </div>
                     )}
                   </Col>
@@ -424,21 +525,28 @@ const Profile = () => {
                   <Col md={6} className="mb-3">
                     <Form.Label className="profile-label">Tipo de Vivienda</Form.Label>
                     {isEditing ? (
-                      <Form.Select
-                        name="tipoVivienda"
-                        value={formData.tipoVivienda}
-                        onChange={handleChange}
-                        className="profile-select"
-                      >
-                        {tipoViviendaOptions.map(option => (
-                          <option key={option.value} value={option.value}>
-                            {option.label}
-                          </option>
-                        ))}
-                      </Form.Select>
+                      loadingData.housing ? (
+                        <div className="d-flex align-items-center">
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          <span>Cargando tipos...</span>
+                        </div>
+                      ) : (
+                        <Form.Select
+                          name="tipoVivienda"
+                          value={formData.tipoVivienda}
+                          onChange={handleChange}
+                          className="profile-select"
+                        >
+                          {tipoViviendaOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </Form.Select>
+                      )
                     ) : (
                       <div className="profile-field-value">
-                        {getTipoViviendaLabel(formData.tipoVivienda) || 'No especificado'}
+                        {getTipoViviendaLabelForDisplay(formData.tipoVivienda) || 'No especificado'}
                       </div>
                     )}
                   </Col>
