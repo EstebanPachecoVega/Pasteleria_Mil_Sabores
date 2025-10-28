@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Row, Col, Button, Card, Form } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
-import { createOrder } from '../../services/firestoreService';
+import { createOrder, updateUser } from '../../services/firestoreService';
 import { createOrder } from '../../data/orders';
-import { updateUser } from '../../services/firestoreService'; // ← AGREGAR ESTE IMPORT
-import { decreaseProductStock } from '../../services/productService'; // ← YA DEBERÍA ESTAR
+import { decreaseProductStock } from '../../services/productService';
 
 const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total, discountAmount, userDiscounts }) => {
   const { currentUser } = useAuth(); // ← SOLO currentUser, sin updateUser
@@ -25,7 +24,6 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         throw new Error('El carrito está vacío');
       }
 
-      // Crear objeto de orden limpio
       // ✅ 1. PRIMERO DESCONTAR STOCK EN FIREBASE
       console.log('📦 Descontando stock de productos...');
       for (const item of cartItems) {
@@ -43,7 +41,7 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
 
       console.log('✅ Todo el stock fue actualizado correctamente');
 
-      // ✅ 2. LUEGO CREAR LA ORDEN (solo si el stock se actualizó correctamente)
+      // Crear objeto de orden limpio
       const cleanCartItems = cartItems.map(item => ({
         id: item.id,
         name: item.name,
