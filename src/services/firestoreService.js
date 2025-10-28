@@ -74,6 +74,104 @@ export async function updateUser(userId, userData) {
     }
 }
 
+// Funciones para Comunas y Region
+export async function getRegions() {
+    try {
+        const regionsRef = collection(db, "region"); // ← Cambiado a singular
+        const q = query(regionsRef, orderBy("orden")); // ← Ordenar por orden norte-sur
+        const querySnapshot = await getDocs(q);
+        const regions = [];
+        
+        querySnapshot.forEach((doc) => {
+            regions.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        return regions;
+    } catch (error) {
+        console.error("Error al obtener regiones: ", error);
+        throw error;
+    }
+}
+
+export async function getCommunesByRegion(regionId) {
+    try {
+        const communesRef = collection(db, "comuna"); // ← Cambiado a singular
+        const q = query(
+            communesRef, 
+            where("regionId", "==", parseInt(regionId)),
+            orderBy("name")
+        );
+        const querySnapshot = await getDocs(q);
+        const communes = [];
+        
+        querySnapshot.forEach((doc) => {
+            communes.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        return communes;
+    } catch (error) {
+        console.error("Error al obtener comunas: ", error);
+        throw error;
+    }
+}
+
+export async function getHousingTypes() {
+    try {
+        const housingRef = collection(db, "tipo_vivienda"); // ← Cambiado a singular
+        const q = query(housingRef, orderBy("name"));
+        const querySnapshot = await getDocs(q);
+        const housingTypes = [];
+        
+        querySnapshot.forEach((doc) => {
+            housingTypes.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+        
+        return housingTypes;
+    } catch (error) {
+        console.error("Error al obtener tipos de vivienda: ", error);
+        throw error;
+    }
+}
+
+export async function getRegionById(regionId) {
+    try {
+        const regionRef = doc(db, "region", regionId.toString());
+        const regionSnap = await getDoc(regionRef);
+        
+        if (regionSnap.exists()) {
+            return { id: regionSnap.id, ...regionSnap.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error al obtener región por ID: ", error);
+        throw error;
+    }
+}
+
+export async function getCommuneById(communeId) {
+    try {
+        const communeRef = doc(db, "comuna", communeId.toString());
+        const communeSnap = await getDoc(communeRef);
+        
+        if (communeSnap.exists()) {
+            return { id: communeSnap.id, ...communeSnap.data() };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error al obtener comuna por ID: ", error);
+        throw error;
+    }
+}
+
 // Funciones para crear y obtener órdenes
 export async function createOrder(orderData) {
     try {

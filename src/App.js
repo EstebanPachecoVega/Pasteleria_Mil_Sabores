@@ -29,6 +29,7 @@ import AdminRoute from './components/auth/AdminRoute';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
+import PopulateFirebaseData from './components/temp/PopulateFirebaseData';
 
 function App() {
   return (
@@ -93,6 +94,7 @@ function App() {
               <Route path="/devolucion-y-reembolso" element={<DevolucionReembolso />} />
               <Route path="/calidad-e-inocuidad" element={<CalidadInocuidad />} />
               <Route path="/entrega-y-envios" element={<EntregaEnvios />} />
+              <Route path="/poblar-datos-firebase" element={<PopulateFirebaseData />} />
             </Routes>
           </main>
           <Footer />
