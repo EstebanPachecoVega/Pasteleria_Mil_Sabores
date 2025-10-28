@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Row, Col, Button, Card, Form } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
-import { createOrder, updateUser } from '../../services/firestoreService';
-import { createOrder } from '../../data/orders';
+import { createOrder} from '../../services/firestoreService';
 import { decreaseProductStock } from '../../services/productService';
 
 const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total, discountAmount, userDiscounts }) => {
-  const { currentUser } = useAuth(); // ← SOLO currentUser, sin updateUser
+  const { currentUser, updateUser } = useAuth(); // ← SOLO currentUser, sin updateUser
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [loading, setLoading] = useState(false);
 
@@ -146,7 +145,6 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
     }
   };
 
-  // ... el resto del código se mantiene igual
   const paymentMethods = [
     {
       id: 'cash',

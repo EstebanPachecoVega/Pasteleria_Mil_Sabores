@@ -135,7 +135,7 @@ export async function getOrderById(orderId) {
     try {
         const orderDocRef = doc(db, "order", orderId);
         const orderSnap = await getDoc(orderDocRef);
-        
+
         if (orderSnap.exists()) {
             const data = orderSnap.data();
             return {

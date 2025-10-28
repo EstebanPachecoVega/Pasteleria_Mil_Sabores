@@ -18,10 +18,10 @@ const OrderDetail = () => {
       try {
         setLoading(true);
         console.log('Cargando orden:', orderId);
-        
+
         const orderData = await getOrderById(orderId);
         console.log('Datos de orden cargados:', orderData);
-        
+
         if (orderData) {
           // Verificar que la orden pertenece al usuario actual
           if (currentUser && orderData.userId !== currentUser.id) {
@@ -44,6 +44,49 @@ const OrderDetail = () => {
       loadOrder();
     }
   }, [orderId, currentUser]);
+
+  // Datos de regiones y comunas
+  const regions = [
+    { id: 1, name: 'Región Metropolitana' },
+    { id: 2, name: 'Región de Valparaíso' },
+    { id: 3, name: 'Región del Biobío' },
+  ];
+
+  const communes = {
+    1: [
+      { id: 1, name: 'Santiago' },
+      { id: 2, name: 'Providencia' },
+      { id: 3, name: 'Las Condes' },
+      { id: 4, name: 'Ñuñoa' },
+      { id: 5, name: 'Maipú' },
+      { id: 6, name: 'Puente Alto' },
+    ],
+    2: [
+      { id: 7, name: 'Valparaíso' },
+      { id: 8, name: 'Viña del Mar' },
+      { id: 9, name: 'Quilpué' }
+    ],
+    3: [
+      { id: 10, name: 'Concepción' },
+      { id: 11, name: 'Talcahuano' },
+      { id: 12, name: 'Chiguayante' }
+    ]
+  };
+
+  // Función para obtener nombre de región
+  const getRegionName = (regionId) => {
+    if (!regionId) return '';
+    const region = regions.find(r => r.id == regionId);
+    return region ? region.name : '';
+  };
+
+  // Función para obtener nombre de comuna
+  const getComunaName = (comunaId, regionId) => {
+    if (!comunaId || !regionId) return '';
+    const regionCommunes = communes[regionId] || [];
+    const comuna = regionCommunes.find(c => c.id == comunaId);
+    return comuna ? comuna.name : '';
+  };
 
   const getStatusVariant = (status) => {
     switch (status) {
@@ -149,8 +192,8 @@ const OrderDetail = () => {
         <Col>
           <div className="d-flex justify-content-between align-items-center">
             <div>
-              <Button 
-                variant="outline-secondary" 
+              <Button
+                variant="outline-secondary"
                 onClick={() => navigate('/mis-pedidos')}
                 className="mb-3"
               >
@@ -197,10 +240,10 @@ const OrderDetail = () => {
                           src={item.image}
                           alt={item.name}
                           className="rounded"
-                          style={{ 
-                            width: '50px', 
-                            height: '50px', 
-                            objectFit: 'cover' 
+                          style={{
+                            width: '50px',
+                            height: '50px',
+                            objectFit: 'cover'
                           }}
                         />
                       </td>
@@ -256,12 +299,17 @@ const OrderDetail = () => {
                     </p>
                     {order.shippingInfo.region && (
                       <p className="mb-1">
-                        <strong>Región:</strong> {order.shippingInfo.region}
+                        <strong>Región:</strong> {getRegionName(order.shippingInfo.region)}
                       </p>
                     )}
                     {order.shippingInfo.comuna && (
                       <p className="mb-1">
-                        <strong>Comuna:</strong> {order.shippingInfo.comuna}
+                        <strong>Comuna:</strong> {getComunaName(order.shippingInfo.comuna, order.shippingInfo.region)}
+                      </p>
+                    )}
+                    {order.shippingInfo.codigoPostal && (
+                      <p className="mb-1">
+                        <strong>Código Postal:</strong> {order.shippingInfo.codigoPostal}
                       </p>
                     )}
                     {order.shippingInfo.notes && (
@@ -292,7 +340,7 @@ const OrderDetail = () => {
                 <strong>Número de Orden:</strong><br />
                 <code className="fs-6">{order.id}</code>
               </div>
-              
+
               <div className="mb-3">
                 <strong>Fecha del Pedido:</strong><br />
                 {formatDate(order.date)}
@@ -310,7 +358,7 @@ const OrderDetail = () => {
                   <span>Subtotal:</span>
                   <span>${formatPrice(order.subtotal || order.total + (order.discountAmount || 0))}</span>
                 </div>
-                
+
                 {order.discountAmount > 0 && (
                   <div className="d-flex justify-content-between mb-2 text-success">
                     <span>Descuentos:</span>

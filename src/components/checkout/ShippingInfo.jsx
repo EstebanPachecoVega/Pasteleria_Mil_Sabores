@@ -35,17 +35,18 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
       { id: 2, name: 'Providencia' },
       { id: 3, name: 'Las Condes' },
       { id: 4, name: 'Ñuñoa' },
-      { id: 5, name: 'Maipú' }
+      { id: 5, name: 'Maipú' },
+      { id: 6, name: 'Puente Alto' },
     ],
     2: [
-      { id: 6, name: 'Valparaíso' },
-      { id: 7, name: 'Viña del Mar' },
-      { id: 8, name: 'Quilpué' }
+      { id: 7, name: 'Valparaíso' },
+      { id: 8, name: 'Viña del Mar' },
+      { id: 9, name: 'Quilpué' }
     ],
     3: [
-      { id: 9, name: 'Concepción' },
-      { id: 10, name: 'Talcahuano' },
-      { id: 11, name: 'Chiguayante' }
+      { id: 10, name: 'Concepción' },
+      { id: 11, name: 'Talcahuano' },
+      { id: 12, name: 'Chiguayante' }
     ]
   };
 
@@ -95,7 +96,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Si el usuario quiere guardar en el perfil y hay cambios
     if (saveToProfile && currentUser && isModified) {
       try {
@@ -133,11 +134,11 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
       primerApellido: formData.primerApellido,
       segundoApellido: formData.segundoApellido,
       nombreCompleto: `${formData.primerNombre} ${formData.primerApellido}`.trim(),
-      
+
       // Contacto
       email: formData.email,
       telefono: formData.telefono,
-      
+
       // Ubicación
       region: formData.region,
       comuna: formData.comuna,
@@ -145,11 +146,11 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
       numeroCalle: formData.numeroCalle,
       tipoVivienda: formData.tipoVivienda,
       codigoPostal: formData.codigoPostal,
-      
+
       // Dirección completa formateada
       direccionCompleta: `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${formData.tipoVivienda}` : ''
         }${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`,
-      
+
       // Notas adicionales
       notes: formData.notes
     };
@@ -160,7 +161,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
   return (
     <div className="shipping-info">
       <h4 className="mb-4">Información de Envío</h4>
-      
+
       {currentUser && (
         <Alert variant="info" className="mb-4">
           <i className="bi bi-info-circle me-2"></i>
@@ -394,15 +395,15 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
         <div className="checkout-actions">
           <Row>
             <Col>
-              <Button 
-                variant="outline-secondary" 
+              <Button
+                variant="outline-secondary"
                 onClick={onPreviousStep}
                 className="me-3"
               >
                 Volver al Resumen
               </Button>
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="checkout-btn-primary"
               >
                 Continuar con Pago
