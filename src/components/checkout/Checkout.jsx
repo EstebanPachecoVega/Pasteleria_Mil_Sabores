@@ -43,7 +43,7 @@ const Checkout = () => {
 
   // Calcular totales CON DESCUENTOS
   const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  
+
   // Aplicar descuentos
   let discountAmount = 0;
   if (userDiscounts.seniorDiscount) {
@@ -52,7 +52,7 @@ const Checkout = () => {
   if (userDiscounts.codeDiscount) {
     discountAmount += subtotal * 0.1; // 10% descuento adicional
   }
-  
+
   const shippingCost = subtotal > 50000 ? 0 : 3000;
   const total = subtotal - discountAmount + shippingCost;
 
@@ -60,7 +60,7 @@ const Checkout = () => {
     const updatedItems = cartItems.map(item =>
       item.id === productId ? { ...item, quantity: Math.max(0, newQuantity) } : item
     ).filter(item => item.quantity > 0);
-    
+
     setCartItems(updatedItems);
     localStorage.setItem('cart', JSON.stringify(updatedItems));
     window.dispatchEvent(new Event('cartUpdated'));
@@ -85,6 +85,7 @@ const Checkout = () => {
   const handleOrderComplete = (orderId) => {
     setOrderComplete(true);
     setOrderNumber(orderId);
+    setCurrentStep(4);
     localStorage.removeItem('cart');
     window.dispatchEvent(new Event('cartUpdated'));
   };
@@ -156,8 +157,8 @@ const Checkout = () => {
                   orderData={orderData}
                   cartItems={cartItems}
                   total={total}
-                  discountAmount={discountAmount} // ← Pasar descuentos
-                  userDiscounts={userDiscounts} // ← Pasar descuentos
+                  discountAmount={discountAmount}
+                  userDiscounts={userDiscounts}
                 />
               )}
             </Card.Body>
@@ -190,7 +191,7 @@ const Checkout = () => {
                   <span>Subtotal:</span>
                   <span>${formatPrice(subtotal)}</span>
                 </div>
-                
+
                 {/* MOSTRAR DESCUENTOS APLICADOS */}
                 {discountAmount > 0 && (
                   <>
@@ -212,7 +213,7 @@ const Checkout = () => {
                     )}
                   </>
                 )}
-                
+
                 <div className="d-flex justify-content-between mb-2">
                   <span>Envío:</span>
                   <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>

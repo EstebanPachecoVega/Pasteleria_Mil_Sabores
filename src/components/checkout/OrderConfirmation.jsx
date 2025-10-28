@@ -3,6 +3,30 @@ import { Container, Row, Col, Card, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
 const OrderConfirmation = ({ orderNumber, orderData }) => {
+  if (!orderNumber) {
+    return (
+      <Container className="py-5">
+        <Row className="justify-content-center">
+          <Col md={8} lg={6}>
+            <Card className="text-center border-0 shadow">
+              <Card.Body className="p-5">
+                <div className="mb-4">
+                  <i className="bi bi-exclamation-circle-fill text-warning" style={{ fontSize: '4rem' }}></i>
+                </div>
+                <h2 className="mb-3">Orden en Proceso</h2>
+                <p className="text-muted mb-4">
+                  Tu orden está siendo procesada. Te contactaremos pronto.
+                </p>
+                <Button as={Link} to="/productos" variant="primary">
+                  Seguir Comprando
+                </Button>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      </Container>
+    );
+  }
   return (
     <Container className="py-5">
       <Row className="justify-content-center">
@@ -12,12 +36,12 @@ const OrderConfirmation = ({ orderNumber, orderData }) => {
               <div className="mb-4">
                 <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '4rem' }}></i>
               </div>
-              
+
               <h2 className="mb-3">¡Pedido Confirmado!</h2>
               <p className="text-muted mb-4">
                 Tu pedido ha sido procesado exitosamente. Te hemos enviado un correo de confirmación.
               </p>
-              
+
               <Card className="bg-light mb-4">
                 <Card.Body>
                   <h5 className="mb-2">Número de Pedido</h5>
@@ -51,20 +75,20 @@ const OrderConfirmation = ({ orderNumber, orderData }) => {
                   </p>
                 </Card.Body>
               </Card>
-              
+
               <div className="d-grid gap-2">
-                <Button 
-                  as={Link} 
-                  to="/productos" 
-                  variant="primary" 
+                <Button
+                  as={Link}
+                  to="/productos"
+                  variant="primary"
                   size="lg"
                 >
                   <i className="bi bi-bag me-2"></i>
                   Seguir Comprando
                 </Button>
-                <Button 
-                  as={Link} 
-                  to="/" 
+                <Button
+                  as={Link}
+                  to="/"
                   variant="outline-primary"
                 >
                   <i className="bi bi-house me-2"></i>

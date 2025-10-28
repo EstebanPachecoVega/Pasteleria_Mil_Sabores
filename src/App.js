@@ -16,6 +16,7 @@ import Login from './components/pages/Login';
 import Registro from './components/pages/Registro';
 import Profile from './components/pages/user/Profile';
 import OrderHistory from './components/pages/user/OrderHistory';
+import OrderDetail from './components/pages/user/OrderDetail';
 import ProfileAdmin from './components/pages/admin/ProfileAdmin';
 import TerminosCondiciones from './components/pages/TerminosCondiciones';
 import PrivacidadSeguridad from './components/pages/PrivacidadSeguridad';
@@ -48,13 +49,28 @@ function App() {
               <Route path="/categoria/:category" element={<CategoryProducts />} />
 
               {/* Rutas Protegidas */}
-              <Route path="/checkout" element={<Checkout />} />
-              <Route path="/perfil" element={<Profile />} />
+              <Route path="/checkout" element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              } />
+              <Route path="/perfil" element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } />
               <Route path="/mis-pedidos" element={
                 <ProtectedRoute>
                   <OrderHistory />
                 </ProtectedRoute>
               } />
+
+              <Route path="/mis-pedidos/:orderId" element={
+                <ProtectedRoute>
+                  <OrderDetail />
+                </ProtectedRoute>
+              } />
+
               <Route path="/admin" element={
                 <AdminRoute>
                   <ProfileAdmin />

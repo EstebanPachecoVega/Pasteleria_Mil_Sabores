@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Row, Col, Button, Card, Form } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
-import { createOrder } from '../../data/orders';
+import { createOrder } from '../../services/firestoreService';
 
 const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total, discountAmount, userDiscounts }) => {
   const { currentUser, updateUser } = useAuth();
@@ -12,7 +12,16 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
     setLoading(true);
 
     try {
-      // Crear objeto de orden limpio, sin referencias circulares
+      // Validaciones básicas
+      if (!orderData.shippingInfo) {
+        throw new Error('Información de envío incompleta');
+      }
+
+      if (cartItems.length === 0) {
+        throw new Error('El carrito está vacío');
+      }
+
+      // Crear objeto de orden limpio
       const cleanCartItems = cartItems.map(item => ({
         id: item.id,
         name: item.name,
@@ -39,7 +48,27 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         notes: orderData.shippingInfo.notes
       } : {};
 
+      // Generar un ID de orden personalizado
+      const generateOrderId = (user) => {
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+        const userPrefix = user ? user.id.slice(-4) : 'GUEST';
+        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
+
+        return `ORD-${dateStr}-${timeStr}-${userPrefix}-${random}`;
+      };
+
+      const customOrderId = generateOrderId(currentUser);
+
+      if (!customOrderId) {
+        throw new Error('No se pudo generar el ID de la orden');
+      }
+
+      console.log('ID personalizado generado:', customOrderId);
+
       const completeOrderData = {
+        orderId: customOrderId,
         shippingInfo: cleanShippingInfo,
         items: cleanCartItems,
         total: total,
@@ -47,51 +76,53 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         subtotal: total + (discountAmount || 0),
         shippingCost: 0,
         discounts: userDiscounts || {},
-        userId: currentUser?.id || null,
-        userName: currentUser?.name || 'Cliente',
-        userEmail: currentUser?.email || '',
+        userId: currentUser?.id || '',
+        userName: currentUser?.name || cleanShippingInfo.nombreCompleto || 'Cliente',
+        userEmail: currentUser?.email || cleanShippingInfo.email || '',
         paymentMethod: selectedPayment,
         status: 'confirmado',
         date: new Date().toISOString()
       };
 
-      // Crear la orden
-      const order = createOrder(completeOrderData);
+      console.log('Creando orden en Firebase...');
 
-      // Agregar orden al usuario si está logueado
-      if (currentUser) {
-        const userOrders = currentUser.orders || [];
+      const order = await createOrder(completeOrderData);
+      console.log('Orden creada exitosamente:', order.id);
 
-        const userOrder = {
-          id: order.id,
-          date: new Date().toISOString(),
-          items: cleanCartItems,
-          total: total,
-          discountAmount: discountAmount || 0,
-          status: 'confirmado',
-          shippingInfo: cleanShippingInfo,
-          paymentMethod: selectedPayment
-        };
+      // Actualizar usuario localmente (opcional)
+      if (currentUser && updateUser) {
+        try {
+          const userOrders = currentUser.orders || [];
+          const userOrder = {
+            id: customOrderId,
+            date: new Date().toISOString(),
+            items: cleanCartItems,
+            total: total,
+            discountAmount: discountAmount || 0,
+            status: 'confirmado',
+            shippingInfo: cleanShippingInfo,
+            paymentMethod: selectedPayment,
+            userId: currentUser.id
+          };
 
-        userOrders.unshift(userOrder);
-
-        // Actualizar usuario
-        updateUser({
-          ...currentUser,
-          orders: userOrders
-        });
+          userOrders.unshift(userOrder);
+          await updateUser({
+            ...currentUser,
+            orders: userOrders
+          });
+          console.log('Usuario actualizado con nueva orden');
+        } catch (userError) {
+          console.warn('Error al actualizar usuario local:', userError);
+        }
       }
 
-      // Simular un pequeño delay para mejor UX
-      setTimeout(() => {
-        onOrderComplete(order.id);
-        setLoading(false);
-      }, 1000);
+      // Proceder a confirmación
+      onOrderComplete(customOrderId);
 
     } catch (error) {
       console.error('Error al crear la orden:', error);
       setLoading(false);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      alert('Error al procesar la orden: ' + error.message);
     }
   };
 

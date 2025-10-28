@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Button } from 'react-bootstrap';
 import { useAuth } from '../../../context/AuthContext';
 import { formatPrice } from '../../../utils/formatters';
+import { getUserOrders } from '../../../services/firestoreService';
+import { Link } from 'react-router-dom';
 
 const OrderHistory = () => {
   const { currentUser } = useAuth();
@@ -9,19 +11,21 @@ const OrderHistory = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simular carga de pedidos
-    const loadOrders = () => {
+    const loadOrders = async () => {
       setLoading(true);
-      
-      // Obtener pedidos del localStorage
-      const allOrders = JSON.parse(localStorage.getItem('orders')) || [];
-      
-      // Filtrar pedidos del usuario actual
-      const userOrders = currentUser 
-        ? allOrders.filter(order => order.userId === currentUser.id)
-        : [];
-      
-      setOrders(userOrders);
+
+      if (currentUser) {
+        try {
+          const userOrders = await getUserOrders(currentUser.id);
+          setOrders(userOrders);
+        } catch (error) {
+          console.error('Error al cargar órdenes:', error);
+          const allOrders = JSON.parse(localStorage.getItem('orders')) || [];
+          const localUserOrders = allOrders.filter(order => order.userId === currentUser.id);
+          setOrders(localUserOrders);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -166,12 +170,11 @@ const OrderHistory = () => {
                             <Button
                               variant="outline-primary"
                               size="sm"
-                              onClick={() => {
-                                // Aquí podrías implementar la vista de detalle del pedido
-                                alert(`Detalles del pedido ${order.id}`);
-                              }}
+                              as={Link}
+                              to={`/mis-pedidos/${order.id}`}
                             >
-                              <i className="bi bi-eye"></i>
+                              <i className="bi bi-eye me-1"></i>
+                              Ver Detalle
                             </Button>
                           </td>
                         </tr>
