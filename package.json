@@ -22,7 +22,10 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test",
+    "test": "karma start",
+    "test:watch": "karma start --auto-watch=true --single-run=false",
+    "test:ci": "karma start --single-run=true --browsers=ChromeHeadless",
+    "test:jasmine": "jasmine",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -44,6 +47,20 @@
     ]
   },
   "devDependencies": {
-    "@types/react": "^19.1.14"
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@types/react": "^19.1.14",
+    "babel-loader": "^10.0.0",
+    "css-loader": "^7.1.2",
+    "jasmine": "^5.12.0",
+    "jasmine-core": "^5.12.0",
+    "karma": "^6.4.4",
+    "karma-chrome-launcher": "^3.2.0",
+    "karma-jasmine": "^5.1.0",
+    "karma-webpack": "^5.0.1",
+    "style-loader": "^4.0.0",
+    "webpack": "^5.102.1",
+    "webpack-cli": "^6.0.1"
   }
 }
