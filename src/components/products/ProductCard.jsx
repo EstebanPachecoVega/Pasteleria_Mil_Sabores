@@ -3,7 +3,16 @@ import { Link } from 'react-router-dom';
 import { formatPrice } from '../../utils/formatters';
 
 const ProductCard = ({ product, onAddToCart }) => {
+  const isOutOfStock = product.stock === 0;
+  
   const handleAddToCart = (e) => {
+    // ✅ SOLO AGREGAMOS ESTA VALIDACIÓN
+    if (isOutOfStock) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     e.stopPropagation();
     e.preventDefault();
 
@@ -33,7 +42,27 @@ const ProductCard = ({ product, onAddToCart }) => {
         className="text-decoration-none product-card-link w-100"
         style={{ color: 'inherit' }}
       >
-        <div className="card h-100 shadow-sm product-card d-flex flex-column">
+        <div 
+          className="card h-100 shadow-sm product-card d-flex flex-column"
+          style={{ 
+            opacity: isOutOfStock ? 0.6 : 1,
+            position: 'relative'
+          }}
+        >
+          {/* ✅ SOLO AGREGAMOS ESTE BADGE */}
+          {isOutOfStock && (
+            <div 
+              className="position-absolute top-0 start-0 m-2 bg-danger text-white px-2 py-1 rounded"
+              style={{ 
+                zIndex: 1,
+                fontSize: '0.8rem',
+                fontWeight: 'bold'
+              }}
+            >
+              NO DISPONIBLE
+            </div>
+          )}
+
           {/* Contenedor de imagen con tamaño fijo */}
           <div className="product-image-container" style={{ height: '200px', overflow: 'hidden' }}>
             <img
@@ -44,7 +73,9 @@ const ProductCard = ({ product, onAddToCart }) => {
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                objectPosition: 'center'
+                objectPosition: 'center',
+                // ✅ SOLO AGREGAMOS ESTE FILTRO
+                filter: isOutOfStock ? 'grayscale(70%)' : 'none'
               }}
             />
           </div>
@@ -55,10 +86,13 @@ const ProductCard = ({ product, onAddToCart }) => {
               <p className="product-price mb-2">${formatPrice(product.price)}</p>
               <div className="d-flex gap-2">
                 <button
-                  className="btn add-cart-btn flex-grow-1 add-to-cart"
+                  className={`btn flex-grow-1 add-to-cart ${isOutOfStock ? 'btn-secondary' : 'add-cart-btn'}`}
                   onClick={handleAddToCart}
+                  // ✅ SOLO AGREGAMOS ESTE DISABLED
+                  disabled={isOutOfStock}
                 >
-                  Agregar al Carrito
+                  {/* ✅ SOLO CAMBIAMOS EL TEXTO */}
+                  {isOutOfStock ? 'SIN STOCK' : 'Agregar al Carrito'}
                 </button>
                 <button
                   className="btn view-details-btn"

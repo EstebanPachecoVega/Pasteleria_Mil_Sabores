@@ -2,17 +2,37 @@ import React, { useState } from 'react';
 import { Row, Col, Button, Card, Form } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../data/orders';
+import { updateUser } from '../../services/firestoreService'; // ← AGREGAR ESTE IMPORT
+import { decreaseProductStock } from '../../services/productService'; // ← YA DEBERÍA ESTAR
 
 const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total, discountAmount, userDiscounts }) => {
-  const { currentUser, updateUser } = useAuth();
+  const { currentUser } = useAuth(); // ← SOLO currentUser, sin updateUser
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [loading, setLoading] = useState(false);
 
   const handlePlaceOrder = async () => {
     setLoading(true);
+    console.log('🛒 Iniciando proceso de compra...');
 
     try {
-      // Crear objeto de orden limpio, sin referencias circulares
+      // ✅ 1. PRIMERO DESCONTAR STOCK EN FIREBASE
+      console.log('📦 Descontando stock de productos...');
+      for (const item of cartItems) {
+        console.log(`➖ Producto: ${item.name}, Cantidad: ${item.quantity}`);
+        try {
+          await decreaseProductStock(item.id, item.quantity);
+          console.log(`✅ Stock actualizado: ${item.quantity} unidades de ${item.name}`);
+        } catch (error) {
+          console.error(`❌ Error actualizando stock de ${item.name}:`, error);
+          alert(`Error: ${error.message}. No se pudo completar la compra.`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      console.log('✅ Todo el stock fue actualizado correctamente');
+
+      // ✅ 2. LUEGO CREAR LA ORDEN (solo si el stock se actualizó correctamente)
       const cleanCartItems = cartItems.map(item => ({
         id: item.id,
         name: item.name,
@@ -57,44 +77,56 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
 
       // Crear la orden
       const order = createOrder(completeOrderData);
+      console.log('🎉 Orden creada:', order.id);
 
-      // Agregar orden al usuario si está logueado
-      if (currentUser) {
-        const userOrders = currentUser.orders || [];
+      // ✅ 3. ACTUALIZAR EL USUARIO CON LA NUEVA ORDEN (si está logueado)
+      if (currentUser && currentUser.id) {
+        try {
+          const userOrders = currentUser.orders || [];
 
-        const userOrder = {
-          id: order.id,
-          date: new Date().toISOString(),
-          items: cleanCartItems,
-          total: total,
-          discountAmount: discountAmount || 0,
-          status: 'confirmado',
-          shippingInfo: cleanShippingInfo,
-          paymentMethod: selectedPayment
-        };
+          const userOrder = {
+            id: order.id,
+            date: new Date().toISOString(),
+            items: cleanCartItems,
+            total: total,
+            discountAmount: discountAmount || 0,
+            status: 'confirmado',
+            shippingInfo: cleanShippingInfo,
+            paymentMethod: selectedPayment
+          };
 
-        userOrders.unshift(userOrder);
+          userOrders.unshift(userOrder);
 
-        // Actualizar usuario
-        updateUser({
-          ...currentUser,
-          orders: userOrders
-        });
+          // Actualizar usuario en Firebase
+          await updateUser(currentUser.id, {
+            ...currentUser,
+            orders: userOrders,
+            updatedAt: new Date()
+          });
+          console.log('👤 Usuario actualizado con nueva orden en Firebase');
+        } catch (userError) {
+          console.warn('⚠️ No se pudo actualizar el usuario en Firebase, pero la orden se creó:', userError);
+          // Continuamos aunque falle la actualización del usuario
+        }
+      } else {
+        console.log('ℹ️ Usuario no logueado, no se actualiza historial de órdenes');
       }
 
-      // Simular un pequeño delay para mejor UX
+      // ✅ 4. COMPLETAR LA COMPRA EXITOSAMENTE
+      console.log('✅ Compra completada exitosamente');
       setTimeout(() => {
         onOrderComplete(order.id);
         setLoading(false);
       }, 1000);
 
     } catch (error) {
-      console.error('Error al crear la orden:', error);
+      console.error('❌ Error al crear la orden:', error);
       setLoading(false);
-      // Aquí podrías mostrar un mensaje de error al usuario
+      alert('Error al procesar la compra. Por favor, intenta nuevamente.');
     }
   };
 
+  // ... el resto del código se mantiene igual
   const paymentMethods = [
     {
       id: 'cash',
@@ -127,8 +159,7 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         {paymentMethods.map(method => (
           <Card
             key={method.id}
-            className={`mb-3 ${!method.available ? 'opacity-50' : ''} ${selectedPayment === method.id ? 'border-primary' : ''
-              }`}
+            className={`mb-3 ${!method.available ? 'opacity-50' : ''} ${selectedPayment === method.id ? 'border-primary' : ''}`}
             style={{ cursor: method.available ? 'pointer' : 'not-allowed' }}
             onClick={() => method.available && setSelectedPayment(method.id)}
           >

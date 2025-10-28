@@ -17,6 +17,7 @@ const ProductDetails = () => {
   const maxQuantity = 100;
   const availableToAdd = maxQuantity - cartQuantity;
   const isMaxInCart = cartQuantity >= maxQuantity;
+  const isOutOfStock = product?.stock === 0;
 
   useEffect(() => {
     const loadProduct = () => {
@@ -48,7 +49,7 @@ const ProductDetails = () => {
   }, [productId]);
 
   const handleAddToCart = () => {
-    if (!product || isMaxInCart) return;
+    if (!product || isMaxInCart || isOutOfStock) return;
 
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find(item => item.id === product.id);
@@ -134,6 +135,9 @@ const ProductDetails = () => {
                 src={productImages[selectedImage]}
                 alt={product.name}
                 className="main-image img-fluid rounded shadow-sm"
+                style={{
+                  filter: isOutOfStock ? 'grayscale(70%)' : 'none'
+                }}
               />
             </div>
 
@@ -167,9 +171,15 @@ const ProductDetails = () => {
               <Badge className="category-badge-detail me-2">
                 {product.category}
               </Badge>
-              <Badge className="stock-badge-detail">
-                Disponible
-              </Badge>
+              {isOutOfStock ? (
+                <Badge bg="danger" className="stock-badge-detail">
+                  NO DISPONIBLE
+                </Badge>
+              ) : (
+                <Badge bg="success" className="stock-badge-detail">
+                  Disponible
+                </Badge>
+              )}
             </div>
 
             <div className="price-section mb-3">
@@ -196,7 +206,7 @@ const ProductDetails = () => {
                       <Button
                         className="decrease-quantity-detail"
                         onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                        disabled={quantity <= 1}
+                        disabled={quantity <= 1 || isOutOfStock}
                       >
                         <i className="bi bi-dash"></i>
                       </Button>
@@ -207,22 +217,24 @@ const ProductDetails = () => {
                         style={{ width: '70px' }}
                         value={quantity}
                         min="1"
-                        max={availableToAdd}
+                        max={isOutOfStock ? 0 : availableToAdd}
                         onChange={(e) => {
+                          if (isOutOfStock) return;
                           const value = parseInt(e.target.value) || 1;
                           setQuantity(Math.max(1, Math.min(availableToAdd, value)));
                         }}
+                        disabled={isOutOfStock}
                       />
                       <Button
                         className="increase-quantity-detail"
                         onClick={() => setQuantity(q => Math.min(availableToAdd, q + 1))}
-                        disabled={quantity >= availableToAdd}
+                        disabled={quantity >= availableToAdd || isOutOfStock}
                       >
                         <i className="bi bi-plus"></i>
                       </Button>
                     </InputGroup>
                     <div className="form-text text-center text-md-start mt-1 w-100">
-                      Máximo 100 unidades por producto
+                      {isOutOfStock ? 'Producto no disponible' : 'Máximo 100 unidades por producto'}
                     </div>
                   </div>
                 </Col>
@@ -235,11 +247,12 @@ const ProductDetails = () => {
                       size="lg"
                       type="button"
                       onClick={handleAddToCart}
-                      disabled={isMaxInCart || quantity > availableToAdd}
+                      disabled={isMaxInCart || quantity > availableToAdd || isOutOfStock}
                       style={{ minWidth: '200px' }}
                     >
                       <i className="bi bi-cart-plus me-2"></i>
-                      {isMaxInCart ? 'Límite alcanzado (100)' : `Añadir al Carrito (${quantity})`}
+                      {isOutOfStock ? 'PRODUCTO AGOTADO' : 
+                       isMaxInCart ? 'Límite alcanzado (100)' : `Añadir al Carrito (${quantity})`}
                     </Button>
                   </div>
                 </Col>
@@ -249,12 +262,17 @@ const ProductDetails = () => {
               <Row>
                 <Col sm={12}>
                   <div className="cart-messages mt-2 text-center text-md-start">
-                    {isMaxInCart && (
+                    {isOutOfStock && (
+                      <div className="text-danger">
+                        <small>Este producto no está disponible actualmente.</small>
+                      </div>
+                    )}
+                    {!isOutOfStock && isMaxInCart && (
                       <div className="text-danger">
                         <small>Has alcanzado el límite máximo de 100 unidades de este producto en el carrito.</small>
                       </div>
                     )}
-                    {!isMaxInCart && availableToAdd < maxQuantity && (
+                    {!isOutOfStock && !isMaxInCart && availableToAdd < maxQuantity && (
                       <div className="text-muted">
                         <small>Actualmente tienes {cartQuantity} en el carrito. Puedes agregar hasta {availableToAdd} más.</small>
                       </div>
