@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Breadcrumb, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext'; // ← Agregar este import
+import { useAuth } from '../../context/AuthContext';
 import CheckoutSummary from './CheckoutSummary';
 import ShippingInfo from './ShippingInfo';
 import PaymentMethod from './PaymentMethod';
 import OrderConfirmation from './OrderConfirmation';
 import { formatPrice } from '../../utils/formatters';
-import { getSpecialDiscounts } from '../../data/users'; // ← Agregar para descuentos
+import { getSpecialDiscounts } from '../../data/users';
+import { calculateShippingCost } from '../../services/shippingService';
 import './../../styles/components/checkout.css';
 
 const Checkout = () => {
@@ -20,41 +21,72 @@ const Checkout = () => {
   });
   const [orderComplete, setOrderComplete] = useState(false);
   const [orderNumber, setOrderNumber] = useState('');
-  const [userDiscounts, setUserDiscounts] = useState({}); // ← Nuevo estado para descuentos
+  const [userDiscounts, setUserDiscounts] = useState({});
+  const [shippingCost, setShippingCost] = useState(0);
+  const [isShippingFree, setIsShippingFree] = useState(false);
+  const [shippingConfig, setShippingConfig] = useState(null);
   const navigate = useNavigate();
-  const { currentUser } = useAuth(); // ← Obtener usuario actual
+  const { currentUser } = useAuth();
+
+  // Calcular subtotal
+  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   // Cargar items del carrito y descuentos del usuario
   useEffect(() => {
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     setCartItems(cart);
 
-    // Cargar descuentos del usuario si está logueado
     if (currentUser) {
       const discounts = getSpecialDiscounts(currentUser);
       setUserDiscounts(discounts);
     }
 
-    // Si el carrito está vacío, redirigir a productos
     if (cart.length === 0 && currentStep === 1) {
       navigate('/productos');
     }
   }, [navigate, currentStep, currentUser]);
 
-  // Calcular totales CON DESCUENTOS
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Calcular envío cuando cambia región o subtotal - UNIFICADO
+  useEffect(() => {
+    const calculateShipping = async () => {
+      // Si tenemos región en shippingInfo, usar esa
+      const regionId = orderData.shippingInfo?.region;
+      
+      if (regionId) {
+        try {
+          const shippingResult = await calculateShippingCost(regionId, subtotal);
+          
+          setShippingCost(shippingResult.costo);
+          setIsShippingFree(shippingResult.esGratis);
+          setShippingConfig(shippingResult.config);
+        } catch (error) {
+          console.error('Error calculando envío:', error);
+          // Fallback básico
+          const fallbackCost = subtotal >= 50000 ? 0 : 3000;
+          setShippingCost(fallbackCost);
+          setIsShippingFree(subtotal >= 50000);
+        }
+      } else {
+        // Sin región seleccionada - costo por defecto
+        const defaultCost = subtotal >= 50000 ? 0 : 3000;
+        setShippingCost(defaultCost);
+        setIsShippingFree(subtotal >= 50000);
+      }
+    };
 
-  // Aplicar descuentos
+    calculateShipping();
+  }, [orderData.shippingInfo?.region, subtotal]);
+
+  // Calcular descuentos y total
   let discountAmount = 0;
   if (userDiscounts.seniorDiscount) {
-    discountAmount += subtotal * 0.5; // 50% descuento por edad
+    discountAmount += subtotal * 0.5;
   }
   if (userDiscounts.codeDiscount) {
-    discountAmount += subtotal * 0.1; // 10% descuento adicional
+    discountAmount += subtotal * 0.1;
   }
 
-  const shippingCost = subtotal > 50000 ? 0 : 3000;
-  const total = subtotal - discountAmount + shippingCost;
+  const total = Math.max(0, subtotal - discountAmount + shippingCost);
 
   const updateCartQuantity = (productId, newQuantity) => {
     const updatedItems = cartItems.map(item =>
@@ -135,8 +167,8 @@ const Checkout = () => {
                   subtotal={subtotal}
                   shippingCost={shippingCost}
                   total={total}
-                  discountAmount={discountAmount} // ← Pasar descuentos
-                  userDiscounts={userDiscounts} // ← Pasar descuentos
+                  discountAmount={discountAmount}
+                  userDiscounts={userDiscounts}
                 />
               )}
 
@@ -145,7 +177,10 @@ const Checkout = () => {
                   onNextStep={handleNextStep}
                   onPreviousStep={handlePreviousStep}
                   initialData={orderData.shippingInfo}
-                  currentUser={currentUser} // ← Pasar usuario actual
+                  currentUser={currentUser}
+                  subtotal={subtotal}
+                  shippingCost={shippingCost}
+                  shippingConfig={shippingConfig}
                 />
               )}
 
@@ -159,6 +194,7 @@ const Checkout = () => {
                   total={total}
                   discountAmount={discountAmount}
                   userDiscounts={userDiscounts}
+                  shippingCost={shippingCost}
                 />
               )}
             </Card.Body>
@@ -218,12 +254,19 @@ const Checkout = () => {
                   <span>Envío:</span>
                   <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
                 </div>
-                {shippingCost === 0 && subtotal < 50000 && (
-                  <div className="text-success small mb-2">
-                    <i className="bi bi-truck me-1"></i>
-                    Envío gratis sobre $50,000
+                
+                {/* INFORMACIÓN DE ENVÍO DINÁMICA */}
+                {shippingConfig && (
+                  <div className={`small mb-2 ${shippingCost === 0 ? 'text-success' : 'text-muted'}`}>
+                    <i className={`${shippingConfig.icon} me-1`}></i>
+                    {shippingCost === 0 ? (
+                      `¡Envío GRATIS para ${shippingConfig.name}!`
+                    ) : (
+                      `Envío ${shippingConfig.name} - Gratis desde $${formatPrice(shippingConfig.costoGratisDesde)}`
+                    )}
                   </div>
                 )}
+
                 <hr />
                 <div className="d-flex justify-content-between fw-bold fs-5">
                   <span>Total:</span>

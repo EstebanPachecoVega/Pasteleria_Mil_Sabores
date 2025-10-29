@@ -1,5 +1,6 @@
+// src/components/checkout/ShippingInfo.jsx
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { Row, Col, Form, Button, Alert, Spinner, Card, Badge } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import {
   getRegions,
@@ -8,9 +9,10 @@ import {
   getRegionName,
   getCommuneName
 } from '../../services/firestoreService';
+import { calculateShippingCost } from '../../services/shippingService';
 
-const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
-  const { currentUser, updateProfile } = useAuth();
+const ShippingInfo = ({ onNextStep, onPreviousStep, initialData, currentUser, subtotal }) => {
+  const { updateProfile } = useAuth();
   const [formData, setFormData] = useState({
     primerNombre: '',
     segundoNombre: '',
@@ -39,6 +41,15 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
   const [error, setError] = useState('');
   const [saveToProfile, setSaveToProfile] = useState(true);
   const [isModified, setIsModified] = useState(false);
+
+  // Estado para información de envío en tiempo real
+  const [shippingInfo, setShippingInfo] = useState({
+    costo: 0,
+    esGratis: false,
+    config: null,
+    mensaje: '',
+    faltante: 0
+  });
 
   // cargar datos maestros al montar el componente desde firebase
   useEffect(() => {
@@ -104,6 +115,45 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
       }
     }
   }, [currentUser, initialData]);
+
+  // Calcular envío cuando cambia región o subtotal
+  useEffect(() => {
+    const calcularEnvio = async () => {
+      if (formData.region) {
+        try {
+          const resultado = await calculateShippingCost(formData.region, subtotal);
+          
+          setShippingInfo({
+            costo: resultado.costo,
+            esGratis: resultado.esGratis,
+            config: resultado.config,
+            mensaje: resultado.mensaje,
+            faltante: resultado.faltante
+          });
+        } catch (error) {
+          console.error('Error calculando envío:', error);
+          // Fallback
+          setShippingInfo({
+            costo: 3000,
+            esGratis: false,
+            config: null,
+            mensaje: 'Envío: $3,000 - Gratis desde $50,000',
+            faltante: 50000 - subtotal
+          });
+        }
+      } else {
+        setShippingInfo({
+          costo: 0,
+          esGratis: false,
+          config: null,
+          mensaje: 'Selecciona tu región para calcular el envío',
+          faltante: 0
+        });
+      }
+    };
+
+    calcularEnvio();
+  }, [formData.region, subtotal]);
 
   // función para cargar comunas según región seleccionada
   const loadCommunesForRegion = async (regionId) => {
@@ -255,6 +305,50 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData }) => {
           <i className="bi bi-info-circle me-2"></i>
           Se han cargado tus datos de perfil. Los cambios se guardarán en tu perfil si activas la opción below.
         </Alert>
+      )}
+
+      {/* Card de información de envío en tiempo real */}
+      {formData.region && shippingInfo.config && (
+        <Card className={`mb-4 border-${shippingInfo.esGratis ? 'success' : shippingInfo.config.color}`}>
+          <Card.Body className={`p-3 bg-${shippingInfo.esGratis ? 'success' : 'light'} bg-opacity-10`}>
+            <div className="d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center">
+                <i className={`${shippingInfo.config.icon} text-${shippingInfo.esGratis ? 'success' : shippingInfo.config.color} fs-3 me-3`}></i>
+                <div>
+                  <div className="d-flex align-items-center mb-1">
+                    <h6 className={`mb-0 text-${shippingInfo.esGratis ? 'success' : shippingInfo.config.color}`}>
+                      {shippingInfo.esGratis ? (
+                        <><i className="bi bi-check-circle-fill me-2"></i>¡Envío GRATIS!</>
+                      ) : (
+                        <>Costo de Envío: ${shippingInfo.costo.toLocaleString()}</>
+                      )}
+                    </h6>
+                    <Badge 
+                      bg={shippingInfo.config.color} 
+                      className="ms-2"
+                    >
+                      {shippingInfo.config.name}
+                    </Badge>
+                  </div>
+                  <p className="mb-0 small text-muted">
+                    {shippingInfo.mensaje}
+                  </p>
+                  {!shippingInfo.esGratis && shippingInfo.faltante > 0 && (
+                    <p className="mb-0 small text-success mt-1">
+                      <i className="bi bi-lightbulb me-1"></i>
+                      Agrega <strong>${shippingInfo.faltante.toLocaleString()}</strong> más para envío gratis
+                    </p>
+                  )}
+                </div>
+              </div>
+              {shippingInfo.esGratis && (
+                <div className="text-success">
+                  <i className="bi bi-gift-fill fs-1"></i>
+                </div>
+              )}
+            </div>
+          </Card.Body>
+        </Card>
       )}
 
       <Form onSubmit={handleSubmit}>

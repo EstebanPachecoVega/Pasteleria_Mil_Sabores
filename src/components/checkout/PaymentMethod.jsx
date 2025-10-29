@@ -1,16 +1,34 @@
+// src/components/checkout/PaymentMethod.jsx
 import React, { useState } from 'react';
-import { Row, Col, Button, Card, Form } from 'react-bootstrap';
+import { Row, Col, Button, Card, Form, Alert } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../services/firestoreService';
 import { decreaseProductStock } from '../../services/productService';
+import { formatPrice } from '../../utils/formatters';
 
-const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData, cartItems, total, discountAmount, userDiscounts }) => {
+const PaymentMethod = ({ 
+  onNextStep, 
+  onPreviousStep, 
+  onOrderComplete, 
+  orderData, 
+  cartItems, 
+  total, 
+  discountAmount, 
+  userDiscounts, 
+  shippingCost // ✅ CORREGIDO: Prop recibida correctamente
+}) => {
   const { currentUser, updateUser } = useAuth();
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // ✅ CORREGIDO: Usar subtotal calculado desde Checkout en lugar de recalcular
+  // El subtotal ya viene calculado desde Checkout: subtotal = total + discountAmount - shippingCost
+  const subtotal = total + discountAmount - (shippingCost || 0);
 
   const handlePlaceOrder = async () => {
     setLoading(true);
+    setError('');
     console.log('🛒 Iniciando proceso de compra...');
 
     try {
@@ -27,6 +45,19 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         throw new Error('El carrito está vacío');
       }
 
+      // ✅ CORREGIDO: Validación consistente con ShippingInfo
+      const requiredFields = ['primerNombre', 'primerApellido', 'email', 'telefono', 'region', 'comuna', 'nombreCalle', 'numeroCalle'];
+      const missingFields = requiredFields.filter(field => !orderData.shippingInfo[field]);
+      
+      if (missingFields.length > 0) {
+        throw new Error('Falta información requerida de envío. Por favor completa todos los campos obligatorios.');
+      }
+
+      // Validar que shippingCost sea un número válido
+      if (isNaN(shippingCost) || shippingCost < 0) {
+        console.warn('⚠️ Costo de envío inválido, usando valor por defecto 0');
+      }
+
       // Actualizar stock de productos
       console.log('📦 Descontando stock de productos...');
       for (const item of cartItems) {
@@ -36,9 +67,7 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
           console.log(`✅ Stock actualizado: ${item.quantity} unidades de ${item.name}`);
         } catch (error) {
           console.error(`❌ Error actualizando stock de ${item.name}:`, error);
-          alert(`Error: ${error.message}. No se pudo completar la compra.`);
-          setLoading(false);
-          return;
+          throw new Error(`${error.message}. No se pudo completar la compra.`);
         }
       }
 
@@ -53,26 +82,8 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         image: item.image
       }));
 
-      const cleanShippingInfo = orderData.shippingInfo ? {
-        primerNombre: orderData.shippingInfo.primerNombre,
-        segundoNombre: orderData.shippingInfo.segundoNombre,
-        primerApellido: orderData.shippingInfo.primerApellido,
-        segundoApellido: orderData.shippingInfo.segundoApellido,
-        nombreCompleto: orderData.shippingInfo.nombreCompleto,
-        email: orderData.shippingInfo.email,
-        telefono: orderData.shippingInfo.telefono,
-        region: orderData.shippingInfo.region,
-        regionName: orderData.shippingInfo.regionName,
-        comuna: orderData.shippingInfo.comuna,
-        comunaName: orderData.shippingInfo.comunaName,
-        nombreCalle: orderData.shippingInfo.nombreCalle,
-        numeroCalle: orderData.shippingInfo.numeroCalle,
-        tipoVivienda: orderData.shippingInfo.tipoVivienda,
-        tipoViviendaName: orderData.shippingInfo.tipoViviendaName,
-        codigoPostal: orderData.shippingInfo.codigoPostal,
-        direccionCompleta: orderData.shippingInfo.direccionCompleta,
-        notes: orderData.shippingInfo.notes
-      } : {};
+      // Usar shippingInfo directamente
+      const shippingInfo = orderData.shippingInfo;
 
       // Generar un ID de orden compra personalizado
       const generateOrderId = (user) => {
@@ -93,28 +104,30 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
 
       console.log('ID personalizado generado:', customOrderId);
 
+      // ✅ CORREGIDO: Usar shippingCost de las props en lugar de calcularlo
+      const finalShippingCost = isNaN(shippingCost) ? 0 : Number(shippingCost);
+
+      // Crear datos de orden consistentes
       const completeOrderData = {
         orderId: customOrderId,
-        shippingInfo: cleanShippingInfo,
+        shippingInfo: shippingInfo,
         items: cleanCartItems,
-        total: total,
+        subtotal: subtotal,
         discountAmount: discountAmount || 0,
-        subtotal: total + (discountAmount || 0),
-        shippingCost: 0,
+        shippingCost: finalShippingCost, // ✅ CORREGIDO: Usar valor de prop
+        total: total,
         discounts: userDiscounts || {},
         userId: currentUser?.id || '',
-        userName: currentUser?.name || cleanShippingInfo.nombreCompleto || 'Cliente',
-        userEmail: currentUser?.email || cleanShippingInfo.email || '',
+        userName: currentUser?.name || shippingInfo.nombreCompleto || 'Cliente',
+        userEmail: currentUser?.email || shippingInfo.email || '',
         paymentMethod: selectedPayment,
         status: 'confirmado',
-        date: new Date().toISOString()
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
 
       console.log('Creando orden en Firebase...');
-
-      console.log('🔍 DEBUG - OrderData a guardar en Firebase:', JSON.stringify({
-        shippingInfo: completeOrderData.shippingInfo
-      }, null, 2));
+      console.log('🔍 DEBUG - OrderData completo:', JSON.stringify(completeOrderData, null, 2));
 
       const order = await createOrder(completeOrderData);
       console.log('Orden creada exitosamente:', order.id);
@@ -127,12 +140,13 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
             id: customOrderId,
             date: new Date().toISOString(),
             items: cleanCartItems,
-            total: total,
+            subtotal: subtotal,
             discountAmount: discountAmount || 0,
+            shippingCost: finalShippingCost, // ✅ CORREGIDO
+            total: total,
             status: 'confirmado',
-            shippingInfo: cleanShippingInfo,
-            paymentMethod: selectedPayment,
-            userId: currentUser.id
+            shippingInfo: shippingInfo,
+            paymentMethod: selectedPayment
           };
 
           userOrders.unshift(userOrder);
@@ -151,8 +165,8 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
 
     } catch (error) {
       console.error('❌ Error al crear la orden:', error);
+      setError(error.message);
       setLoading(false);
-      alert('Error al procesar la orden: ' + error.message);
     }
   };
 
@@ -180,9 +194,57 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
     }
   ];
 
+  // ✅ CORREGIDO: shippingCost seguro para display
+  const displayShippingCost = isNaN(shippingCost) ? 0 : shippingCost;
+
   return (
     <div className="payment-method">
       <h4 className="mb-4">Método de Pago</h4>
+
+      {error && (
+        <Alert variant="danger" className="mb-4">
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          {error}
+        </Alert>
+      )}
+
+      {/* Resumen de Información de Envío */}
+      {orderData.shippingInfo && (
+        <Card className="mb-4 border-primary">
+          <Card.Header className="bg-primary text-white">
+            <h6 className="mb-0">
+              <i className="bi bi-truck me-2"></i>
+              Información de Envío
+            </h6>
+          </Card.Header>
+          <Card.Body>
+            <Row>
+              <Col md={6}>
+                <p className="mb-1"><strong>Nombre:</strong> {orderData.shippingInfo.nombreCompleto}</p>
+                <p className="mb-1"><strong>Email:</strong> {orderData.shippingInfo.email}</p>
+                <p className="mb-1"><strong>Teléfono:</strong> {orderData.shippingInfo.telefono}</p>
+              </Col>
+              <Col md={6}>
+                <p className="mb-1"><strong>Dirección:</strong></p>
+                <p className="mb-0 small">
+                  {orderData.shippingInfo.nombreCalle} {orderData.shippingInfo.numeroCalle}
+                  {orderData.shippingInfo.tipoViviendaName && `, ${orderData.shippingInfo.tipoViviendaName}`}
+                  {orderData.shippingInfo.codigoPostal && `, Código Postal: ${orderData.shippingInfo.codigoPostal}`}
+                  <br />
+                  {orderData.shippingInfo.comunaName}, {orderData.shippingInfo.regionName}
+                </p>
+              </Col>
+            </Row>
+            {orderData.shippingInfo.notes && (
+              <Row className="mt-2">
+                <Col>
+                  <p className="mb-0"><strong>Notas:</strong> {orderData.shippingInfo.notes}</p>
+                </Col>
+              </Row>
+            )}
+          </Card.Body>
+        </Card>
+      )}
 
       <div className="payment-options mb-4">
         {paymentMethods.map(method => (
@@ -218,28 +280,31 @@ const PaymentMethod = ({ onNextStep, onPreviousStep, onOrderComplete, orderData,
         ))}
       </div>
 
-      {/* Resumen Final */}
+      {/* Resumen Final CORREGIDO */}
       <Card className="order-summary-card mb-4">
         <Card.Body>
           <h6 className="card-title border-bottom pb-2 mb-3">Resumen Final</h6>
           <div className="d-flex justify-content-between mb-2">
             <span>Subtotal:</span>
-            <span>${(total + (discountAmount || 0)).toLocaleString()}</span>
+            <span>${formatPrice(subtotal)}</span>
           </div>
+          
           {discountAmount > 0 && (
             <div className="d-flex justify-content-between mb-2 text-success">
               <span>Descuentos:</span>
-              <span>-${(discountAmount || 0).toLocaleString()}</span>
+              <span>-${formatPrice(discountAmount)}</span>
             </div>
           )}
+          
           <div className="d-flex justify-content-between mb-2">
             <span>Envío:</span>
-            <span>GRATIS</span>
+            <span>{displayShippingCost === 0 ? 'GRATIS' : `$${formatPrice(displayShippingCost)}`}</span>
           </div>
+          
           <hr />
           <div className="d-flex justify-content-between fw-bold fs-5">
             <span>Total a pagar:</span>
-            <span>${total.toLocaleString()}</span>
+            <span>${formatPrice(total)}</span>
           </div>
         </Card.Body>
       </Card>

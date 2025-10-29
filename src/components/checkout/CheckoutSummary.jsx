@@ -90,31 +90,6 @@ const CheckoutSummary = ({
         ))}
       </div>
 
-      {/* Resumen de totales */}
-      <Card className="bg-light">
-        <Card.Body>
-          <div className="d-flex justify-content-between mb-2">
-            <span>Subtotal:</span>
-            <span>${formatPrice(subtotal)}</span>
-          </div>
-          {discountAmount > 0 && (
-            <div className="d-flex justify-content-between mb-2 text-success">
-              <span>Descuentos:</span>
-              <span>-${formatPrice(discountAmount)}</span>
-            </div>
-          )}
-          <div className="d-flex justify-content-between mb-2">
-            <span>Envío:</span>
-            <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
-          </div>
-          <hr />
-          <div className="d-flex justify-content-between fw-bold fs-5">
-            <span>Total:</span>
-            <span>${formatPrice(total)}</span>
-          </div>
-        </Card.Body>
-      </Card>
-
       <div className="checkout-actions mt-4">
         <Row>
           <Col className="text-end">
