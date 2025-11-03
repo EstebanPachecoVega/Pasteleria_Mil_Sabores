@@ -43,18 +43,22 @@ export const getProductsByCategory = async (categoryKey) => {
   }
 };
 
-// Obtener un producto por ID desde Firebase
+// Obtener un producto por ID desde Firebase (VERSIÓN ACTUALIZADA)
 export const getProductById = async (productId) => {
   try {
+    console.log('📡 productService - getProductById - ID:', productId);
     const docRef = doc(db, "producto", productId);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() };
+      const product = { id: docSnap.id, ...docSnap.data() };
+      console.log('✅ productService - getProductById - producto encontrado:', product);
+      return product;
     }
+    console.log('❌ productService - getProductById - producto no encontrado');
     return null;
   } catch (error) {
-    console.error("Error obteniendo producto:", error);
+    console.error("❌ productService - Error obteniendo producto:", error);
     throw error;
   }
 };
@@ -113,12 +117,15 @@ export const getFeaturedProducts = async () => {
     );
     
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({
+    const featuredProducts = querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+    
+    console.log('✅ productService - Productos destacados encontrados:', featuredProducts.length);
+    return featuredProducts;
   } catch (error) {
-    console.error("Error obteniendo productos destacados:", error);
+    console.error("❌ Error obteniendo productos destacados:", error);
     throw error;
   }
 };

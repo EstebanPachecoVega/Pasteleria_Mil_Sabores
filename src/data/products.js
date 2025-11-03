@@ -1,7 +1,8 @@
 import { 
   getAllProducts as getAllProductsFromFirebase, 
   getProductsByCategory as getProductsByCategoryFromFirebase,
-  getFeaturedProducts as getFeaturedProductsFromFirebase
+  getFeaturedProducts as getFeaturedProductsFromFirebase,
+  getProductById as getProductByIdFromFirebase
 } from '../services/productService'; 
 
 // Datos de productos organizados por categorías (como respaldo)
@@ -255,13 +256,43 @@ export const getFeaturedProducts = async () => {
 };
 
 // Función existente para obtener producto por ID (MANTENER LOCAL)
-export function getProductById(productId) {
+// FUNCIÓN ACTUALIZADA - AHORA ES ASÍNCRONA Y CONSULTA FIREBASE
+export const getProductById = async (productId) => {
+  try {
+    console.log('🔥 getProductById - buscando en Firebase, ID:', productId);
+    const product = await getProductByIdFromFirebase(productId);
+    
+    if (product) {
+      console.log('✅ getProductById - producto encontrado en Firebase:', product);
+      console.log('📊 getProductById - stock:', product.stock);
+      console.log('📊 getProductById - active:', product.active);
+      return product;
+    } else {
+      console.log('🔄 getProductById - producto no encontrado en Firebase, buscando en datos locales');
+      // Respaldo: buscar en datos locales
+      for (const category in products) {
+        const localProduct = products[category].find(p => p.id === productId);
+        if (localProduct) {
+          console.log('🔄 getProductById - producto encontrado en datos locales');
+          return localProduct;
+        }
+      }
+      console.log('❌ getProductById - producto no encontrado en ninguna fuente');
+      return null;
+    }
+  } catch (error) {
+    console.error("❌ getProductById - Error cargando producto de Firebase:", error);
+    // Respaldo: buscar en datos locales
     for (const category in products) {
-        const product = products[category].find(p => p.id === productId);
-        if (product) return product;
+      const localProduct = products[category].find(p => p.id === productId);
+      if (localProduct) {
+        console.log('🔄 getProductById - usando datos locales por error en Firebase');
+        return localProduct;
+      }
     }
     return null;
-}
+  }
+};
 
 // Función para rutas (AHORA DESDE FIREBASE)
 export const getProductsByCategoryRoute = async (categoryKey) => {

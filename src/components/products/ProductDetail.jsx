@@ -1,7 +1,7 @@
 // src/components/products/ProductDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Container, Row, Col, Button, Breadcrumb, Badge, InputGroup, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Button, Breadcrumb, Badge, InputGroup, Alert, Spinner } from 'react-bootstrap';
 import { getProductById } from '../../data/products';
 import { formatPrice } from '../../utils/formatters';
 
@@ -13,21 +13,45 @@ const ProductDetails = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [showAlert, setShowAlert] = useState(false);
   const [cartQuantity, setCartQuantity] = useState(0);
+  const [error, setError] = useState(null);
 
   const maxQuantity = 100;
   const availableToAdd = maxQuantity - cartQuantity;
   const isMaxInCart = cartQuantity >= maxQuantity;
-  const isOutOfStock = product?.stock === 0;
+  
+  // ✅ VALIDACIÓN COMPLETA DE STOCK DESDE FIREBASE
+  const isOutOfStock = React.useMemo(() => {
+    if (!product) return false;
+    
+    console.log('📊 Validando stock - product.stock:', product.stock);
+    console.log('📊 Validando stock - product.active:', product.active);
+    
+    const outOfStock = product.stock === 0 || product.active === false;
+    console.log('📊 Resultado validación - isOutOfStock:', outOfStock);
+    
+    return outOfStock;
+  }, [product]);
 
   useEffect(() => {
-    const loadProduct = () => {
-      setLoading(true);
-      const foundProduct = getProductById(productId);
-
-      setTimeout(() => {
+    const loadProduct = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        console.log('🔄 ProductDetail - Cargando producto desde Firebase...');
+        
+        const foundProduct = await getProductById(productId);
+        
+        console.log('✅ ProductDetail - Producto cargado:', foundProduct);
+        console.log('📊 ProductDetail - Stock del producto:', foundProduct?.stock);
+        console.log('📊 ProductDetail - Estado active:', foundProduct?.active);
+        
         setProduct(foundProduct);
+      } catch (err) {
+        console.error('❌ ProductDetail - Error cargando producto:', err);
+        setError('Error al cargar el producto');
+      } finally {
         setLoading(false);
-      }, 500);
+      }
     };
 
     loadProduct();
@@ -49,7 +73,18 @@ const ProductDetails = () => {
   }, [productId]);
 
   const handleAddToCart = () => {
-    if (!product || isMaxInCart || isOutOfStock) return;
+    console.log('🛒 Intentando agregar al carrito...');
+    console.log('🛒 isOutOfStock:', isOutOfStock);
+    console.log('🛒 isMaxInCart:', isMaxInCart);
+    
+    if (!product || isMaxInCart || isOutOfStock) {
+      console.log('❌ No se puede agregar - Razón:', 
+        !product ? 'No hay producto' : 
+        isMaxInCart ? 'Límite alcanzado' : 
+        'Sin stock'
+      );
+      return;
+    }
 
     const cart = JSON.parse(localStorage.getItem('cart')) || [];
     const existingItem = cart.find(item => item.id === product.id);
@@ -57,27 +92,52 @@ const ProductDetails = () => {
     if (existingItem) {
       const newQuantity = existingItem.quantity + quantity;
       existingItem.quantity = Math.min(newQuantity, maxQuantity);
+      console.log('🛒 Actualizando cantidad existente:', newQuantity);
     } else {
       cart.push({ ...product, quantity: quantity });
+      console.log('🛒 Agregando nuevo producto al carrito');
     }
 
     localStorage.setItem('cart', JSON.stringify(cart));
     window.dispatchEvent(new Event('cartUpdated'));
 
+    console.log('✅ Producto agregado exitosamente');
     setShowAlert(true);
     setTimeout(() => setShowAlert(false), 3000);
   };
 
-  const productImages = product?.images || (product ? [product.image] : []);
+  // Control manual de imágenes
+  const productImages = React.useMemo(() => {
+    if (!product) {
+      console.log('📸 No hay producto, retornando array vacío');
+      return [];
+    }
+    
+    // Si tiene array de imágenes, usarlo
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      console.log('📸 Usando array de imágenes:', product.images.length, 'imágenes');
+      return product.images;
+    }
+    
+    // Si no, crear array con la imagen principal
+    if (product.image) {
+      console.log('📸 Usando imagen principal en array:', [product.image]);
+      return [product.image];
+    }
+    
+    // Si no hay imágenes, array vacío
+    console.log('📸 No hay imágenes, array vacío');
+    return [];
+  }, [product]);
 
   if (loading) {
     return (
       <Container fluid className="py-5">
         <Row>
           <Col className="text-center">
-            <div className="spinner-border text-primary" role="status">
+            <Spinner animation="border" role="status">
               <span className="visually-hidden">Cargando...</span>
-            </div>
+            </Spinner>
             <p className="mt-3">Cargando producto...</p>
           </Col>
         </Row>
@@ -85,13 +145,13 @@ const ProductDetails = () => {
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <Container fluid className="py-5">
         <Row>
           <Col className="text-center">
             <h2>Producto no encontrado</h2>
-            <p>El producto que buscas no existe o ha sido removido.</p>
+            <p>{error || 'El producto que buscas no existe o ha sido removido.'}</p>
             <Link to="/productos" className="btn btn-primary">
               Volver a Productos
             </Link>
@@ -138,26 +198,36 @@ const ProductDetails = () => {
                 style={{
                   filter: isOutOfStock ? 'grayscale(70%)' : 'none'
                 }}
+                onError={(e) => {
+                  console.error('❌ Error cargando imagen:', productImages[selectedImage]);
+                  e.target.src = '/images/placeholder.jpg';
+                }}
               />
             </div>
 
-            <div className="thumbnails-container">
-              <div className="thumbnails-row">
-                {productImages.slice(0, 4).map((image, index) => (
-                  <div
-                    key={index}
-                    className={`thumbnail-item ${selectedImage === index ? 'active' : ''}`}
-                    onClick={() => setSelectedImage(index)}
-                  >
-                    <img
-                      src={image}
-                      alt={`${product.name} ${index + 1}`}
-                      className="thumbnail-image"
-                    />
-                  </div>
-                ))}
+            {productImages.length > 1 && (
+              <div className="thumbnails-container">
+                <div className="thumbnails-row">
+                  {productImages.slice(0, 4).map((image, index) => (
+                    <div
+                      key={index}
+                      className={`thumbnail-item ${selectedImage === index ? 'active' : ''}`}
+                      onClick={() => setSelectedImage(index)}
+                    >
+                      <img
+                        src={image}
+                        alt={`${product.name} ${index + 1}`}
+                        className="thumbnail-image"
+                        onError={(e) => {
+                          console.error('❌ Error cargando miniatura:', image);
+                          e.target.src = '/images/placeholder.jpg';
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </Col>
 
@@ -196,7 +266,6 @@ const ProductDetails = () => {
 
             <div className="purchase-section">
               <Row className="align-items-center">
-                {/* Columna del selector de cantidad */}
                 <Col md={4} sm={12} className="mb-3">
                   <div className="quantity-section d-flex flex-column align-items-center align-items-md-start">
                     <label htmlFor="quantity-input" className="form-label fw-bold mb-2">
@@ -219,7 +288,10 @@ const ProductDetails = () => {
                         min="1"
                         max={isOutOfStock ? 0 : availableToAdd}
                         onChange={(e) => {
-                          if (isOutOfStock) return;
+                          if (isOutOfStock) {
+                            console.log('❌ Intento de cambiar cantidad en producto sin stock');
+                            return;
+                          }
                           const value = parseInt(e.target.value) || 1;
                           setQuantity(Math.max(1, Math.min(availableToAdd, value)));
                         }}
@@ -227,7 +299,13 @@ const ProductDetails = () => {
                       />
                       <Button
                         className="increase-quantity-detail"
-                        onClick={() => setQuantity(q => Math.min(availableToAdd, q + 1))}
+                        onClick={() => {
+                          if (isOutOfStock) {
+                            console.log('❌ Intento de aumentar cantidad en producto sin stock');
+                            return;
+                          }
+                          setQuantity(q => Math.min(availableToAdd, q + 1))
+                        }}
                         disabled={quantity >= availableToAdd || isOutOfStock}
                       >
                         <i className="bi bi-plus"></i>
@@ -239,7 +317,6 @@ const ProductDetails = () => {
                   </div>
                 </Col>
 
-                {/* Columna del botón agregar al carrito */}
                 <Col md={8} sm={12} className="mb-3">
                   <div className="add-to-cart-section d-flex flex-column align-items-center align-items-md-start">
                     <Button
@@ -248,7 +325,11 @@ const ProductDetails = () => {
                       type="button"
                       onClick={handleAddToCart}
                       disabled={isMaxInCart || quantity > availableToAdd || isOutOfStock}
-                      style={{ minWidth: '200px' }}
+                      style={{ 
+                        minWidth: '200px',
+                        backgroundColor: isOutOfStock ? '#6c757d' : '',
+                        borderColor: isOutOfStock ? '#6c757d' : ''
+                      }}
                     >
                       <i className="bi bi-cart-plus me-2"></i>
                       {isOutOfStock ? 'PRODUCTO AGOTADO' : 
@@ -258,13 +339,14 @@ const ProductDetails = () => {
                 </Col>
               </Row>
 
-              {/* Mensajes debajo de ambas columnas */}
               <Row>
                 <Col sm={12}>
                   <div className="cart-messages mt-2 text-center text-md-start">
                     {isOutOfStock && (
                       <div className="text-danger">
                         <small>Este producto no está disponible actualmente.</small>
+                        {product.stock === 0 && <div>Stock: 0 unidades</div>}
+                        {product.active === false && <div>Producto desactivado</div>}
                       </div>
                     )}
                     {!isOutOfStock && isMaxInCart && (
