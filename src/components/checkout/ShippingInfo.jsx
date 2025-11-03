@@ -300,30 +300,54 @@ const ShippingInfo = ({
         housingTypeName = housingType ? housingType.label : formData.tipoVivienda;
       }
 
+      // Construir nombre completo
+      const nameParts = [
+        formData.primerNombre,
+        formData.segundoNombre,
+        formData.primerApellido,
+        formData.segundoApellido
+      ].filter(Boolean);
+
+      const fullName = nameParts.join(' ');
+
+      // Construir dirección completa CORREGIDA
+      const direccionCompleta = `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${housingTypeName}` : ''}${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}${comunaName ? `, ${comunaName}` : ''}${regionName ? `, ${regionName}` : ''}`;
+
       // Actualizar perfil si es necesario
       if (saveToProfile && currentUser && isModified) {
         try {
-          const nameParts = [
-            formData.primerNombre,
-            formData.segundoNombre,
-            formData.primerApellido,
-            formData.segundoApellido
-          ].filter(Boolean);
-
-          const fullName = nameParts.join(' ');
-
-          const direccionCompleta = `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${housingTypeName}` : ''}${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`;
-
           const updateData = {
-            ...formData,
+            // Información personal
+            primerNombre: formData.primerNombre,
+            segundoNombre: formData.segundoNombre,
+            primerApellido: formData.primerApellido,
+            segundoApellido: formData.segundoApellido,
             name: fullName,
+
+            // Contacto
+            email: formData.email,
+            telefono: formData.telefono,
+
+            // Ubicación (INCLUIR TODOS LOS CAMPOS)
+            region: formData.region,
+            regionName: regionName, // ← IMPORTANTE: Incluir el nombre
+            comuna: formData.comuna,
+            comunaName: comunaName, // ← IMPORTANTE: Incluir el nombre
+            nombreCalle: formData.nombreCalle,
+            numeroCalle: formData.numeroCalle,
+            tipoVivienda: formData.tipoVivienda,
+            tipoViviendaName: housingTypeName,
+            codigoPostal: formData.codigoPostal,
             direccionCompleta: direccionCompleta
           };
 
+          console.log('💾 Guardando en perfil:', updateData);
           await updateProfile(updateData);
-          console.log('✅ Perfil actualizado con nueva información');
+          console.log('✅ Perfil actualizado correctamente');
+
         } catch (profileError) {
-          console.warn('⚠️ Error al actualizar perfil, pero continuamos:', profileError);
+          console.error('❌ Error al actualizar perfil:', profileError);
+          setError('Error al guardar en el perfil, pero puedes continuar con la compra.');
           // No bloqueamos el flujo si falla la actualización del perfil
         }
       }
@@ -335,7 +359,7 @@ const ShippingInfo = ({
         segundoNombre: formData.segundoNombre,
         primerApellido: formData.primerApellido,
         segundoApellido: formData.segundoApellido,
-        nombreCompleto: `${formData.primerNombre} ${formData.primerApellido}`.trim(),
+        nombreCompleto: fullName,
 
         // Contacto
         email: formData.email,
@@ -353,7 +377,7 @@ const ShippingInfo = ({
         codigoPostal: formData.codigoPostal,
 
         // Dirección completa formateada
-        direccionCompleta: `${formData.nombreCalle} ${formData.numeroCalle}${formData.tipoVivienda ? `, ${housingTypeName}` : ''}${formData.codigoPostal ? `, Código Postal: ${formData.codigoPostal}` : ''}`,
+        direccionCompleta: direccionCompleta,
 
         // Notas adicionales
         notes: formData.notes

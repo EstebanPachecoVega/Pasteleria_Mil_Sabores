@@ -100,19 +100,35 @@ const Profile = () => {
         numeroCalle: currentUser.numeroCalle || '',
         tipoVivienda: currentUser.tipoVivienda || '',
         codigoPostal: currentUser.codigoPostal || '',
-        direccionCompleta: currentUser.direccionCompleta || ''
+        direccionCompleta: currentUser.direccionCompleta || '',
+        regionName: currentUser.regionName || '',
+        comunaName: currentUser.comunaName || '',
+        tipoViviendaName: currentUser.tipoViviendaName || ''
       };
 
       setFormData(userData);
       setOriginalData(userData);
       setSpecialDiscounts(getSpecialDiscounts(currentUser));
 
-      // Si el usuario tiene región, cargar sus comunas
+      // Si el usuario tiene región, cargar sus comunas - con un pequeño delay para asegurar que regions ya se cargó
       if (userData.region) {
-        loadCommunesForRegion(userData.region);
+        const loadUserCommunes = async () => {
+          // Pequeño delay para asegurar que las regions ya están cargadas
+          await new Promise(resolve => setTimeout(resolve, 100));
+          loadCommunesForRegion(userData.region);
+        };
+        loadUserCommunes();
       }
     }
-  }, [currentUser]);
+    console.log('👤 Datos actuales del usuario:', {
+      region: currentUser.region,
+      comuna: currentUser.comuna,
+      regionName: currentUser.regionName,
+      comunaName: currentUser.comunaName,
+      direccionCompleta: currentUser.direccionCompleta
+    });
+
+  }, [currentUser, regions]);
 
   // función para cargar comunas según región seleccionada
   const loadCommunesForRegion = async (regionId) => {
@@ -126,13 +142,21 @@ const Profile = () => {
       console.log(`📡 Cargando comunas para región ${regionId}...`);
 
       const communesData = await getCommunesByRegion(regionId);
-      setCommunes(communesData);
 
-      console.log(`✅ Comunas cargadas: ${communesData.length} para región ${regionId}`);
+      // Asegurarse de que communesData es un array válido
+      if (communesData && Array.isArray(communesData)) {
+        setCommunes(communesData);
+        console.log(`✅ Comunas cargadas: ${communesData.length} para región ${regionId}`);
+      } else {
+        console.warn('⚠️ No se recibieron datos de comunas válidos');
+        setCommunes([]);
+      }
+
       setLoadingData(prev => ({ ...prev, communes: false }));
     } catch (err) {
       console.error('❌ Error cargando comunas:', err);
       setError('Error al cargar las comunas de esta región.');
+      setCommunes([]);
       setLoadingData(prev => ({ ...prev, communes: false }));
     }
   };
@@ -234,20 +258,39 @@ const Profile = () => {
   // funciones para mostrar nombres de región, comuna y tipo de vivienda
   const getRegionNameForDisplay = (regionId) => {
     if (!regionId) return '';
+
+    // Buscar en regions cargadas
     const region = regions.find(r => r.id === regionId);
-    return region ? region.name : '';
+    if (region) return region.name;
+
+    // Si no encuentra, usar el nombre guardado en el usuario (si existe)
+    if (currentUser.regionName) return currentUser.regionName;
+
+    return '';
   };
 
   const getComunaNameForDisplay = (comunaId) => {
     if (!comunaId) return '';
+
+    // Buscar en communes cargadas
     const comuna = communes.find(c => c.id === comunaId);
-    return comuna ? comuna.name : '';
+    if (comuna) return comuna.name;
+
+    // Si no encuentra, usar el nombre guardado en el usuario (si existe)
+    if (currentUser.comunaName) return currentUser.comunaName;
+
+    return '';
   };
 
   const getTipoViviendaLabelForDisplay = (value) => {
     if (!value) return '';
     const option = tipoViviendaOptions.find(opt => opt.value === value);
-    return option ? option.label : '';
+    if (option) return option.label;
+
+    // Si no encuentra, usar el nombre guardado en el usuario
+    if (currentUser.tipoViviendaName) return currentUser.tipoViviendaName;
+
+    return '';
   };
 
   if (!currentUser) {
@@ -257,6 +300,15 @@ const Profile = () => {
       </Container>
     );
   }
+
+  console.log('🔍 Debug datos:', {
+    userRegion: formData.region,
+    userComuna: formData.comuna,
+    regionsCount: regions.length,
+    communesCount: communes.length,
+    foundRegion: getRegionNameForDisplay(formData.region),
+    foundComuna: getComunaNameForDisplay(formData.comuna)
+  });
 
   return (
     <Container className="my-4">

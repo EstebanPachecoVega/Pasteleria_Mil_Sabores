@@ -1,4 +1,3 @@
-// src/context/AuthContext.js
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import {
   addUser,
@@ -156,6 +155,7 @@ export function AuthProvider({ children }) {
     }
 
     try {
+      console.log('🔄 AuthContext - Actualizando perfil con:', profileData);
       // Actualizar en Firebase
       const updateData = {
         ...profileData,
@@ -172,6 +172,7 @@ export function AuthProvider({ children }) {
 
       setCurrentUser(newUserData);
       localStorage.setItem("currentUser", JSON.stringify(newUserData));
+      console.log('✅ AuthContext - Perfil actualizado exitosamente');
       return newUserData;
 
     } catch (error) {

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Spinner, Alert } from 'react-bootstrap';
 import ProductCard from '../products/ProductCard';
-import { getAllProducts } from '../../data/products'; // ✅ Usar la función que consulta Firebase
+import { getAllProducts } from '../../data/products';
 
 const Productos = () => {
     const [products, setProducts] = useState([]);
@@ -15,7 +15,7 @@ const Productos = () => {
                 setLoading(true);
                 console.log('🔄 Productos - Cargando productos desde Firebase...');
                 
-                // ✅ Usar la misma función que consulta Firebase y filtra productos activos
+                // Usar la misma función que consulta Firebase y filtra productos activos
                 const allProducts = await getAllProducts();
                 
                 console.log('✅ Productos - Productos cargados:', allProducts.length);

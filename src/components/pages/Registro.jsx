@@ -296,7 +296,7 @@ const Registro = () => {
             // Obtener el RUN formateado para el backend
             const runFormateado = getRunFormateado(formData.run);
 
-            // ✅ DATOS ACTUALIZADOS PARA FIREBASE
+            // DATOS ACTUALIZADOS PARA FIREBASE
             const firebaseUserData = {
                 // Datos principales
                 run: runFormateado,
