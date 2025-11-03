@@ -460,7 +460,16 @@ const Navbar = () => {
                         <Link
                           className="dropdown-item"
                           to="/admin"
-                          onClick={() => isMobile && setIsMenuOpen(false)}
+                          onClick={() => {
+                            console.log('Navegando a /admin, usuario es admin:', currentUser.rol);
+                            if (isMobile) {
+                              setIsMenuOpen(false);
+                            }
+                            const dropdown = document.querySelector('.dropdown .show');
+                            if (dropdown) {
+                              dropdown.classList.remove('show');
+                            }
+                          }}
                         >
                           <i className="bi bi-speedometer2 me-2"></i>Panel Administrador
                         </Link>

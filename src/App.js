@@ -35,70 +35,86 @@ function App() {
     <AuthProvider>
       <Router>
         <div className="App">
-          <Header />
-          <Navbar />
-          <main>
-            <Routes>
-              {/* Rutas Públicas */}
-              <Route path="/" element={<Home />} />
-              <Route path="/productos" element={<Productos />} />
-              <Route path="/nosotros" element={<Nosotros />} />
-              <Route path="/contacto" element={<Contacto />} />
-              <Route path="/buscar" element={<SearchResults />} />
-              <Route path="/producto/:productId" element={<ProductDetails />} />
-              <Route path="/categoria/:category" element={<CategoryProducts />} />
+          <Routes>
+            {/* Ruta de Admin SIN layout general */}
+            <Route path="/admin" element={
+              <AdminRoute>
+                <ProfileAdmin />
+              </AdminRoute>
+            } />
 
-              {/* Rutas Protegidas */}
-              <Route path="/checkout" element={
-                <ProtectedRoute>
-                  <Checkout />
-                </ProtectedRoute>
-              } />
-              <Route path="/perfil" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/mis-pedidos" element={
-                <ProtectedRoute>
-                  <OrderHistory />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/mis-pedidos/:orderId" element={
-                <ProtectedRoute>
-                  <OrderDetail />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/admin" element={
-                <AdminRoute>
-                  <ProfileAdmin />
-                </AdminRoute>
-              } />
-
-              {/* Rutas Públicas */}
-              <Route path="/login" element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              } />
-              <Route path="/registro" element={
-                <PublicRoute>
-                  <Registro />
-                </PublicRoute>
-              } />
-              <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
-              <Route path="/privacidad-y-seguridad" element={<PrivacidadSeguridad />} />
-              <Route path="/devolucion-y-reembolso" element={<DevolucionReembolso />} />
-              <Route path="/calidad-e-inocuidad" element={<CalidadInocuidad />} />
-              <Route path="/entrega-y-envios" element={<EntregaEnvios />} />
-            </Routes>
-          </main>
-          <Footer />
+            {/* Todas las demás rutas CON layout general */}
+            <Route path="*" element={
+              <DefaultLayout />
+            } />
+          </Routes>
         </div>
       </Router>
     </AuthProvider>
+  );
+}
+
+// Componente para el layout por defecto (con Header, Navbar, Footer)
+function DefaultLayout() {
+  return (
+    <>
+      <Header />
+      <Navbar />
+      <main>
+        <Routes>
+          {/* Rutas Públicas */}
+          <Route path="/" element={<Home />} />
+          <Route path="/productos" element={<Productos />} />
+          <Route path="/nosotros" element={<Nosotros />} />
+          <Route path="/contacto" element={<Contacto />} />
+          <Route path="/buscar" element={<SearchResults />} />
+          <Route path="/producto/:productId" element={<ProductDetails />} />
+          <Route path="/categoria/:category" element={<CategoryProducts />} />
+
+          {/* Rutas Protegidas */}
+          <Route path="/checkout" element={
+            <ProtectedRoute>
+              <Checkout />
+            </ProtectedRoute>
+          } />
+          <Route path="/perfil" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+          <Route path="/mis-pedidos" element={
+            <ProtectedRoute>
+              <OrderHistory />
+            </ProtectedRoute>
+          } />
+          <Route path="/mis-pedidos/:orderId" element={
+            <ProtectedRoute>
+              <OrderDetail />
+            </ProtectedRoute>
+          } />
+
+          {/* Rutas Públicas con restricción */}
+          <Route path="/login" element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          } />
+          <Route path="/registro" element={
+            <PublicRoute>
+              <Registro />
+            </PublicRoute>
+          } />
+
+          {/* Otras rutas públicas */}
+          <Route path="/terminos-y-condiciones" element={<TerminosCondiciones />} />
+          <Route path="/privacidad-y-seguridad" element={<PrivacidadSeguridad />} />
+          <Route path="/devolucion-y-reembolso" element={<DevolucionReembolso />} />
+          <Route path="/calidad-e-inocuidad" element={<CalidadInocuidad />} />
+          <Route path="/entrega-y-envios" element={<EntregaEnvios />} />
+        </Routes>
+      </main>
+      <Footer />
+    </>
   );
 }
 
