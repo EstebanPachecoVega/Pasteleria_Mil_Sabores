@@ -102,3 +102,23 @@ export const decreaseProductStock = async (productId, quantityToDecrease) => {
     throw error;
   }
 };
+
+// Obtener productos destacados desde Firebase
+export const getFeaturedProducts = async () => {
+  try {
+    const q = query(
+      collection(db, "producto"), 
+      where("featured", "==", true),
+      where("active", "==", true) // Solo productos activos
+    );
+    
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error("Error obteniendo productos destacados:", error);
+    throw error;
+  }
+};

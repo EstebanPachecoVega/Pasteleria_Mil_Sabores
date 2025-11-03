@@ -1,13 +1,40 @@
 // src/components/pages/CategoryProducts.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Container, Row, Alert, Breadcrumb } from 'react-bootstrap';
+import { Container, Row, Alert, Breadcrumb, Spinner } from 'react-bootstrap';
 import ProductCard from '../products/ProductCard';
 import { getProductsByCategoryRoute } from '../../data/products';
 
 const CategoryProducts = () => {
   const { category } = useParams();
-  const categoryProducts = getProductsByCategoryRoute(category);
+  const [categoryProducts, setCategoryProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  console.log('🔍 CategoryProducts - category from URL:', category);
+
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setLoading(true);
+        console.log('🔄 CategoryProducts - Cargando productos...');
+        
+        const products = await getProductsByCategoryRoute(category);
+        
+        console.log('📦 CategoryProducts - productos obtenidos:', products);
+        console.log('📦 CategoryProducts - cantidad de productos:', products.length);
+        
+        setCategoryProducts(products);
+      } catch (err) {
+        console.error('❌ CategoryProducts - Error cargando productos:', err);
+        setError('Error al cargar los productos');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProducts();
+  }, [category]);
 
   // Mapeo de URLs a nombres legibles
   const categoryNames = {
@@ -22,6 +49,31 @@ const CategoryProducts = () => {
   };
 
   const categoryName = categoryNames[category] || 'Categoría';
+
+  // Mostrar spinner mientras carga
+  if (loading) {
+    return (
+      <Container className="py-4 text-center">
+        <Spinner animation="border" role="status" className="me-2" />
+        <span>Cargando productos...</span>
+      </Container>
+    );
+  }
+
+  // Mostrar error si hay
+  if (error) {
+    return (
+      <Container className="py-4">
+        <Alert variant="danger" className="text-center">
+          <h5>Error al cargar los productos</h5>
+          <p>{error}</p>
+          <Link to="/productos" className="btn btn-primary">
+            Volver a Productos
+          </Link>
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container className="py-4">
