@@ -1,0 +1,40 @@
+/* Estilos específicos para el blog */
+.blog-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border: none;
+}
+
+.blog-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+.blog-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.bg-novedad {
+  background-color: #0d6efd !important;
+}
+
+.bg-evento {
+  background-color: #198754 !important;
+}
+
+.bg-promocion {
+  background-color: #ffc107 !important;
+  color: #000 !important;
+}
+
+/* Responsive para la suscripción */
+@media (max-width: 768px) {
+  .blog-subscription .d-flex {
+    flex-direction: column;
+  }
+  
+  .blog-subscription .form-control {
+    max-width: 100% !important;
+    margin-bottom: 10px;
+  }
+}

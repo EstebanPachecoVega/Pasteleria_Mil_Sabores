@@ -29,6 +29,7 @@ import AdminRoute from './components/auth/AdminRoute';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import './styles/main.css';
+import Blogs from './components/pages/Blogs';
 
 function App() {
   return (
@@ -66,6 +67,7 @@ function DefaultLayout() {
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
           <Route path="/nosotros" element={<Nosotros />} />
+          <Route path="/blogs" element={<Blogs />} /> 
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/buscar" element={<SearchResults />} />
           <Route path="/producto/:productId" element={<ProductDetails />} />
