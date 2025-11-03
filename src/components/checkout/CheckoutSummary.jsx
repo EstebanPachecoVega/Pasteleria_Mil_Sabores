@@ -1,23 +1,25 @@
-// src/components/checkout/CheckoutSummary.jsx
 import React from 'react';
-import { Row, Col, Button, Card } from 'react-bootstrap';
+import { Row, Col, Button, Card, Spinner } from 'react-bootstrap';
 import { formatPrice } from '../../utils/formatters';
 
-const CheckoutSummary = ({ 
-  cartItems, 
-  onUpdateQuantity, 
-  onRemoveItem, 
-  onNextStep, 
-  subtotal, 
-  shippingCost, 
+const CheckoutSummary = ({
+  cartItems,
+  onUpdateQuantity,
+  onRemoveItem,
+  onNextStep,
+  subtotal,
+  shippingCost,
   total,
   discountAmount,
-  userDiscounts 
+  userDiscounts,
+  shippingConfig,
+  hasRegionSelected,
+  isShippingLoading
 }) => {
   return (
     <div className="checkout-summary">
       <h4 className="mb-4">Resumen de tu Pedido</h4>
-      
+
       {/* Mostrar descuentos aplicados */}
       {discountAmount > 0 && (
         <Card className="mb-3 border-success">
@@ -34,7 +36,7 @@ const CheckoutSummary = ({
           </Card.Body>
         </Card>
       )}
-      
+
       <div className="cart-items mb-4">
         {cartItems.map(item => (
           <Card key={item.id} className="mb-3">
@@ -90,10 +92,61 @@ const CheckoutSummary = ({
         ))}
       </div>
 
+      {/* Resumen de totales */}
+      <Card className="bg-light">
+        <Card.Body>
+          <div className="d-flex justify-content-between mb-2">
+            <span>Subtotal:</span>
+            <span>${formatPrice(subtotal)}</span>
+          </div>
+          {discountAmount > 0 && (
+            <div className="d-flex justify-content-between mb-2 text-success">
+              <span>Descuentos:</span>
+              <span>-${formatPrice(discountAmount)}</span>
+            </div>
+          )}
+
+          {/* Mostrar loading, envío o nada según estado */}
+          {isShippingLoading ? (
+            <div className="d-flex justify-content-between mb-2">
+              <span>Envío:</span>
+              <span>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Calculando...
+              </span>
+            </div>
+          ) : hasRegionSelected ? (
+            <>
+              <div className="d-flex justify-content-between mb-2">
+                <span>Envío:</span>
+                <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
+              </div>
+
+              {shippingConfig && (
+                <div className={`small mb-2 ${shippingCost === 0 ? 'text-success' : 'text-muted'}`}>
+                  <i className={`${shippingConfig.icon} me-1`}></i>
+                  {shippingCost === 0 ? (
+                    `¡Envío GRATIS para ${shippingConfig.name}!`
+                  ) : (
+                    `Envío ${shippingConfig.name} - Gratis desde $${formatPrice(shippingConfig.costoGratisDesde)}`
+                  )}
+                </div>
+              )}
+            </>
+          ) : null}
+
+          <hr />
+          <div className="d-flex justify-content-between fw-bold fs-5">
+            <span>Total:</span>
+            <span>${formatPrice(total)}</span>
+          </div>
+        </Card.Body>
+      </Card>
+
       <div className="checkout-actions mt-4">
         <Row>
           <Col className="text-end">
-            <Button 
+            <Button
               className="checkout-btn-primary"
               onClick={onNextStep}
               disabled={cartItems.length === 0}

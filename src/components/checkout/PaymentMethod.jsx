@@ -1,30 +1,30 @@
-// src/components/checkout/PaymentMethod.jsx
 import React, { useState } from 'react';
-import { Row, Col, Button, Card, Form, Alert } from 'react-bootstrap';
+import { Row, Col, Button, Card, Form, Alert, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../services/firestoreService';
 import { decreaseProductStock } from '../../services/productService';
 import { formatPrice } from '../../utils/formatters';
 
-const PaymentMethod = ({ 
-  onNextStep, 
-  onPreviousStep, 
-  onOrderComplete, 
-  orderData, 
-  cartItems, 
-  total, 
-  discountAmount, 
-  userDiscounts, 
-  shippingCost // ✅ CORREGIDO: Prop recibida correctamente
+const PaymentMethod = ({
+  onNextStep,
+  onPreviousStep,
+  onOrderComplete,
+  orderData,
+  cartItems,
+  total,
+  discountAmount,
+  userDiscounts,
+  shippingCost,
+  hasRegionSelected,
+  isShippingLoading
 }) => {
   const { currentUser, updateUser } = useAuth();
   const [selectedPayment, setSelectedPayment] = useState('cash');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ✅ CORREGIDO: Usar subtotal calculado desde Checkout en lugar de recalcular
-  // El subtotal ya viene calculado desde Checkout: subtotal = total + discountAmount - shippingCost
-  const subtotal = total + discountAmount - (shippingCost || 0);
+  // Usar subtotal calculado desde Checkout
+  const subtotal = total + discountAmount - (hasRegionSelected ? shippingCost : 0);
 
   const handlePlaceOrder = async () => {
     setLoading(true);
@@ -36,7 +36,7 @@ const PaymentMethod = ({
       if (!selectedPayment) {
         throw new Error('Por favor, selecciona un método de pago');
       }
-      
+
       if (!orderData.shippingInfo) {
         throw new Error('Información de envío incompleta');
       }
@@ -45,10 +45,10 @@ const PaymentMethod = ({
         throw new Error('El carrito está vacío');
       }
 
-      // ✅ CORREGIDO: Validación consistente con ShippingInfo
+      // Validación consistente con ShippingInfo
       const requiredFields = ['primerNombre', 'primerApellido', 'email', 'telefono', 'region', 'comuna', 'nombreCalle', 'numeroCalle'];
       const missingFields = requiredFields.filter(field => !orderData.shippingInfo[field]);
-      
+
       if (missingFields.length > 0) {
         throw new Error('Falta información requerida de envío. Por favor completa todos los campos obligatorios.');
       }
@@ -104,7 +104,7 @@ const PaymentMethod = ({
 
       console.log('ID personalizado generado:', customOrderId);
 
-      // ✅ CORREGIDO: Usar shippingCost de las props en lugar de calcularlo
+      // Usar shippingCost de las props
       const finalShippingCost = isNaN(shippingCost) ? 0 : Number(shippingCost);
 
       // Crear datos de orden consistentes
@@ -114,7 +114,7 @@ const PaymentMethod = ({
         items: cleanCartItems,
         subtotal: subtotal,
         discountAmount: discountAmount || 0,
-        shippingCost: finalShippingCost, // ✅ CORREGIDO: Usar valor de prop
+        shippingCost: finalShippingCost,
         total: total,
         discounts: userDiscounts || {},
         userId: currentUser?.id || '',
@@ -132,7 +132,7 @@ const PaymentMethod = ({
       const order = await createOrder(completeOrderData);
       console.log('Orden creada exitosamente:', order.id);
 
-      // Actualizar usuario localmente (opcional)
+      // Actualizar usuario localmente
       if (currentUser && updateUser) {
         try {
           const userOrders = currentUser.orders || [];
@@ -142,7 +142,7 @@ const PaymentMethod = ({
             items: cleanCartItems,
             subtotal: subtotal,
             discountAmount: discountAmount || 0,
-            shippingCost: finalShippingCost, // ✅ CORREGIDO
+            shippingCost: finalShippingCost,
             total: total,
             status: 'confirmado',
             shippingInfo: shippingInfo,
@@ -194,7 +194,7 @@ const PaymentMethod = ({
     }
   ];
 
-  // ✅ CORREGIDO: shippingCost seguro para display
+  // shippingCost seguro para display
   const displayShippingCost = isNaN(shippingCost) ? 0 : shippingCost;
 
   return (
@@ -280,7 +280,7 @@ const PaymentMethod = ({
         ))}
       </div>
 
-      {/* Resumen Final CORREGIDO */}
+      {/* Resumen Final */}
       <Card className="order-summary-card mb-4">
         <Card.Body>
           <h6 className="card-title border-bottom pb-2 mb-3">Resumen Final</h6>
@@ -288,19 +288,30 @@ const PaymentMethod = ({
             <span>Subtotal:</span>
             <span>${formatPrice(subtotal)}</span>
           </div>
-          
+
           {discountAmount > 0 && (
             <div className="d-flex justify-content-between mb-2 text-success">
               <span>Descuentos:</span>
               <span>-${formatPrice(discountAmount)}</span>
             </div>
           )}
-          
-          <div className="d-flex justify-content-between mb-2">
-            <span>Envío:</span>
-            <span>{displayShippingCost === 0 ? 'GRATIS' : `$${formatPrice(displayShippingCost)}`}</span>
-          </div>
-          
+
+          {/* Mostrar loading, envío o nada según estado */}
+          {isShippingLoading ? (
+            <div className="d-flex justify-content-between mb-2">
+              <span>Envío:</span>
+              <span>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Calculando...
+              </span>
+            </div>
+          ) : hasRegionSelected ? (
+            <div className="d-flex justify-content-between mb-2">
+              <span>Envío:</span>
+              <span>{displayShippingCost === 0 ? 'GRATIS' : `$${formatPrice(displayShippingCost)}`}</span>
+            </div>
+          ) : null}
+
           <hr />
           <div className="d-flex justify-content-between fw-bold fs-5">
             <span>Total a pagar:</span>
@@ -318,7 +329,7 @@ const PaymentMethod = ({
               Pago Contra Entrega
             </h6>
             <p className="mb-0 small">
-              Podrás pagar con efectivo o tarjeta cuando recibas tu pedido. Nuestro repartidor llevará datáfono.
+              Podrás pagar con efectivo o tarjeta cuando recibas tu pedido.
             </p>
           </Card.Body>
         </Card>

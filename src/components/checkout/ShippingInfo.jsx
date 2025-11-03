@@ -1,4 +1,3 @@
-// src/components/checkout/ShippingInfo.jsx
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Form, Button, Alert, Spinner, Card, Badge } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
@@ -11,7 +10,15 @@ import {
 } from '../../services/firestoreService';
 import { calculateShippingCost } from '../../services/shippingService';
 
-const ShippingInfo = ({ onNextStep, onPreviousStep, initialData, currentUser, subtotal }) => {
+const ShippingInfo = ({
+  onNextStep,
+  onPreviousStep,
+  initialData,
+  currentUser,
+  subtotal,
+  onShippingCostChange,
+  setIsShippingLoading
+}) => {
   const { updateProfile } = useAuth();
   const [formData, setFormData] = useState({
     primerNombre: '',
@@ -88,8 +95,7 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData, currentUser, su
     loadMasterData();
   }, []);
 
-  // cargar datos del usuario al montar el componente o cuando cambia currentUser 
-  // y cargar sus comunas si tiene región
+  // cargar datos del usuario al montar el componente o cuando cambia currentUser y cargar sus comunas si tiene región
   useEffect(() => {
     if (currentUser) {
       const userData = {
@@ -112,6 +118,9 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData, currentUser, su
       // Si el usuario tiene región, cargar sus comunas
       if (userData.region) {
         loadCommunesForRegion(userData.region);
+
+        // Calcular el envío incialmente si hay región
+        calcularEnvioInicial(userData.region);
       }
     }
   }, [currentUser, initialData]);
@@ -121,39 +130,111 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData, currentUser, su
     const calcularEnvio = async () => {
       if (formData.region) {
         try {
+          // INICIAR LOADING
+          if (setIsShippingLoading) {
+            setIsShippingLoading(true);
+          }
+
           const resultado = await calculateShippingCost(formData.region, subtotal);
-          
-          setShippingInfo({
+
+          const newShippingInfo = {
             costo: resultado.costo,
             esGratis: resultado.esGratis,
             config: resultado.config,
             mensaje: resultado.mensaje,
             faltante: resultado.faltante
-          });
+          };
+
+          setShippingInfo(newShippingInfo);
+
+          // Comunicar al padre (checkout) el costo calculado de envío
+          if (onShippingCostChange) {
+            onShippingCostChange({
+              costo: resultado.costo,
+              config: resultado.config
+            });
+          }
+
         } catch (error) {
           console.error('Error calculando envío:', error);
           // Fallback
-          setShippingInfo({
+          const fallbackInfo = {
             costo: 3000,
             esGratis: false,
             config: null,
             mensaje: 'Envío: $3,000 - Gratis desde $50,000',
             faltante: 50000 - subtotal
-          });
+          };
+
+          setShippingInfo(fallbackInfo);
+
+          // Comunicar fallback al padre
+          if (onShippingCostChange) {
+            onShippingCostChange({
+              costo: 3000,
+              config: null
+            });
+          }
+        } finally {
+          // Terminar loading de envío
+          if (setIsShippingLoading) {
+            setIsShippingLoading(false);
+          }
         }
       } else {
-        setShippingInfo({
+        const noRegionInfo = {
           costo: 0,
           esGratis: false,
           config: null,
           mensaje: 'Selecciona tu región para calcular el envío',
           faltante: 0
-        });
+        };
+
+        setShippingInfo(noRegionInfo);
+
+        // Comunicar costo 0 si no hay región seleccionada
+        if (onShippingCostChange) {
+          onShippingCostChange({
+            costo: 0,
+            config: null
+          });
+        }
+
+        // Terminar loading de envío si no hay región
+        if (setIsShippingLoading) {
+          setIsShippingLoading(false);
+        }
       }
     };
 
     calcularEnvio();
   }, [formData.region, subtotal]);
+
+  // Calcular envío inicial cuando se carga región del usuario
+  const calcularEnvioInicial = async (regionId) => {
+    if (!regionId) return;
+
+    try {
+      const resultado = await calculateShippingCost(regionId, subtotal);
+
+      // Comunicar al padre el costo inicial
+      if (onShippingCostChange) {
+        onShippingCostChange({
+          costo: resultado.costo,
+          config: resultado.config
+        });
+      }
+    } catch (error) {
+      console.error('Error calculando envío inicial:', error);
+      // Fallback
+      if (onShippingCostChange) {
+        onShippingCostChange({
+          costo: 3000,
+          config: null
+        });
+      }
+    }
+  };
 
   // función para cargar comunas según región seleccionada
   const loadCommunesForRegion = async (regionId) => {
@@ -323,8 +404,8 @@ const ShippingInfo = ({ onNextStep, onPreviousStep, initialData, currentUser, su
                         <>Costo de Envío: ${shippingInfo.costo.toLocaleString()}</>
                       )}
                     </h6>
-                    <Badge 
-                      bg={shippingInfo.config.color} 
+                    <Badge
+                      bg={shippingInfo.config.color}
                       className="ms-2"
                     >
                       {shippingInfo.config.name}
