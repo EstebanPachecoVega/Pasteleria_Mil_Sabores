@@ -42,7 +42,7 @@ const Login = () => {
             
             // Redirección única - el rol lo maneja AuthContext
             setTimeout(() => {
-                navigate('/perfil');
+                navigate('/');
             }, 1000);
 
         } catch (err) {
