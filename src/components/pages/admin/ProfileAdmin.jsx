@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Nav, Modal, Form, Table, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Nav, Modal, Form, Table, Badge, InputGroup } from 'react-bootstrap';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CrudService } from '../../../services/crudService';
@@ -695,86 +695,405 @@ const VentasSection = ({ ordenes, loading }) => {
 };
 
 // Componentes de Modales
-const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categorias }) => (
-  <Modal show={show} onHide={onHide} size="lg">
-    <Modal.Header closeButton>
-      <Modal.Title>Nuevo Producto</Modal.Title>
-    </Modal.Header>
-    <Form onSubmit={onSubmit}>
-      <Modal.Body>
-        <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Nombre del Producto</Form.Label>
-              <Form.Control
-                type="text"
-                value={formData.nombre}
-                onChange={(e) => onFormChange({...formData, nombre: e.target.value})}
-                required
-              />
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Precio</Form.Label>
-              <Form.Control
-                type="number"
-                value={formData.precio}
-                onChange={(e) => onFormChange({...formData, precio: e.target.value})}
-                required
-              />
-            </Form.Group>
-          </Col>
-        </Row>
-        <Row>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Stock</Form.Label>
-              <Form.Control
-                type="number"
-                value={formData.stock}
-                onChange={(e) => onFormChange({...formData, stock: e.target.value})}
-                required
-              />
-            </Form.Group>
-          </Col>
-          <Col md={6}>
-            <Form.Group className="mb-3">
-              <Form.Label>Categoría</Form.Label>
-              <Form.Select
-                value={formData.categoria}
-                onChange={(e) => onFormChange({...formData, categoria: e.target.value})}
-                required
-              >
-                <option value="">Seleccionar categoría</option>
-                {categorias.map(cat => (
-                  <option key={cat.id} value={cat.nombre}>{cat.nombre}</option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-          </Col>
-        </Row>
-        <Form.Group className="mb-3">
-          <Form.Label>Descripción</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            value={formData.descripcion}
-            onChange={(e) => onFormChange({...formData, descripcion: e.target.value})}
-          />
-        </Form.Group>
-      </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
-          Cancelar
-        </Button>
-        <Button variant="primary" type="submit">
-          Crear Producto
-        </Button>
-      </Modal.Footer>
-    </Form>
-  </Modal>
-);
+// Modal para productos 
+const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categorias }) => {
+  const [errores, setErrores] = useState({});
+  const [enviando, setEnviando] = useState(false);
+
+  // Función helper igual que en la tabla para consistencia
+  const obtenerCampoCategoria = (categoria, campo) => {
+    const mapaCampos = {
+      nombre: ['nombre', 'name', 'title', 'categoriaName'],
+      descripcion: ['descripcion', 'description', 'desc', 'detalles']
+    };
+    
+    const camposPosibles = mapaCampos[campo] || [campo];
+    for (const nombreCampo of camposPosibles) {
+      if (categoria[nombreCampo] !== undefined && categoria[nombreCampo] !== null && categoria[nombreCampo] !== '') {
+        return categoria[nombreCampo];
+      }
+    }
+    
+    return campo === 'nombre' ? 'Sin categoría' : '';
+  };
+
+  // Función para formatear nombres de categoría (igual que en la tabla)
+  const formatearCategoria = (categoriaRaw) => {
+    if (!categoriaRaw || categoriaRaw === 'Sin categoría') return 'Sin categoría';
+    
+    let categoria = categoriaRaw;
+    
+    // Si es un objeto categoría, extraer el nombre
+    if (typeof categoria === 'object') {
+      categoria = obtenerCampoCategoria(categoria, 'nombre');
+    }
+    
+    // Reemplazar underscores y guiones con espacios
+    let formateado = categoria.replace(/[_-]/g, ' ');
+    
+    // Capitalizar cada palabra
+    formateado = formateado.replace(/\w\S*/g, (txt) => {
+      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+    
+    return formateado;
+  };
+
+  // Validación del formulario
+  const validarFormulario = () => {
+    const nuevosErrores = {};
+    
+    if (!formData.nombre?.trim()) {
+      nuevosErrores.nombre = 'El nombre del producto es requerido';
+    } else if (formData.nombre.trim().length < 2) {
+      nuevosErrores.nombre = 'El nombre debe tener al menos 2 caracteres';
+    }
+    
+    const precio = Number(formData.precio);
+    if (!formData.precio || isNaN(precio) || precio <= 0) {
+      nuevosErrores.precio = 'El precio debe ser un número mayor a 0';
+    } else if (precio > 1000000) {
+      nuevosErrores.precio = 'El precio no puede ser mayor a $1.000.000';
+    }
+    
+    const stock = Number(formData.stock);
+    if (!formData.stock || isNaN(stock) || stock < 0) {
+      nuevosErrores.stock = 'El stock debe ser un número positivo';
+    } else if (stock > 10000) {
+      nuevosErrores.stock = 'El stock no puede ser mayor a 10.000 unidades';
+    }
+    
+    if (!formData.categoria) {
+      nuevosErrores.categoria = 'Selecciona una categoría';
+    }
+    
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  // Manejar cambio de categoría
+  const manejarCambioCategoria = (e) => {
+    const valor = e.target.value;
+    onFormChange({...formData, categoria: valor});
+  };
+
+  // Obtener categorías únicas y formateadas para el dropdown
+  const obtenerOpcionesCategorias = () => {
+    const categoriasUnicas = [];
+    const vistas = new Set();
+    
+    categorias.forEach(cat => {
+      const nombreRaw = obtenerCampoCategoria(cat, 'nombre');
+      const nombreFormateado = formatearCategoria(nombreRaw);
+      
+      if (!vistas.has(nombreFormateado)) {
+        vistas.add(nombreFormateado);
+        categoriasUnicas.push({
+          id: cat.id,
+          nombreRaw: nombreRaw,
+          nombreFormateado: nombreFormateado
+        });
+      }
+    });
+    
+    return categoriasUnicas;
+  };
+
+  const opcionesCategorias = obtenerOpcionesCategorias();
+
+  // Manejar envío del formulario
+  const manejarEnvio = async (e) => {
+    e.preventDefault();
+    
+    if (!validarFormulario()) return;
+    
+    setEnviando(true);
+    try {
+      await onSubmit(e);
+    } catch (error) {
+      console.error('Error en el modal:', error);
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  // Resetear el modal cuando se cierra
+  const manejarCerrar = () => {
+    setErrores({});
+    setEnviando(false);
+    onHide();
+  };
+
+  // Formatear precio para vista previa (usando puntos como separadores de miles)
+  const formatearPrecio = (precio) => {
+    const precioNum = Number(precio);
+    if (isNaN(precioNum)) return '$0';
+    
+    // Usar formato chileno con puntos para miles
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(precioNum);
+  };
+
+  return (
+    <Modal show={show} onHide={manejarCerrar} size="lg" backdrop="static">
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <i className="bi bi-plus-circle me-2"></i>
+          Nuevo Producto
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={manejarEnvio}>
+        <Modal.Body>
+          {/* Nombre del Producto */}
+          <Form.Group className="mb-3">
+            <Form.Label>
+              Nombre del Producto <span className="text-danger">*</span>
+            </Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ej: Pan Integral Artesanal, Queque de Vainilla, etc."
+              value={formData.nombre || ''}
+              onChange={(e) => onFormChange({...formData, nombre: e.target.value})}
+              isInvalid={!!errores.nombre}
+              disabled={enviando}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errores.nombre}
+            </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              Nombre descriptivo del producto (mín. 2 caracteres)
+            </Form.Text>
+          </Form.Group>
+
+          <Row>
+            {/* Precio */}
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  Precio <span className="text-danger">*</span>
+                </Form.Label>
+                <div className="input-group">
+                  <span className="input-group-text">$</span>
+                  <Form.Control
+                    type="number"
+                    placeholder="0"
+                    min="0"
+                    step="100"
+                    value={formData.precio || ''}
+                    onChange={(e) => onFormChange({...formData, precio: e.target.value})}
+                    isInvalid={!!errores.precio}
+                    disabled={enviando}
+                  />
+                  <span className="input-group-text">CLP</span>
+                </div>
+                <Form.Control.Feedback type="invalid">
+                  {errores.precio}
+                </Form.Control.Feedback>
+                <Form.Text className="text-muted">
+                  Precio de venta al público ($1 - $1.000.000)
+                </Form.Text>
+              </Form.Group>
+            </Col>
+
+            {/* Stock */}
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  Stock Inicial <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Control
+                  type="number"
+                  placeholder="0"
+                  min="0"
+                  max="10000"
+                  value={formData.stock || ''}
+                  onChange={(e) => onFormChange({...formData, stock: e.target.value})}
+                  isInvalid={!!errores.stock}
+                  disabled={enviando}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {errores.stock}
+                </Form.Control.Feedback>
+                <Form.Text className="text-muted">
+                  Cantidad disponible (0 - 10.000 unidades)
+                </Form.Text>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            {/* Categoría */}
+            <Col md={12}>
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  Categoría <span className="text-danger">*</span>
+                </Form.Label>
+                <Form.Select
+                  value={formData.categoria || ''}
+                  onChange={manejarCambioCategoria}
+                  isInvalid={!!errores.categoria}
+                  disabled={enviando}
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {opcionesCategorias.map(cat => (
+                    <option key={cat.id} value={cat.nombreRaw}>
+                      {cat.nombreFormateado}
+                    </option>
+                  ))}
+                  <option disabled>──────────</option>
+                  <option value="nueva_categoria">+ Crear nueva categoría</option>
+                </Form.Select>
+                <Form.Control.Feedback type="invalid">
+                  {errores.categoria}
+                </Form.Control.Feedback>
+                <Form.Text className="text-muted">
+                  {opcionesCategorias.length} categorías disponibles
+                </Form.Text>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          {/* Descripción */}
+          <Form.Group className="mb-3">
+            <Form.Label>Descripción del Producto</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              placeholder="Describe las características, ingredientes, beneficios del producto..."
+              value={formData.descripcion || ''}
+              onChange={(e) => onFormChange({...formData, descripcion: e.target.value})}
+              disabled={enviando}
+              maxLength={500}
+            />
+            <Form.Text className="text-muted">
+              {(formData.descripcion?.length || 0)}/500 caracteres
+            </Form.Text>
+          </Form.Group>
+
+          {/* Opciones adicionales */}
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="checkbox"
+                  label="Producto destacado"
+                  checked={formData.destacado || false}
+                  onChange={(e) => onFormChange({...formData, destacado: e.target.checked})}
+                  disabled={enviando}
+                />
+                <Form.Text className="text-muted">
+                  Aparecerá en la sección de productos destacados
+                </Form.Text>
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Check
+                  type="checkbox"
+                  label="Producto activo"
+                  checked={formData.activo !== false}
+                  onChange={(e) => onFormChange({...formData, activo: e.target.checked})}
+                  disabled={enviando}
+                />
+                <Form.Text className="text-muted">
+                  Visible para los clientes
+                </Form.Text>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          {/* Previsualización de datos */}
+          {(formData.nombre || formData.precio || formData.categoria) && (
+            <Card className="mt-3 border-info">
+              <Card.Header className="bg-info text-white py-2">
+                <small><i className="bi bi-eye me-1"></i>Vista previa - Como se verá en la tabla</small>
+              </Card.Header>
+              <Card.Body className="py-2">
+                <Row className="align-items-center">
+                  <Col md={4}>
+                    <strong>Nombre:</strong> 
+                    <div className="fw-semibold">{formData.nombre || 'Sin nombre'}</div>
+                  </Col>
+                  <Col md={2}>
+                    <strong>Precio:</strong>
+                    <div className="text-success fw-bold">
+                      {formatearPrecio(formData.precio)}
+                    </div>
+                  </Col>
+                  <Col md={2}>
+                    <strong>Stock:</strong>
+                    <div>
+                      <Badge bg={Number(formData.stock || 0) > 10 ? 'success' : Number(formData.stock || 0) > 0 ? 'warning' : 'danger'}>
+                        {Number(formData.stock || 0).toLocaleString('es-CL')}
+                      </Badge>
+                    </div>
+                  </Col>
+                  <Col md={4}>
+                    <strong>Categoría:</strong>
+                    <div>
+                      <Badge bg="info" className="text-capitalize">
+                        {formatearCategoria(formData.categoria)}
+                      </Badge>
+                    </div>
+                  </Col>
+                </Row>
+                <Row className="mt-2">
+                  <Col>
+                    <strong>Estado:</strong>{' '}
+                    <Badge bg={formData.activo !== false ? 'success' : 'secondary'}>
+                      <i className={`bi bi-${formData.activo !== false ? 'check-circle' : 'x-circle'} me-1`}></i>
+                      {formData.activo !== false ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                    {formData.destacado && (
+                      <>
+                        {' '}
+                        <Badge bg="warning">
+                          <i className="bi bi-star me-1"></i>
+                          Destacado
+                        </Badge>
+                      </>
+                    )}
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={manejarCerrar}
+            disabled={enviando}
+          >
+            <i className="bi bi-x-circle me-1"></i>
+            Cancelar
+          </Button>
+          <Button 
+            variant="primary" 
+            type="submit"
+            disabled={enviando}
+          >
+            {enviando ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                Creando...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-1"></i>
+                Crear Producto
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+};
 
 const CategoryModal = ({ show, onHide, onSubmit, formData, onFormChange }) => (
   <Modal show={show} onHide={onHide}>
