@@ -4,11 +4,12 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CrudService } from '../../../services/crudService';
 import { DashboardService } from '../../../services/dashboardService';
+import { formatearCategoria } from '../../../utils/formatters';
 
 const ProfileAdmin = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  
+
   // Estados
   const [activeSection, setActiveSection] = useState('dashboard');
   const [stats, setStats] = useState(null);
@@ -17,7 +18,7 @@ const ProfileAdmin = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Estados para modales
   const [showProductModal, setShowProductModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
@@ -25,7 +26,7 @@ const ProfileAdmin = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  
+
   // Estados para formularios
   const [productoForm, setProductoForm] = useState({ nombre: '', precio: '', stock: '', categoria: '' });
   const [categoriaForm, setCategoriaForm] = useState({ nombre: '', descripcion: '' });
@@ -53,7 +54,7 @@ const ProfileAdmin = () => {
         CrudService.getUsuarios(),
         CrudService.getCategorias()
       ]);
-      
+
       setStats(estadisticas);
       setOrdenes(ordenesData);
       setProductos(productosData);
@@ -89,14 +90,14 @@ const ProfileAdmin = () => {
       destacado: ['destacado', 'featured', 'highlighted'],
       activo: ['activo', 'active', 'estado', 'status', 'enabled', 'available']
     };
-    
+
     const camposPosibles = mapaCampos[campo] || [campo];
     for (const nombreCampo of camposPosibles) {
       if (producto[nombreCampo] !== undefined && producto[nombreCampo] !== null && producto[nombreCampo] !== '') {
         return producto[nombreCampo];
       }
     }
-    
+
     const defaults = {
       nombre: 'Sin nombre',
       precio: 0,
@@ -106,21 +107,21 @@ const ProfileAdmin = () => {
       destacado: false,
       activo: true
     };
-    
+
     return defaults[campo] || '';
   };
 
   // Función helper para obtener estado del producto
   const obtenerEstadoProducto = (producto) => {
     const activo = obtenerCampoProducto(producto, 'activo');
-    
+
     if (typeof activo === 'boolean') return activo;
     if (typeof activo === 'string') {
       const inactiveKeywords = ['inactivo', 'disabled', 'false', '0', 'no', 'off', 'inactive'];
       return !inactiveKeywords.includes(activo.toLowerCase().trim());
     }
     if (typeof activo === 'number') return activo !== 0;
-    
+
     return true;
   };
 
@@ -139,17 +140,17 @@ const ProfileAdmin = () => {
         createdAt: new Date(),
         updatedAt: new Date()
       };
-      
+
       const productId = await CrudService.createProducto(productoData);
-      
+
       if (productId) {
         console.log('✅ Producto creado exitosamente');
         setShowProductModal(false);
-        setProductoForm({ 
-          nombre: '', 
-          precio: '', 
-          stock: '', 
-          categoria: '', 
+        setProductoForm({
+          nombre: '',
+          precio: '',
+          stock: '',
+          categoria: '',
           descripcion: '',
           destacado: false,
           activo: true
@@ -164,7 +165,7 @@ const ProfileAdmin = () => {
   const handleUpdateProducto = async (e) => {
     e.preventDefault();
     if (!productoSeleccionado) return;
-    
+
     setActionLoading(true);
     try {
       const productoData = {
@@ -177,17 +178,17 @@ const ProfileAdmin = () => {
         activo: productoForm.activo !== false,
         updatedAt: new Date()
       };
-      
+
       const success = await CrudService.updateProducto(productoSeleccionado.id, productoData);
       if (success) {
         console.log('✅ Producto actualizado exitosamente');
         setShowProductModal(false);
         setProductoSeleccionado(null);
-        setProductoForm({ 
-          nombre: '', 
-          precio: '', 
-          stock: '', 
-          categoria: '', 
+        setProductoForm({
+          nombre: '',
+          precio: '',
+          stock: '',
+          categoria: '',
           descripcion: '',
           destacado: false,
           activo: true
@@ -253,7 +254,7 @@ const ProfileAdmin = () => {
   // Función para eliminar producto
   const confirmarEliminarProducto = async () => {
     if (!productoSeleccionado) return;
-    
+
     setActionLoading(true);
     try {
       const success = await CrudService.deleteProducto(productoSeleccionado.id);
@@ -278,8 +279,8 @@ const ProfileAdmin = () => {
       case 'usuarios':
         return <UsuariosSection usuarios={usuarios} loading={loading} />;
       case 'productos':
-        return <ProductosSection 
-          productos={productos} 
+        return <ProductosSection
+          productos={productos}
           categorias={categorias}
           loading={loading}
           onShowModal={() => {
@@ -291,7 +292,7 @@ const ProfileAdmin = () => {
           onVerDetalle={manejarVerDetalle}
         />;
       case 'categorias':
-        return <CategoriasSection 
+        return <CategoriasSection
           categorias={categorias}
           loading={loading}
           onShowModal={() => setShowCategoryModal(true)}
@@ -299,8 +300,8 @@ const ProfileAdmin = () => {
       case 'ventas':
         return <VentasSection ordenes={ordenes} loading={loading} />;
       case 'pedidos':
-        return <PedidosSection 
-          ordenes={ordenes} 
+        return <PedidosSection
+          ordenes={ordenes}
           loading={loading}
           onUpdateEstado={handleUpdateOrdenEstado}
         />;
@@ -333,8 +334,8 @@ const ProfileAdmin = () => {
             <Card.Body className="p-0">
               <Nav variant="pills" className="flex-column">
                 <Nav.Item>
-                  <Nav.Link 
-                    active={activeSection === 'dashboard'} 
+                  <Nav.Link
+                    active={activeSection === 'dashboard'}
                     onClick={() => setActiveSection('dashboard')}
                     style={{ cursor: 'pointer' }}
                   >
@@ -343,28 +344,28 @@ const ProfileAdmin = () => {
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link 
-                    active={activeSection === 'usuarios'} 
+                  <Nav.Link
+                    active={activeSection === 'usuarios'}
                     onClick={() => setActiveSection('usuarios')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-people me-2"></i>
-                    Gestión de Usuarios
+                    Usuarios
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link 
-                    active={activeSection === 'productos'} 
+                  <Nav.Link
+                    active={activeSection === 'productos'}
                     onClick={() => setActiveSection('productos')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-box-seam me-2"></i>
-                    Productos y Stock
+                    Productos
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link 
-                    active={activeSection === 'categorias'} 
+                  <Nav.Link
+                    active={activeSection === 'categorias'}
                     onClick={() => setActiveSection('categorias')}
                     style={{ cursor: 'pointer' }}
                   >
@@ -373,8 +374,8 @@ const ProfileAdmin = () => {
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link 
-                    active={activeSection === 'ventas'} 
+                  <Nav.Link
+                    active={activeSection === 'ventas'}
                     onClick={() => setActiveSection('ventas')}
                     style={{ cursor: 'pointer' }}
                   >
@@ -383,8 +384,8 @@ const ProfileAdmin = () => {
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link 
-                    active={activeSection === 'pedidos'} 
+                  <Nav.Link
+                    active={activeSection === 'pedidos'}
                     onClick={() => setActiveSection('pedidos')}
                     style={{ cursor: 'pointer' }}
                   >
@@ -393,19 +394,19 @@ const ProfileAdmin = () => {
                   </Nav.Link>
                 </Nav.Item>
               </Nav>
-              
+
               {/* Botones de acción debajo del menú */}
               <div className="p-3 border-top">
-                <Button 
-                  variant="outline-primary" 
+                <Button
+                  variant="outline-primary"
                   className="w-100 mb-2"
                   onClick={handleBackToStore}
                 >
                   <i className="bi bi-shop me-2"></i>
                   Volver a la Tienda
                 </Button>
-                <Button 
-                  variant="outline-danger" 
+                <Button
+                  variant="outline-danger"
                   className="w-100"
                   onClick={handleLogout}
                 >
@@ -433,7 +434,7 @@ const ProfileAdmin = () => {
       </Row>
 
       {/* MODALES - Al final del return */}
-      <ProductModal 
+      <ProductModal
         show={showProductModal}
         onHide={() => {
           setShowProductModal(false);
@@ -447,7 +448,7 @@ const ProfileAdmin = () => {
         loading={actionLoading}
       />
 
-      <DeleteModal 
+      <DeleteModal
         show={showDeleteModal}
         onHide={() => {
           setShowDeleteModal(false);
@@ -458,7 +459,7 @@ const ProfileAdmin = () => {
         loading={actionLoading}
       />
 
-      <DetailModal 
+      <DetailModal
         show={showDetailModal}
         onHide={() => {
           setShowDetailModal(false);
@@ -467,7 +468,7 @@ const ProfileAdmin = () => {
         producto={productoSeleccionado}
       />
 
-      <CategoryModal 
+      <CategoryModal
         show={showCategoryModal}
         onHide={() => setShowCategoryModal(false)}
         onSubmit={handleCreateCategoria}
@@ -563,7 +564,7 @@ const DashboardSection = ({ stats, loading }) => {
 };
 
 const ProductosSection = ({ productos, categorias, loading, onShowModal, onEditar, onEliminar, onVerDetalle }) => {
-  
+
   // Función helper para obtener campos con fallbacks
   const getProductField = (producto, field) => {
     const fieldMap = {
@@ -573,14 +574,14 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
       categoria: ['categoria', 'category', 'categoriaId', 'type', 'tipo'],
       activo: ['activo', 'active', 'estado', 'status', 'enabled', 'available']
     };
-    
+
     const possibleFields = fieldMap[field] || [field];
     for (const fieldName of possibleFields) {
       if (producto[fieldName] !== undefined && producto[fieldName] !== null && producto[fieldName] !== '') {
         return producto[fieldName];
       }
     }
-    
+
     // Valores por defecto más específicos
     const defaults = {
       nombre: 'Sin nombre',
@@ -589,20 +590,20 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
       categoria: 'Sin categoría',
       activo: true
     };
-    
+
     return defaults[field] || 'N/A';
   };
 
   const getEstadoProducto = (producto) => {
     const activo = getProductField(producto, 'activo');
-    
+
     if (typeof activo === 'boolean') return activo;
     if (typeof activo === 'string') {
       const inactiveKeywords = ['inactivo', 'disabled', 'false', '0', 'no', 'off', 'inactive'];
       return !inactiveKeywords.includes(activo.toLowerCase().trim());
     }
     if (typeof activo === 'number') return activo !== 0;
-    
+
     return true; // Por defecto activo
   };
 
@@ -610,23 +611,13 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
   const formatPrecio = (precio) => {
     const precioNum = Number(precio);
     if (isNaN(precioNum)) return '$0';
-    
+
     return `$${precioNum.toLocaleString('es-CL')}`;
   };
 
   // Función para formatear nombres de categoría (quitar underscores y capitalizar)
   const formatCategoria = (categoria) => {
-    if (!categoria || categoria === 'Sin categoría') return 'Sin categoría';
-    
-    // Reemplazar underscores y guiones con espacios
-    let formatted = categoria.replace(/[_-]/g, ' ');
-    
-    // Capitalizar cada palabra
-    formatted = formatted.replace(/\w\S*/g, (txt) => {
-      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-    });
-    
-    return formatted;
+    return formatearCategoria(categoria);
   };
 
   return (
@@ -670,10 +661,10 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                   </td>
                   <td>
                     <span className={
-                      Number(getProductField(producto, 'stock')) > 10 
-                        ? 'text-success' 
-                        : Number(getProductField(producto, 'stock')) > 0 
-                          ? 'text-warning' 
+                      Number(getProductField(producto, 'stock')) > 10
+                        ? 'text-success'
+                        : Number(getProductField(producto, 'stock')) > 0
+                          ? 'text-warning'
                           : 'text-danger'
                     }>
                       {Number(getProductField(producto, 'stock'))}
@@ -692,8 +683,8 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                   </td>
                   <td>
                     <div className="btn-group-vertical btn-group-sm" role="group">
-                      <Button 
-                        variant="outline-primary" 
+                      <Button
+                        variant="outline-primary"
                         size="sm"
                         title="Editar producto"
                         onClick={() => onEditar && onEditar(producto)}
@@ -701,8 +692,8 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                       >
                         <i className="bi bi-pencil"></i> Editar
                       </Button>
-                      <Button 
-                        variant="outline-danger" 
+                      <Button
+                        variant="outline-danger"
                         size="sm"
                         title="Eliminar producto"
                         onClick={() => onEliminar && onEliminar(producto)}
@@ -710,8 +701,8 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                       >
                         <i className="bi bi-trash"></i> Eliminar
                       </Button>
-                      <Button 
-                        variant="outline-info" 
+                      <Button
+                        variant="outline-info"
                         size="sm"
                         title="Ver detalles"
                         onClick={() => onVerDetalle && onVerDetalle(producto)}
@@ -820,8 +811,8 @@ const PedidosSection = ({ ordenes, loading, onUpdateEstado }) => {
                   </Badge>
                 </td>
                 <td>
-                  <Button 
-                    variant="outline-success" 
+                  <Button
+                    variant="outline-success"
                     size="sm"
                     onClick={() => onUpdateEstado(orden.id, 'confirmado')}
                   >
@@ -905,67 +896,67 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
       nombre: ['nombre', 'name', 'title', 'categoriaName'],
       descripcion: ['descripcion', 'description', 'desc', 'detalles']
     };
-    
+
     const camposPosibles = mapaCampos[campo] || [campo];
     for (const nombreCampo of camposPosibles) {
       if (categoria[nombreCampo] !== undefined && categoria[nombreCampo] !== null && categoria[nombreCampo] !== '') {
         return categoria[nombreCampo];
       }
     }
-    
+
     return campo === 'nombre' ? 'Sin categoría' : '';
   };
 
   // Función para formatear nombres de categoría (igual que en la tabla)
   const formatearCategoria = (categoriaRaw) => {
     if (!categoriaRaw || categoriaRaw === 'Sin categoría') return 'Sin categoría';
-    
+
     let categoria = categoriaRaw;
-    
+
     // Si es un objeto categoría, extraer el nombre
     if (typeof categoria === 'object') {
       categoria = obtenerCampoCategoria(categoria, 'nombre');
     }
-    
+
     // Reemplazar underscores y guiones con espacios
     let formateado = categoria.replace(/[_-]/g, ' ');
-    
+
     // Capitalizar cada palabra
     formateado = formateado.replace(/\w\S*/g, (txt) => {
       return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
     });
-    
+
     return formateado;
   };
 
   // Validación del formulario
   const validarFormulario = () => {
     const nuevosErrores = {};
-    
+
     if (!formData.nombre?.trim()) {
       nuevosErrores.nombre = 'El nombre del producto es requerido';
     } else if (formData.nombre.trim().length < 2) {
       nuevosErrores.nombre = 'El nombre debe tener al menos 2 caracteres';
     }
-    
+
     const precio = Number(formData.precio);
     if (!formData.precio || isNaN(precio) || precio <= 0) {
       nuevosErrores.precio = 'El precio debe ser un número mayor a 0';
     } else if (precio > 1000000) {
       nuevosErrores.precio = 'El precio no puede ser mayor a $1.000.000';
     }
-    
+
     const stock = Number(formData.stock);
     if (!formData.stock || isNaN(stock) || stock < 0) {
       nuevosErrores.stock = 'El stock debe ser un número positivo';
     } else if (stock > 10000) {
       nuevosErrores.stock = 'El stock no puede ser mayor a 10.000 unidades';
     }
-    
+
     if (!formData.categoria) {
       nuevosErrores.categoria = 'Selecciona una categoría';
     }
-    
+
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
@@ -973,18 +964,18 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
   // Manejar cambio de categoría
   const manejarCambioCategoria = (e) => {
     const valor = e.target.value;
-    onFormChange({...formData, categoria: valor});
+    onFormChange({ ...formData, categoria: valor });
   };
 
   // Obtener categorías únicas y formateadas para el dropdown
   const obtenerOpcionesCategorias = () => {
     const categoriasUnicas = [];
     const vistas = new Set();
-    
+
     categorias.forEach(cat => {
       const nombreRaw = obtenerCampoCategoria(cat, 'nombre');
       const nombreFormateado = formatearCategoria(nombreRaw);
-      
+
       if (!vistas.has(nombreFormateado)) {
         vistas.add(nombreFormateado);
         categoriasUnicas.push({
@@ -994,7 +985,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
         });
       }
     });
-    
+
     return categoriasUnicas;
   };
 
@@ -1003,9 +994,9 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
   // Manejar envío del formulario
   const manejarEnvio = async (e) => {
     e.preventDefault();
-    
+
     if (!validarFormulario()) return;
-    
+
     setEnviando(true);
     try {
       await onSubmit(e);
@@ -1027,7 +1018,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
   const formatearPrecio = (precio) => {
     const precioNum = Number(precio);
     if (isNaN(precioNum)) return '$0';
-    
+
     // Usar formato chileno con puntos para miles
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -1056,7 +1047,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
               type="text"
               placeholder="Ej: Pan Integral Artesanal, Queque de Vainilla, etc."
               value={formData.nombre || ''}
-              onChange={(e) => onFormChange({...formData, nombre: e.target.value})}
+              onChange={(e) => onFormChange({ ...formData, nombre: e.target.value })}
               isInvalid={!!errores.nombre}
               disabled={enviando || loading}
             />
@@ -1083,7 +1074,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
                     min="0"
                     step="100"
                     value={formData.precio || ''}
-                    onChange={(e) => onFormChange({...formData, precio: e.target.value})}
+                    onChange={(e) => onFormChange({ ...formData, precio: e.target.value })}
                     isInvalid={!!errores.precio}
                     disabled={enviando || loading}
                   />
@@ -1110,7 +1101,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
                   min="0"
                   max="10000"
                   value={formData.stock || ''}
-                  onChange={(e) => onFormChange({...formData, stock: e.target.value})}
+                  onChange={(e) => onFormChange({ ...formData, stock: e.target.value })}
                   isInvalid={!!errores.stock}
                   disabled={enviando || loading}
                 />
@@ -1164,7 +1155,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
               rows={3}
               placeholder="Describe las características, ingredientes, beneficios del producto..."
               value={formData.descripcion || ''}
-              onChange={(e) => onFormChange({...formData, descripcion: e.target.value})}
+              onChange={(e) => onFormChange({ ...formData, descripcion: e.target.value })}
               disabled={enviando || loading}
               maxLength={500}
             />
@@ -1181,7 +1172,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
                   type="checkbox"
                   label="Producto destacado"
                   checked={formData.destacado || false}
-                  onChange={(e) => onFormChange({...formData, destacado: e.target.checked})}
+                  onChange={(e) => onFormChange({ ...formData, destacado: e.target.checked })}
                   disabled={enviando || loading}
                 />
                 <Form.Text className="text-muted">
@@ -1195,7 +1186,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
                   type="checkbox"
                   label="Producto activo"
                   checked={formData.activo !== false}
-                  onChange={(e) => onFormChange({...formData, activo: e.target.checked})}
+                  onChange={(e) => onFormChange({ ...formData, activo: e.target.checked })}
                   disabled={enviando || loading}
                 />
                 <Form.Text className="text-muted">
@@ -1214,7 +1205,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
               <Card.Body className="py-2">
                 <Row className="align-items-center">
                   <Col md={4}>
-                    <strong>Nombre:</strong> 
+                    <strong>Nombre:</strong>
                     <div className="fw-semibold">{formData.nombre || 'Sin nombre'}</div>
                   </Col>
                   <Col md={2}>
@@ -1243,9 +1234,9 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
                 <Row className="mt-2">
                   <Col>
                     <strong>Estado:</strong>{' '}
-                    <Badge bg={formData.activo !== false ? 'success' : 'secondary'}>
-                      <i className={`bi bi-${formData.activo !== false ? 'check-circle' : 'x-circle'} me-1`}></i>
-                      {formData.activo !== false ? 'Activo' : 'Inactivo'}
+                    <Badge bg={formData.active !== false ? 'success' : 'secondary'}>
+                      <i className={`bi bi-${formData.active !== false ? 'check-circle' : 'x-circle'} me-1`}></i>
+                      {formData.active !== false ? 'Activo' : 'Inactivo'}
                     </Badge>
                     {formData.destacado && (
                       <>
@@ -1263,16 +1254,16 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button 
-            variant="secondary" 
+          <Button
+            variant="secondary"
             onClick={manejarCerrar}
             disabled={enviando || loading}
           >
             <i className="bi bi-x-circle me-1"></i>
             Cancelar
           </Button>
-          <Button 
-            variant="primary" 
+          <Button
+            variant="primary"
             type="submit"
             disabled={enviando || loading}
           >
@@ -1479,7 +1470,7 @@ const CategoryModal = ({ show, onHide, onSubmit, formData, onFormChange }) => (
           <Form.Control
             type="text"
             value={formData.nombre}
-            onChange={(e) => onFormChange({...formData, nombre: e.target.value})}
+            onChange={(e) => onFormChange({ ...formData, nombre: e.target.value })}
             required
           />
         </Form.Group>
@@ -1489,7 +1480,7 @@ const CategoryModal = ({ show, onHide, onSubmit, formData, onFormChange }) => (
             as="textarea"
             rows={3}
             value={formData.descripcion}
-            onChange={(e) => onFormChange({...formData, descripcion: e.target.value})}
+            onChange={(e) => onFormChange({ ...formData, descripcion: e.target.value })}
           />
         </Form.Group>
       </Modal.Body>

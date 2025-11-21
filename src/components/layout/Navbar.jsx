@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../../hooks/useSearch';
 import CartOffCanvas from '../cart/CartOffCanvas';
 import { useAuth } from '../../context/AuthContext';
+import { formatearCategoria } from '../../utils/formatters'; // ✅ Importar la función
 import '../../styles/components/cart.css';
 
 const Navbar = () => {
@@ -144,6 +145,11 @@ const Navbar = () => {
     }
   };
 
+  // === FUNCIÓN PARA FORMATEAR NOMBRES DE CATEGORÍAS EN EL DROPDOWN ===
+  const formatearNombreCategoria = (categoria) => {
+    return formatearCategoria(categoria);
+  };
+
   // === FUNCIÓN PARA MANEJO DE CATEGORÍAS ===
   const handleCategoryClick = (path) => {
     navigate(path);
@@ -265,7 +271,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/cuadradas')}
                     >
                       <i className="bi bi-square me-2"></i>
-                      Tortas Cuadradas
+                      {formatearNombreCategoria('cuadradas')}
                     </Link>
                   </li>
                   <li>
@@ -275,7 +281,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/circulares')}
                     >
                       <i className="bi bi-circle me-2"></i>
-                      Tortas Circulares
+                      {formatearNombreCategoria('circulares')}
                     </Link>
                   </li>
                   <li>
@@ -285,7 +291,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/especiales')}
                     >
                       <i className="bi bi-star me-2"></i>
-                      Tortas Especiales
+                      {formatearNombreCategoria('especiales')}
                     </Link>
                   </li>
                   <li><hr className="dropdown-divider" /></li>
@@ -301,7 +307,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/individuales')}
                     >
                       <i className="bi bi-cup-straw me-2"></i>
-                      Postres Individuales
+                      {formatearNombreCategoria('individuales')}
                     </Link>
                   </li>
                   <li>
@@ -311,7 +317,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/tradicional')}
                     >
                       <i className="bi bi-heart me-2"></i>
-                      Pastelería Tradicional
+                      {formatearNombreCategoria('tradicional')}
                     </Link>
                   </li>
                   <li>
@@ -321,7 +327,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/sin_azucar')}
                     >
                       <i className="bi bi-droplet me-2"></i>
-                      Sin Azúcar
+                      {formatearNombreCategoria('sin_azucar')}
                     </Link>
                   </li>
                   <li>
@@ -331,7 +337,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/sin_gluten')}
                     >
                       <i className="bi bi-flower1 me-2"></i>
-                      Sin Gluten
+                      {formatearNombreCategoria('sin_gluten')}
                     </Link>
                   </li>
                   <li>
@@ -341,7 +347,7 @@ const Navbar = () => {
                       onClick={() => handleCategoryClick('/categoria/veganos')}
                     >
                       <i className="bi bi-leaf me-2"></i>
-                      Productos Veganos
+                      {formatearNombreCategoria('veganos')}
                     </Link>
                   </li>
                 </ul>
@@ -392,6 +398,7 @@ const Navbar = () => {
                           <i className="bi bi-cake me-2"></i>
                           <div className="suggestion-content">
                             <div className="suggestion-name">{product.name}</div>
+                            {/* ✅ CATEGORÍA FORMATEADA */}
                             <div className="suggestion-category">{product.category}</div>
                           </div>
                         </div>

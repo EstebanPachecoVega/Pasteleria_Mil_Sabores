@@ -1,6 +1,7 @@
 // src/hooks/useSearch.js
 import { useState, useEffect, useRef } from 'react';
 import { searchProducts, getSearchSuggestions } from '../data/products';
+import { formatearCategoria } from '../utils/formatters'; // ✅ Importar la función
 
 export const useSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,7 +20,14 @@ export const useSearch = () => {
       setIsSearching(true);
       debounceRef.current = setTimeout(() => {
         const newSuggestions = getSearchSuggestions(searchTerm);
-        setSuggestions(newSuggestions);
+        
+        // ✅ FORMATEAR CATEGORÍAS EN LAS SUGERENCIAS
+        const suggestionsFormateadas = newSuggestions.map(product => ({
+          ...product,
+          category: formatearCategoria(product.category) // Formatear categoría
+        }));
+        
+        setSuggestions(suggestionsFormateadas);
         setIsSearching(false);
       }, 200);
     } else {
@@ -39,7 +47,14 @@ export const useSearch = () => {
     setIsSearching(true);
     setTimeout(() => {
       const results = searchProducts(query);
-      setSearchResults(results);
+      
+      // ✅ FORMATEAR CATEGORÍAS EN LOS RESULTADOS
+      const resultsFormateados = results.map(product => ({
+        ...product,
+        category: formatearCategoria(product.category) // Formatear categoría
+      }));
+      
+      setSearchResults(resultsFormateados);
       setIsSearching(false);
     }, 300);
   };
