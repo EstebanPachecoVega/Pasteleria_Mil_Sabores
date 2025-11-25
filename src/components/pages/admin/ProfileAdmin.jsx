@@ -311,9 +311,9 @@ const ProfileAdmin = () => {
   };
 
   return (
-    <Container fluid className="p-4 admin-dashboard">
+    <Container fluid className="p-4 admin-dashboard" style={{ height: '100vh', overflow: 'hidden' }}>
       {/* Header */}
-      <Row className="mb-4">
+      <Row>
         <Col>
           <div>
             <h1 className="mb-1">Dashboard de Administración</h1>
@@ -323,11 +323,11 @@ const ProfileAdmin = () => {
           </div>
         </Col>
       </Row>
-
-      <Row>
-        {/* Sidebar de Navegación */}
-        <Col md={2} className="mb-4">
-          <Card className="h-100">
+  
+      <Row style={{ height: 'calc(100vh - 100px)' }}>
+        {/* Sidebar de Navegación - SCROLL PROPIO */}
+        <Col md={2} className="h-100">
+          <Card className="h-100" style={{ overflowY: 'auto' }}>
             <Card.Header className="bg-primary text-white">
               <h5 className="mb-0">Menú Administrativo</h5>
             </Card.Header>
@@ -350,7 +350,7 @@ const ProfileAdmin = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-people me-2"></i>
-                    Usuarios
+                    Gestión de Usuarios
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
@@ -360,7 +360,7 @@ const ProfileAdmin = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-box-seam me-2"></i>
-                    Productos
+                    Productos y Stock
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
@@ -419,7 +419,8 @@ const ProfileAdmin = () => {
         </Col>
 
         {/* Contenido Principal */}
-        <Col md={10}>
+        <Col md={10} className="h-100">
+        <div style={{ height: '100%', overflowY: 'auto', paddingRight: '10px' }}>
           {loading ? (
             <div className="text-center p-5">
               <div className="spinner-border text-primary" role="status">
@@ -430,8 +431,9 @@ const ProfileAdmin = () => {
           ) : (
             renderActiveSection()
           )}
-        </Col>
-      </Row>
+        </div>
+      </Col>
+    </Row>
 
       {/* MODALES - Al final del return */}
       <ProductModal
@@ -572,6 +574,7 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
       precio: ['precio', 'price', 'valor', 'cost', 'precioFinal', 'finalPrice'],
       stock: ['stock', 'cantidad', 'quantity', 'inventory', 'disponibles', 'available'],
       categoria: ['categoria', 'category', 'categoriaId', 'type', 'tipo'],
+      destacado: ['destacado', 'featured', 'highlighted', 'esDestacado'],
       activo: ['activo', 'active', 'estado', 'status', 'enabled', 'available']
     };
 
@@ -588,6 +591,7 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
       precio: 0,
       stock: 0,
       categoria: 'Sin categoría',
+      destacado: false,
       activo: true
     };
 
@@ -605,6 +609,20 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
     if (typeof activo === 'number') return activo !== 0;
 
     return true; // Por defecto activo
+  };
+
+  // Función para obtener si el producto es destacado
+  const getProductoDestacado = (producto) => {
+    const destacado = getProductField(producto, 'destacado');
+
+    if (typeof destacado === 'boolean') return destacado;
+    if (typeof destacado === 'string') {
+      const trueKeywords = ['true', 'yes', 'sí', 'si', '1', 'verdadero'];
+      return trueKeywords.includes(destacado.toLowerCase().trim());
+    }
+    if (typeof destacado === 'number') return destacado !== 0;
+
+    return false; // Por defecto no destacado
   };
 
   // Función para formatear precio con separadores de miles
@@ -646,6 +664,7 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                 <th>Precio</th>
                 <th>Stock</th>
                 <th>Categoría</th>
+                <th>Destacado</th>
                 <th>Estado</th>
                 <th width="180">Acciones</th>
               </tr>
@@ -673,6 +692,12 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                   <td>
                     <Badge bg="info" className="text-capitalize">
                       {formatCategoria(getProductField(producto, 'categoria'))}
+                    </Badge>
+                  </td>
+                  <td>
+                    <Badge bg={getProductoDestacado(producto) ? 'warning' : 'secondary'}>
+                      <i className={`bi bi-${getProductoDestacado(producto) ? 'star-fill' : 'star'} me-1`}></i>
+                      {getProductoDestacado(producto) ? 'Sí' : 'No'}
                     </Badge>
                   </td>
                   <td>
