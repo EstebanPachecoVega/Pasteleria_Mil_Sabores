@@ -1,7 +1,7 @@
 // src/hooks/useSearch.js
 import { useState, useEffect, useRef } from 'react';
-import { searchProducts, getSearchSuggestions } from '../data/products';
-import { formatearCategoria } from '../utils/formatters'; // ✅ Importar la función
+import { buscarProductos, obtenerSugerenciasBusqueda } from '../data/products';
+import { formatearCategoria } from '../utils/formatters';
 
 export const useSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,18 +18,25 @@ export const useSearch = () => {
 
     if (searchTerm.length > 1) {
       setIsSearching(true);
-      debounceRef.current = setTimeout(() => {
-        const newSuggestions = getSearchSuggestions(searchTerm);
-        
-        // ✅ FORMATEAR CATEGORÍAS EN LAS SUGERENCIAS
-        const suggestionsFormateadas = newSuggestions.map(product => ({
-          ...product,
-          category: formatearCategoria(product.category) // Formatear categoría
-        }));
-        
-        setSuggestions(suggestionsFormateadas);
-        setIsSearching(false);
-      }, 200);
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const nuevasSugerencias = await obtenerSugerenciasBusqueda(searchTerm);
+          
+          // Formatear categorías en las sugerencias
+          const suggestionsFormateadas = nuevasSugerencias.map(product => ({
+            ...product,
+            // Usar campo en español y formatear
+            categoria: formatearCategoria(product.categoria || product.category || '')
+          }));
+          
+          setSuggestions(suggestionsFormateadas);
+        } catch (error) {
+          console.error('❌ Error obteniendo sugerencias:', error);
+          setSuggestions([]);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 300);
     } else {
       setSuggestions([]);
       setIsSearching(false);
@@ -43,20 +50,37 @@ export const useSearch = () => {
   }, [searchTerm]);
 
   // Buscar productos completos
-  const performSearch = (query) => {
+  const performSearch = async (query) => {
+    if (!query || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
     setIsSearching(true);
-    setTimeout(() => {
-      const results = searchProducts(query);
+    try {
+      const resultados = await buscarProductos(query);
       
       // ✅ FORMATEAR CATEGORÍAS EN LOS RESULTADOS
-      const resultsFormateados = results.map(product => ({
+      const resultsFormateados = resultados.map(product => ({
         ...product,
-        category: formatearCategoria(product.category) // Formatear categoría
+        // Usar campo en español y formatear
+        categoria: formatearCategoria(product.categoria || product.category || '')
       }));
       
       setSearchResults(resultsFormateados);
+    } catch (error) {
+      console.error('❌ Error en búsqueda:', error);
+      setSearchResults([]);
+    } finally {
       setIsSearching(false);
-    }, 300);
+    }
+  };
+
+  // Limpiar resultados
+  const clearSearch = () => {
+    setSearchResults([]);
+    setSearchTerm('');
+    setSuggestions([]);
   };
 
   return {
@@ -65,6 +89,7 @@ export const useSearch = () => {
     suggestions,
     searchResults,
     isSearching,
-    performSearch
+    performSearch,
+    clearSearch
   };
 };

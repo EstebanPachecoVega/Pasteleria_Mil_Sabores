@@ -397,9 +397,8 @@ const Navbar = () => {
                         >
                           <i className="bi bi-cake me-2"></i>
                           <div className="suggestion-content">
-                            <div className="suggestion-name">{product.name}</div>
-                            {/* ✅ CATEGORÍA FORMATEADA */}
-                            <div className="suggestion-category">{product.category}</div>
+                            <div className="suggestion-name">{product.nombre || product.name}</div>
+                            <div className="suggestion-category">{product.categoria}</div>
                           </div>
                         </div>
                       ))}

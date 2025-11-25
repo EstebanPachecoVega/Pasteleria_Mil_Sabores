@@ -12,7 +12,7 @@ import {
 } from 'firebase/firestore';
 
 // Obtener todos los productos desde Firebase
-export const getAllProducts = async () => {
+export const obtenerTodosProductos = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, "producto"));
     return querySnapshot.docs.map(doc => ({
@@ -26,11 +26,11 @@ export const getAllProducts = async () => {
 };
 
 // Obtener productos por categoría desde Firebase
-export const getProductsByCategory = async (categoryKey) => {
+export const obtenerProductosPorCategoria = async (claveCategoria) => {
   try {
     const q = query(
       collection(db, "producto"), 
-      where("category", "==", categoryKey)
+      where("categoria", "==", claveCategoria)
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
@@ -43,19 +43,19 @@ export const getProductsByCategory = async (categoryKey) => {
   }
 };
 
-// Obtener un producto por ID desde Firebase (VERSIÓN ACTUALIZADA)
-export const getProductById = async (productId) => {
+// Obtener un producto por ID desde Firebase
+export const obtenerProductoPorId = async (idProducto) => {
   try {
-    console.log('📡 productService - getProductById - ID:', productId);
-    const docRef = doc(db, "producto", productId);
+    console.log('📡 productService - obtenerProductoPorId - ID:', idProducto);
+    const docRef = doc(db, "producto", idProducto);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      const product = { id: docSnap.id, ...docSnap.data() };
-      console.log('✅ productService - getProductById - producto encontrado:', product);
-      return product;
+      const producto = { id: docSnap.id, ...docSnap.data() };
+      console.log('✅ productService - obtenerProductoPorId - producto encontrado:', producto);
+      return producto;
     }
-    console.log('❌ productService - getProductById - producto no encontrado');
+    console.log('❌ productService - obtenerProductoPorId - producto no encontrado');
     return null;
   } catch (error) {
     console.error("❌ productService - Error obteniendo producto:", error);
@@ -63,13 +63,36 @@ export const getProductById = async (productId) => {
   }
 };
 
-// Actualizar stock de un producto
-export const updateProductStock = async (productId, newStock) => {
+// Obtener productos destacados desde Firebase
+export const obtenerProductosDestacados = async () => {
   try {
-    const productRef = doc(db, "producto", productId);
-    await updateDoc(productRef, {
-      stock: newStock,
-      updatedAt: new Date()
+    const q = query(
+      collection(db, "producto"), 
+      where("destacado", "==", true),
+      where("activo", "==", true)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const productosDestacados = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    console.log('✅ productService - Productos destacados encontrados:', productosDestacados.length);
+    return productosDestacados;
+  } catch (error) {
+    console.error("❌ Error obteniendo productos destacados:", error);
+    throw error;
+  }
+};
+
+// Actualizar stock de un producto
+export const actualizarStockProducto = async (idProducto, nuevoStock) => {
+  try {
+    const referenciaProducto = doc(db, "producto", idProducto);
+    await updateDoc(referenciaProducto, {
+      stock: nuevoStock,
+      actualizadoEl: new Date()
     });
     return true;
   } catch (error) {
@@ -79,24 +102,24 @@ export const updateProductStock = async (productId, newStock) => {
 };
 
 // Descontar stock de manera segura (evita condiciones de carrera)
-export const decreaseProductStock = async (productId, quantityToDecrease) => {
+export const descontarStockProducto = async (idProducto, cantidadADescontar) => {
   try {
-    const productRef = doc(db, "producto", productId);
+    const referenciaProducto = doc(db, "producto", idProducto);
     
-    await runTransaction(db, async (transaction) => {
-      const productDoc = await transaction.get(productRef);
-      if (!productDoc.exists()) {
+    await runTransaction(db, async (transaccion) => {
+      const documentoProducto = await transaccion.get(referenciaProducto);
+      if (!documentoProducto.exists()) {
         throw new Error("Producto no existe");
       }
       
-      const currentStock = productDoc.data().stock;
-      if (currentStock < quantityToDecrease) {
-        throw new Error(`Stock insuficiente. Solo quedan ${currentStock} unidades`);
+      const stockActual = documentoProducto.data().stock;
+      if (stockActual < cantidadADescontar) {
+        throw new Error(`Stock insuficiente. Solo quedan ${stockActual} unidades`);
       }
       
-      transaction.update(productRef, {
-        stock: currentStock - quantityToDecrease,
-        updatedAt: new Date()
+      transaccion.update(referenciaProducto, {
+        stock: stockActual - cantidadADescontar,
+        actualizadoEl: new Date()
       });
     });
     
@@ -107,25 +130,10 @@ export const decreaseProductStock = async (productId, quantityToDecrease) => {
   }
 };
 
-// Obtener productos destacados desde Firebase
-export const getFeaturedProducts = async () => {
-  try {
-    const q = query(
-      collection(db, "producto"), 
-      where("featured", "==", true),
-      where("active", "==", true) // Solo productos activos
-    );
-    
-    const querySnapshot = await getDocs(q);
-    const featuredProducts = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    
-    console.log('✅ productService - Productos destacados encontrados:', featuredProducts.length);
-    return featuredProducts;
-  } catch (error) {
-    console.error("❌ Error obteniendo productos destacados:", error);
-    throw error;
-  }
-};
+// 🔄 MANTENER COMPATIBILIDAD CON CÓDIGO EXISTENTE (alias en inglés)
+export const getAllProducts = obtenerTodosProductos;
+export const getProductsByCategory = obtenerProductosPorCategoria;
+export const getProductById = obtenerProductoPorId;
+export const getFeaturedProducts = obtenerProductosDestacados;
+export const updateProductStock = actualizarStockProducto;
+export const decreaseProductStock = descontarStockProducto;
