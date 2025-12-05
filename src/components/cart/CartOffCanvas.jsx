@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCartContext } from '../../context/CartContext';
 import { formatPrice } from '../../utils/formatters';
 import { obtenerProductoPorId } from '../../services/productService';
 
-const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveItem }) => {
+const CartOffCanvas = ({ show, onClose }) => {
   const [productStocks, setProductStocks] = useState({});
   const [loadingItems, setLoadingItems] = useState({});
   const [editingItemId, setEditingItemId] = useState(null);
   const [editQuantity, setEditQuantity] = useState('');
-  const [localCartItems, setLocalCartItems] = useState([]);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-
-  // Sincronizar cartItems con estado local para actualizaciones más fluidas
-  useEffect(() => {
-    setLocalCartItems(cartItems);
-  }, [cartItems]);
+  
+  // Obtener funciones del contexto del carrito
+  const { 
+    cartItems, 
+    updateCartQuantity, 
+    removeFromCart 
+  } = useCartContext();
 
   // Funciones auxiliares para calcular edad y cumpleaños
   const calculateUserAge = useCallback((birthDateString) => {
@@ -44,56 +46,74 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
            today.getDate() === birthDate.getDate();
   }, []);
 
-  // Cargar stocks de productos solo cuando sea necesario
+  // Cargar stocks de productos
   useEffect(() => {
     const loadProductStocks = async () => {
-      // Solo cargar stocks de items que no los tengan aún
-      const itemsToLoad = cartItems.filter(item => !productStocks[item.id]);
+      if (!show || cartItems.length === 0) return;
+
+      const itemsToLoad = cartItems.filter(item => 
+        item.id && !productStocks[item.id] && !loadingItems[item.id]
+      );
+      
       if (itemsToLoad.length === 0) return;
 
-      const stockPromises = itemsToLoad.map(async (item) => {
-        try {
-          setLoadingItems(prev => ({ ...prev, [item.id]: true }));
-          const producto = await obtenerProductoPorId(item.id);
-          return { id: item.id, stock: producto?.stock || 0 };
-        } catch (error) {
-          console.error(`Error cargando stock para ${item.id}:`, error);
-          return { id: item.id, stock: 0 };
-        } finally {
-          setLoadingItems(prev => ({ ...prev, [item.id]: false }));
-        }
+      // Marcar items como cargando
+      const newLoadingItems = { ...loadingItems };
+      itemsToLoad.forEach(item => {
+        newLoadingItems[item.id] = true;
       });
+      setLoadingItems(newLoadingItems);
 
-      const stocks = await Promise.all(stockPromises);
-      setProductStocks(prev => {
-        const newStocks = { ...prev };
-        stocks.forEach(s => {
-          newStocks[s.id] = s.stock;
+      try {
+        const stockPromises = itemsToLoad.map(async (item) => {
+          try {
+            const producto = await obtenerProductoPorId(item.id);
+            return { id: item.id, stock: producto?.stock || 0 };
+          } catch (error) {
+            console.error(`Error cargando stock para ${item.id}:`, error);
+            return { id: item.id, stock: 0 };
+          }
         });
-        return newStocks;
-      });
+
+        const stocks = await Promise.all(stockPromises);
+        
+        setProductStocks(prev => {
+          const newStocks = { ...prev };
+          stocks.forEach(s => {
+            newStocks[s.id] = s.stock;
+          });
+          return newStocks;
+        });
+      } finally {
+        // Remover items de loading
+        setLoadingItems(prev => {
+          const updated = { ...prev };
+          itemsToLoad.forEach(item => {
+            delete updated[item.id];
+          });
+          return updated;
+        });
+      }
     };
 
-    if (show && cartItems.length > 0) {
-      loadProductStocks();
-    }
-  }, [show, cartItems]); // Removí productStocks de las dependencias para evitar loops
+    loadProductStocks();
+  }, [show, cartItems]);
 
-  // Normalizar items del carrito usando estado local para mejor rendimiento
+  // Normalizar items del carrito
   const normalizedCartItems = useMemo(() => {
-    return localCartItems.map(item => ({
+    return cartItems.map(item => ({
       id: item.id || item.productId,
       name: item.nombre || item.name || 'Producto sin nombre',
       price: Number(item.precio || item.price || 0),
-      quantity: Number(item.cantidad || item.quantity || 1),
+      quantity: Number(item.quantity || item.cantidad || 1),
       image: item.image || item.imagen || '/images/productos/default.png',
       category: item.categoriaNombre || item.categoryName || '',
       categoryId: item.categoriaId || item.categoryId || '',
       stock: productStocks[item.id] || item.stock || 0
     }));
-  }, [localCartItems, productStocks]);
+  }, [cartItems, productStocks]);
 
-  // Optimizar cálculo de totales con memoización más granular
+  // Optimizar cálculo de totales
   const subtotal = useMemo(() => {
     return normalizedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   }, [normalizedCartItems]);
@@ -161,61 +181,24 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     return Math.max(0, subtotal - totalDiscounts);
   }, [subtotal, totalDiscounts]);
 
-  // Optimizar manejo de cantidades con actualización local inmediata
+  // Manejo de cantidades simplificado
   const handleIncrement = useCallback((itemId, currentQuantity) => {
     const maxStock = productStocks[itemId] || 100;
     
     if (currentQuantity >= maxStock) return;
     
-    // Actualización local inmediata para mejor UX
     const newQuantity = currentQuantity + 1;
-    const updatedItems = localCartItems.map(item =>
-      item.id === itemId ? { ...item, quantity: newQuantity } : item
-    );
-    
-    // Actualizar estado local
-    setLocalCartItems(updatedItems);
-    
-    // Actualizar localStorage inmediatamente
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
-    
-    // Llamar a la función prop con un pequeño delay para evitar bloqueos
-    setTimeout(() => {
-      onUpdateQuantity(itemId, newQuantity);
-    }, 0);
-    
-    // Notificar a otros componentes
-    window.dispatchEvent(new Event('cartUpdated'));
-  }, [localCartItems, productStocks, onUpdateQuantity]);
+    updateCartQuantity(itemId, newQuantity);
+  }, [productStocks, updateCartQuantity]);
 
   const handleDecrement = useCallback((itemId, currentQuantity) => {
     if (currentQuantity <= 1) {
-      // Eliminar item
-      const updatedItems = localCartItems.filter(item => item.id !== itemId);
-      setLocalCartItems(updatedItems);
-      localStorage.setItem('cart', JSON.stringify(updatedItems));
-      window.dispatchEvent(new Event('cartUpdated'));
-      
-      setTimeout(() => {
-        onRemoveItem(itemId);
-      }, 0);
+      removeFromCart(itemId);
     } else {
-      // Decrementar cantidad
       const newQuantity = currentQuantity - 1;
-      const updatedItems = localCartItems.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      );
-      
-      setLocalCartItems(updatedItems);
-      localStorage.setItem('cart', JSON.stringify(updatedItems));
-      
-      setTimeout(() => {
-        onUpdateQuantity(itemId, newQuantity);
-      }, 0);
-      
-      window.dispatchEvent(new Event('cartUpdated'));
+      updateCartQuantity(itemId, newQuantity);
     }
-  }, [localCartItems, onUpdateQuantity, onRemoveItem]);
+  }, [updateCartQuantity, removeFromCart]);
 
   // Funciones para edición directa
   const startEditing = useCallback((item) => {
@@ -228,7 +211,7 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     setEditQuantity('');
   }, []);
 
-  const saveQuantity = useCallback(async (itemId) => {
+  const saveQuantity = useCallback((itemId) => {
     let newQuantity = parseInt(editQuantity) || 1;
     const maxStock = productStocks[itemId] || 100;
 
@@ -238,25 +221,14 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     }
 
     if (newQuantity < 1) {
-      handleDecrement(itemId, 1);
+      removeFromCart(itemId);
     } else {
-      const updatedItems = localCartItems.map(item =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      );
-      
-      setLocalCartItems(updatedItems);
-      localStorage.setItem('cart', JSON.stringify(updatedItems));
-      
-      setTimeout(() => {
-        onUpdateQuantity(itemId, newQuantity);
-      }, 0);
-      
-      window.dispatchEvent(new Event('cartUpdated'));
+      updateCartQuantity(itemId, newQuantity);
     }
 
     setEditingItemId(null);
     setEditQuantity('');
-  }, [editQuantity, productStocks, localCartItems, handleDecrement, onUpdateQuantity]);
+  }, [editQuantity, productStocks, updateCartQuantity, removeFromCart]);
 
   const handleQuantityKeyPress = useCallback((e, itemId) => {
     if (e.key === 'Enter') {
@@ -275,9 +247,17 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
   }, [show]);
 
   const handleProceedToCheckout = useCallback(() => {
+    console.log('CartOffCanvas: Intentando proceder al checkout con', cartItems.length, 'items');
+    
+    if (cartItems.length === 0) {
+      alert('Tu carrito está vacío. Agrega productos antes de proceder al pago.');
+      return;
+    }
+    
     onClose();
+    console.log('CartOffCanvas: Navegando a /checkout');
     navigate('/checkout');
-  }, [onClose, navigate]);
+  }, [onClose, navigate, cartItems.length]);
 
   return (
     <div
@@ -472,9 +452,10 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                 <button
                   className="btn proceed-payment-btn"
                   onClick={handleProceedToCheckout}
+                  disabled={cartItems.length === 0}
                 >
                   <i className="bi bi-credit-card me-2"></i>
-                  Proceder al Pago
+                  Proceder al Pago {cartItems.length > 0 ? `(${cartItems.length})` : ''}
                 </button>
                 <button className="btn continue-shopping-btn btn-outline-secondary" onClick={onClose}>
                   Continuar Comprando

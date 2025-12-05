@@ -1,20 +1,19 @@
+// components/Checkout/Checkout.jsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Container, Row, Col, Card, Breadcrumb, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useCartContext } from '../../context/CartContext';
 import CheckoutSummary from './CheckoutSummary';
 import ShippingInfo from './ShippingInfo';
 import PaymentMethod from './PaymentMethod';
 import OrderConfirmation from './OrderConfirmation';
 import { formatPrice } from '../../utils/formatters';
 import { calculateShippingCost } from '../../services/shippingService';
-import { obtenerProductoPorId } from '../../services/productService';
 import { calculateUserDiscounts } from '../../data/users';
 
 const Checkout = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [cartItems, setCartItems] = useState([]);
-  const [productStocks, setProductStocks] = useState({});
   const [orderData, setOrderData] = useState({
     shippingInfo: {},
     paymentMethod: '',
@@ -33,70 +32,39 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  // Normalizar items
-  const normalizeCartItem = useCallback((item) => ({
-    id: item.id || item.productId,
-    name: item.nombre || item.name || 'Producto sin nombre',
-    price: Number(item.precio || item.price || 0),
-    quantity: Number(item.cantidad || item.quantity || 1),
-    image: item.image || item.imagen || '/images/productos/default.png',
-    categoryName: item.categoriaNombre || item.categoryName || '',
-    stock: item.stock || 0,
-    maxStock: item.maxStock || 0
-  }), []);
+  // Usar el contexto del carrito
+  const {
+    cartItems,
+    updateCartQuantity,
+    removeFromCart,
+    clearCart,
+    productStocks,
+    isLoading: cartLoading
+  } = useCartContext();
 
-  // Cargar items y stock de manera optimizada
-  const loadCartItems = useCallback(async () => {
-    try {
-      const cart = JSON.parse(localStorage.getItem('cart')) || [];
-      const normalizedCart = cart.map(normalizeCartItem);
+  console.log('🔍 Checkout: Estado del carrito -', {
+    cartItems: cartItems.length,
+    cartLoading,
+    productStocks: Object.keys(productStocks).length
+  });
 
-      // Cargar stocks solo si hay cambios
-      const stockPromises = normalizedCart.map(async (item) => {
-        try {
-          const producto = await obtenerProductoPorId(item.id);
-          return { id: item.id, stock: producto?.stock || 0 };
-        } catch (error) {
-          console.error(`Error cargando stock para ${item.id}:`, error);
-          return { id: item.id, stock: 0 };
-        }
-      });
-
-      const stocks = await Promise.all(stockPromises);
-      const stockMap = {};
-      stocks.forEach(s => {
-        stockMap[s.id] = s.stock;
-      });
-
-      setCartItems(normalizedCart);
-      setProductStocks(stockMap);
-
-      if (normalizedCart.length === 0 && currentStep === 1) {
-        navigate('/productos');
-      }
-    } catch (error) {
-      console.error('Error al cargar carrito:', error);
-      setCartItems([]);
-    }
-  }, [normalizeCartItem, navigate, currentStep]);
-
-  // Cargar items inicialmente
+  // Redirigir si el carrito está vacío - PERO ESPERAR A QUE CARGUE
   useEffect(() => {
-    loadCartItems();
+    if (!cartLoading && cartItems.length === 0 && currentStep === 1 && !orderComplete) {
+      console.log('⚠️ Checkout: Carrito vacío después de cargar, redirigiendo');
+      navigate('/productos');
+    }
+  }, [cartItems, currentStep, orderComplete, navigate, cartLoading]);
 
-    const handleCartUpdate = () => {
-      loadCartItems();
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
-  }, [loadCartItems]);
-
-  // Calcular descuentos de manera optimizada
+  // Calcular descuentos
   useEffect(() => {
     const calculateDiscounts = async () => {
       if (currentUser && cartItems.length > 0) {
-        const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+        const subtotal = cartItems.reduce((total, item) => {
+          const price = item.precio || item.price || 0;
+          const quantity = item.quantity || item.cantidad || 1;
+          return total + (price * quantity);
+        }, 0);
 
         try {
           const discountResult = await calculateUserDiscounts(currentUser, subtotal, cartItems);
@@ -117,33 +85,40 @@ const Checkout = () => {
       }
     };
 
-    calculateDiscounts();
-  }, [cartItems, currentUser]);
+    if (!cartLoading) {
+      calculateDiscounts();
+    }
+  }, [cartItems, currentUser, cartLoading]);
 
-  // Calcular subtotal con useMemo
+  // Calcular subtotal
   const subtotal = useMemo(() => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  }, [cartItems]);
+    if (cartLoading) return 0;
+    
+    const total = cartItems.reduce((total, item) => {
+      const price = item.precio || item.price || 0;
+      const quantity = item.quantity || item.cantidad || 1;
+      return total + (price * quantity);
+    }, 0);
+    
+    console.log('🔍 Checkout: Subtotal calculado:', total);
+    return total;
+  }, [cartItems, cartLoading]);
 
-  // Calcular total con useMemo
+  // Calcular total
   const total = useMemo(() => {
-    return Math.max(0, subtotal - discountAmount + (hasRegionSelected ? shippingCost : 0));
-  }, [subtotal, discountAmount, shippingCost, hasRegionSelected]);
-
-  // Manejar envío
-  const handleShippingCostChange = useCallback((shippingData) => {
-    setShippingCost(shippingData.costo);
-    setShippingConfig(shippingData.config);
-    setIsShippingFree(shippingData.costo === 0);
-    setHasRegionSelected(!!shippingData.config);
-  }, []);
+    if (cartLoading) return 0;
+    
+    const calculatedTotal = Math.max(0, subtotal - discountAmount + (hasRegionSelected ? shippingCost : 0));
+    console.log('🔍 Checkout: Total calculado:', calculatedTotal);
+    return calculatedTotal;
+  }, [subtotal, discountAmount, shippingCost, hasRegionSelected, cartLoading]);
 
   // Calcular envío automático
   useEffect(() => {
     const calculateShipping = async () => {
       const regionId = orderData.shippingInfo?.region;
 
-      if (regionId) {
+      if (regionId && !cartLoading) {
         try {
           setIsShippingLoading(true);
           const shippingResult = await calculateShippingCost(regionId, subtotal);
@@ -168,43 +143,18 @@ const Checkout = () => {
       }
     };
 
-    calculateShipping();
-  }, [orderData.shippingInfo?.region, subtotal]);
-
-  // Funciones del carrito optimizadas
-  const updateCartQuantity = useCallback(async (productId, newQuantity) => {
-    try {
-      const producto = await obtenerProductoPorId(productId);
-      const maxStock = producto?.stock || 100;
-      const finalQuantity = Math.max(1, Math.min(newQuantity, maxStock));
-
-      const updatedItems = cartItems.map(item =>
-        item.id === productId ? {
-          ...item,
-          quantity: finalQuantity
-        } : item
-      ).filter(item => item.quantity > 0);
-
-      setCartItems(updatedItems);
-      localStorage.setItem('cart', JSON.stringify(updatedItems));
-      window.dispatchEvent(new Event('cartUpdated'));
-
-      // Actualizar stock localmente para mejor UX
-      setProductStocks(prev => ({
-        ...prev,
-        [productId]: maxStock
-      }));
-    } catch (error) {
-      console.error('Error actualizando cantidad:', error);
+    if (!cartLoading) {
+      calculateShipping();
     }
-  }, [cartItems]);
+  }, [orderData.shippingInfo?.region, subtotal, cartLoading]);
 
-  const removeFromCart = useCallback((productId) => {
-    const updatedItems = cartItems.filter(item => item.id !== productId);
-    setCartItems(updatedItems);
-    localStorage.setItem('cart', JSON.stringify(updatedItems));
-    window.dispatchEvent(new Event('cartUpdated'));
-  }, [cartItems]);
+  // Manejar envío
+  const handleShippingCostChange = useCallback((shippingData) => {
+    setShippingCost(shippingData.costo);
+    setShippingConfig(shippingData.config);
+    setIsShippingFree(shippingData.costo === 0);
+    setHasRegionSelected(!!shippingData.config);
+  }, []);
 
   // Navegación
   const handleNextStep = useCallback((data = {}) => {
@@ -217,13 +167,13 @@ const Checkout = () => {
   }, []);
 
   const handleOrderComplete = useCallback((orderId) => {
+    console.log('Checkout: Orden completada con ID:', orderId);
     setOrderComplete(true);
     setOrderNumber(orderId);
     setCurrentStep(4);
-    localStorage.removeItem('cart');
+    clearCart(); // Limpiar carrito después de completar la orden
     localStorage.removeItem('discountCode');
-    window.dispatchEvent(new Event('cartUpdated'));
-  }, []);
+  }, [clearCart]);
 
   // Steps
   const steps = [
@@ -232,6 +182,36 @@ const Checkout = () => {
     { number: 3, title: 'Pago', active: currentStep === 3, completed: currentStep > 3 },
     { number: 4, title: 'Confirmación', active: currentStep === 4, completed: currentStep > 4 }
   ];
+
+  // Mostrar loading mientras el carrito carga
+  if (cartLoading) {
+    return (
+      <Container className="checkout-container py-4">
+        <div className="text-center py-5">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Cargando carrito...</span>
+          </Spinner>
+          <p className="mt-3">Cargando tu carrito...</p>
+        </div>
+      </Container>
+    );
+  }
+
+  // Si el carrito está vacío después de cargar, ya se redirigió
+  if (cartItems.length === 0 && !orderComplete) {
+    return (
+      <Container className="checkout-container py-4">
+        <div className="text-center py-5">
+          <i className="bi bi-cart-x" style={{ fontSize: '3rem' }}></i>
+          <h4 className="mt-3">Tu carrito está vacío</h4>
+          <p className="text-muted">Serás redirigido a los productos...</p>
+          <Link to="/productos" className="btn btn-primary mt-3">
+            Ver Productos
+          </Link>
+        </div>
+      </Container>
+    );
+  }
 
   if (orderComplete) {
     return <OrderConfirmation orderNumber={orderNumber} orderData={orderData} />;
@@ -323,13 +303,13 @@ const Checkout = () => {
               <Card.Body>
                 <div className="order-items">
                   {cartItems.map(item => {
-                    const maxStock = productStocks[item.id] || item.maxStock || 100;
+                    const maxStock = productStocks[item.id] || item.stock || 100;
                     const stockAvailable = maxStock - item.quantity;
 
                     return (
-                      <div key={item.id} className="order-item d-flex justify-content-between align-items-center">
+                      <div key={item.id} className="order-item d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                         <div>
-                          <span className="fw-semibold">{item.quantity}x</span> {item.name}
+                          <span className="fw-semibold">{item.quantity}x</span> {item.nombre || item.name}
                           {stockAvailable <= 5 && stockAvailable > 0 && (
                             <small className="text-warning d-block">
                               <i className="bi bi-exclamation-triangle me-1"></i>
@@ -338,7 +318,7 @@ const Checkout = () => {
                           )}
                         </div>
                         <div className="text-end">
-                          <div>${formatPrice(item.price * item.quantity)}</div>
+                          <div>${formatPrice((item.precio || item.price || 0) * item.quantity)}</div>
                           {item.quantity > maxStock && (
                             <small className="text-danger d-block">
                               Stock máximo: {maxStock}

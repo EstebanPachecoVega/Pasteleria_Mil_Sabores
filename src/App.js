@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import Header from './components/layout/Header';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
@@ -34,23 +35,25 @@ import Blogs from './components/pages/Blogs';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            {/* Ruta de Admin SIN layout general */}
-            <Route path="/admin" element={
-              <AdminRoute>
-                <ProfileAdmin />
-              </AdminRoute>
-            } />
+      <CartProvider>
+        <Router>
+          <div className="main-content">
+            <Routes>
+              {/* Ruta de Admin SIN layout general */}
+              <Route path="/admin" element={
+                <AdminRoute>
+                  <ProfileAdmin />
+                </AdminRoute>
+              } />
 
-            {/* Todas las demás rutas CON layout general */}
-            <Route path="*" element={
-              <DefaultLayout />
-            } />
-          </Routes>
-        </div>
-      </Router>
+              {/* Todas las demás rutas CON layout general */}
+              <Route path="*" element={
+                <DefaultLayout />
+              } />
+            </Routes>
+          </div>
+        </Router>
+      </CartProvider>
     </AuthProvider>
   );
 }
@@ -67,7 +70,7 @@ function DefaultLayout() {
           <Route path="/" element={<Home />} />
           <Route path="/productos" element={<Productos />} />
           <Route path="/nosotros" element={<Nosotros />} />
-          <Route path="/blogs" element={<Blogs />} /> 
+          <Route path="/blogs" element={<Blogs />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/buscar" element={<SearchResults />} />
           <Route path="/producto/:productId" element={<ProductDetails />} />

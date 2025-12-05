@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useCartContext } from '../../context/CartContext';
 import { formatPrice } from '../../utils/formatters';
 
 const ProductCard = ({ product, onAddToCart }) => {
+  const { addToCart } = useCartContext();
+
   const nombreProducto = product.nombre || product.name || 'Sin nombre';
   const precioProducto = product.precio || product.price || 0;
   const stockProducto = product.stock || product.stock || 0;
@@ -10,39 +13,39 @@ const ProductCard = ({ product, onAddToCart }) => {
   const categoriaProducto = product.categoriaNombre || product.categoriaInfo?.nombre || product.categoria || 'Sin categoría';
   const activoProducto = product.activo !== false && product.active !== false;
   const destacadoProducto = product.destacado || product.featured || false;
-  
+
   const sinStock = stockProducto === 0 || !activoProducto;
-  
-  const manejarAgregarCarrito = (e) => {
+
+  // Manejar agregar al carrito
+  const manejarAgregarCarrito = async (e) => {
+    e.preventDefault(); // IMPORTANTE: Prevenir el comportamiento por defecto
+    e.stopPropagation(); // IMPORTANTE: Detener la propagación
+
     if (sinStock) {
-      e.preventDefault();
-      e.stopPropagation();
+      alert('Producto sin stock disponible.');
       return;
     }
 
-    e.stopPropagation();
-    e.preventDefault();
+    try {
+      // Usar el hook para agregar al carrito
+      const success = await addToCart(product, 1);
+      if (success) {
+        // Mostrar feedback visual
+        if (onAddToCart) onAddToCart(product);
 
-    const carrito = JSON.parse(localStorage.getItem('cart')) || [];
-    const itemExistente = carrito.find(item => item.id === product.id);
-
-    if (itemExistente) {
-      itemExistente.cantidad += 1;
-    } else {
-      carrito.push({ 
-        ...product, 
-        cantidad: 1,
-        nombre: nombreProducto,
-        precio: precioProducto,
-        stock: stockProducto,
-        destacado: destacadoProducto
-      });
+        // Opcional: Mostrar notificación
+        const event = new CustomEvent('showNotification', {
+          detail: {
+            message: `¡${product.nombre || product.name} agregado al carrito!`,
+            type: 'success'
+          }
+        });
+        window.dispatchEvent(event);
+      }
+    } catch (error) {
+      console.error('Error al agregar al carrito:', error);
+      alert('Error al agregar el producto al carrito.');
     }
-
-    localStorage.setItem('cart', JSON.stringify(carrito));
-    window.dispatchEvent(new Event('cartUpdated'));
-
-    if (onAddToCart) onAddToCart(product);
   };
 
   const manejarVerDetalles = (e) => {
@@ -56,17 +59,17 @@ const ProductCard = ({ product, onAddToCart }) => {
         className="text-decoration-none product-card-link w-100"
         style={{ color: 'inherit' }}
       >
-        <div 
+        <div
           className="card h-100 shadow-sm product-card d-flex flex-column"
-          style={{ 
+          style={{
             opacity: sinStock ? 0.6 : 1,
             position: 'relative'
           }}
         >
           {sinStock && (
-            <div 
+            <div
               className="position-absolute top-0 start-0 m-2 bg-danger text-white px-2 py-1 rounded"
-              style={{ 
+              style={{
                 zIndex: 1,
                 fontSize: '0.8rem',
                 fontWeight: 'bold'
@@ -77,9 +80,9 @@ const ProductCard = ({ product, onAddToCart }) => {
           )}
 
           {destacadoProducto && !sinStock && (
-            <div 
+            <div
               className="position-absolute top-0 end-0 m-2 bg-warning text-dark px-2 py-1 rounded"
-              style={{ 
+              style={{
                 zIndex: 1,
                 fontSize: '0.8rem',
                 fontWeight: 'bold'
@@ -111,6 +114,7 @@ const ProductCard = ({ product, onAddToCart }) => {
             <h5 className="product-title flex-grow-0">{nombreProducto}</h5>
             <div className="mt-auto">
               <p className="product-price mb-2">${formatPrice(precioProducto)}</p>
+              <small className="text-muted d-block mb-2">Stock: {stockProducto} unidades</small>
               <div className="d-flex gap-2">
                 <button
                   className={`btn flex-grow-1 add-to-cart ${sinStock ? 'btn-secondary' : 'add-cart-btn'}`}

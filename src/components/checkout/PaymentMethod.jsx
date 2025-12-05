@@ -23,13 +23,20 @@ const PaymentMethod = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Calcular subtotal
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Calcular subtotal CORREGIDO - usar item.precio || item.price
+  const subtotal = cartItems.reduce((total, item) => {
+    const price = item.precio || item.price || 0;
+    const quantity = item.quantity || item.cantidad || 1;
+    return total + (price * quantity);
+  }, 0);
 
   const handlePlaceOrder = async () => {
     setLoading(true);
     setError('');
-    console.log('🛒 Iniciando proceso de compra...');
+    console.log('🛒 PaymentMethod: Iniciando proceso de compra...');
+    console.log('🛒 PaymentMethod: orderData.shippingInfo:', orderData.shippingInfo);
+    console.log('🛒 PaymentMethod: cartItems:', cartItems.length, 'items');
+    console.log('🛒 PaymentMethod: shippingCost:', shippingCost);
 
     try {
       // Validaciones básicas antes de proceder
@@ -45,73 +52,100 @@ const PaymentMethod = ({
         throw new Error('El carrito está vacío');
       }
 
-      // Validación consistente con ShippingInfo
-      const requiredFields = ['primerNombre', 'primerApellido', 'email', 'telefono', 'region', 'comuna', 'nombreCalle', 'numeroCalle'];
-      const missingFields = requiredFields.filter(field => !orderData.shippingInfo[field]);
+      // Validación de shippingInfo - verificar nombres de campos reales
+      const shippingInfo = orderData.shippingInfo;
+      console.log('🛒 PaymentMethod: Campos en shippingInfo:', Object.keys(shippingInfo));
 
-      if (missingFields.length > 0) {
+      // Verificar campos requeridos (ajustar según los nombres reales)
+      const requiredFields = [
+        'nombre', 'apellido', 'email', 'telefono', 
+        'region', 'comuna', 'direccion', 'numero'
+      ];
+      
+      // Verificar campos alternativos
+      const hasRequiredFields = 
+        (shippingInfo.nombre || shippingInfo.primerNombre) &&
+        (shippingInfo.apellido || shippingInfo.primerApellido) &&
+        shippingInfo.email &&
+        shippingInfo.telefono &&
+        shippingInfo.region &&
+        shippingInfo.comuna &&
+        (shippingInfo.direccion || shippingInfo.nombreCalle) &&
+        (shippingInfo.numero || shippingInfo.numeroCalle);
+
+      if (!hasRequiredFields) {
+        console.error('🛒 PaymentMethod: Campos faltantes en shippingInfo:', shippingInfo);
         throw new Error('Falta información requerida de envío. Por favor completa todos los campos obligatorios.');
       }
 
       // Validar que shippingCost sea un número válido
-      if (isNaN(shippingCost) || shippingCost < 0) {
-        console.warn('⚠️ Costo de envío inválido, usando valor por defecto 0');
-      }
+      const finalShippingCost = isNaN(shippingCost) || shippingCost < 0 ? 0 : Number(shippingCost);
+      console.log('🛒 PaymentMethod: Costo de envío final:', finalShippingCost);
 
       // Actualizar stock de productos
-      console.log('📦 Descontando stock de productos...');
+      console.log('📦 PaymentMethod: Descontando stock de productos...');
       for (const item of cartItems) {
-        console.log(`➖ Producto: ${item.name}, Cantidad: ${item.quantity}`);
+        const productName = item.nombre || item.name || 'Producto sin nombre';
+        console.log(`➖ Producto: ${productName}, Cantidad: ${item.quantity}`);
+        
         try {
           await descontarStockProducto(item.id, item.quantity);
-          console.log(`✅ Stock actualizado: ${item.quantity} unidades de ${item.name}`);
+          console.log(`✅ Stock actualizado: ${item.quantity} unidades de ${productName}`);
         } catch (error) {
-          console.error(`❌ Error actualizando stock de ${item.name}:`, error);
+          console.error(`❌ Error actualizando stock de ${productName}:`, error);
           throw new Error(`${error.message}. No se pudo completar la compra.`);
         }
       }
 
-      console.log('✅ Todo el stock fue actualizado correctamente');
+      console.log('✅ PaymentMethod: Todo el stock fue actualizado correctamente');
 
       // Crear objeto de orden limpio
       const cleanCartItems = cartItems.map(item => ({
         id: item.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image,
-        categoryName: item.categoryName
+        name: item.nombre || item.name || 'Producto sin nombre',
+        price: item.precio || item.price || 0,
+        quantity: item.quantity || item.cantidad || 1,
+        image: item.image || item.imagen || '/images/placeholder.jpg',
+        categoryName: item.categoriaNombre || item.categoryName || ''
       }));
-
-      // Usar shippingInfo directamente
-      const shippingInfo = orderData.shippingInfo;
 
       // Generar un ID de orden compra personalizado
       const generateOrderId = (user) => {
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
         const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
-        const userPrefix = user ? user.id.slice(-4) : 'GUEST';
+        const userPrefix = user ? (user.id || 'USER').slice(-4) : 'GUEST';
         const random = Math.random().toString(36).substr(2, 4).toUpperCase();
 
         return `ORD-${dateStr}-${timeStr}-${userPrefix}-${random}`;
       };
 
       const customOrderId = generateOrderId(currentUser);
+      console.log('🛒 PaymentMethod: ID de orden generado:', customOrderId);
 
       if (!customOrderId) {
         throw new Error('No se pudo generar el ID de la orden');
       }
 
-      console.log('ID personalizado generado:', customOrderId);
+      // Preparar datos de envío para la orden
+      const orderShippingInfo = {
+        nombreCompleto: shippingInfo.nombreCompleto || 
+          `${shippingInfo.nombre || shippingInfo.primerNombre || ''} ${shippingInfo.apellido || shippingInfo.primerApellido || ''}`.trim(),
+        email: shippingInfo.email || '',
+        telefono: shippingInfo.telefono || '',
+        direccionCompleta: 
+          `${shippingInfo.direccion || shippingInfo.nombreCalle || ''} ${shippingInfo.numero || shippingInfo.numeroCalle || ''}`.trim(),
+        region: shippingInfo.regionName || shippingInfo.region || '',
+        comuna: shippingInfo.comunaName || shippingInfo.comuna || '',
+        tipoVivienda: shippingInfo.tipoViviendaName || shippingInfo.tipoVivienda || '',
+        codigoPostal: shippingInfo.codigoPostal || '',
+        notas: shippingInfo.notes || shippingInfo.notas || ''
+      };
 
-      // Usar shippingCost de las props
-      const finalShippingCost = isNaN(shippingCost) ? 0 : Number(shippingCost);
-
-      // Crear datos de orden consistentes
+      // Crear datos de orden
       const completeOrderData = {
         orderId: customOrderId,
-        shippingInfo: shippingInfo,
+        shippingInfo: orderShippingInfo,
         items: cleanCartItems,
         subtotal: subtotal,
         discountAmount: discountAmount || 0,
@@ -119,53 +153,62 @@ const PaymentMethod = ({
         total: total,
         discounts: userDiscounts || {},
         userId: currentUser?.id || '',
-        userName: currentUser?.name || shippingInfo.nombreCompleto || 'Cliente',
-        userEmail: currentUser?.email || shippingInfo.email || '',
+        userName: currentUser?.name || orderShippingInfo.nombreCompleto || 'Cliente',
+        userEmail: currentUser?.email || orderShippingInfo.email || '',
         paymentMethod: selectedPayment,
         status: 'confirmado',
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      console.log('Creando orden en Firebase...');
-      console.log('🔍 DEBUG - OrderData completo:', JSON.stringify(completeOrderData, null, 2));
+      console.log('🛒 PaymentMethod: Creando orden en Firebase...');
+      console.log('🛒 PaymentMethod: Datos de orden:', JSON.stringify(completeOrderData, null, 2));
 
-      const order = await createOrder(completeOrderData);
-      console.log('Orden creada exitosamente:', order.id);
+      // Crear la orden en Firebase
+      try {
+        const order = await createOrder(completeOrderData);
+        console.log('✅ PaymentMethod: Orden creada exitosamente:', order.id || customOrderId);
 
-      // Actualizar usuario localmente
-      if (currentUser && updateUser) {
-        try {
-          const userOrders = currentUser.orders || [];
-          const userOrder = {
-            id: customOrderId,
-            date: new Date().toISOString(),
-            items: cleanCartItems,
-            subtotal: subtotal,
-            discountAmount: discountAmount || 0,
-            shippingCost: finalShippingCost,
-            total: total,
-            status: 'confirmado',
-            shippingInfo: shippingInfo,
-            paymentMethod: selectedPayment
-          };
+        // Actualizar usuario localmente (opcional)
+        if (currentUser && updateUser) {
+          try {
+            const userOrders = currentUser.orders || [];
+            const userOrder = {
+              id: customOrderId,
+              date: new Date().toISOString(),
+              items: cleanCartItems,
+              subtotal: subtotal,
+              discountAmount: discountAmount || 0,
+              shippingCost: finalShippingCost,
+              total: total,
+              status: 'confirmado',
+              shippingInfo: orderShippingInfo,
+              paymentMethod: selectedPayment
+            };
 
-          userOrders.unshift(userOrder);
-          await updateUser({
-            ...currentUser,
-            orders: userOrders
-          });
-          console.log('Usuario actualizado con nueva orden');
-        } catch (userError) {
-          console.warn('Error al actualizar usuario local:', userError);
+            userOrders.unshift(userOrder);
+            await updateUser({
+              ...currentUser,
+              orders: userOrders
+            });
+            console.log('✅ PaymentMethod: Usuario actualizado con nueva orden');
+          } catch (userError) {
+            console.warn('⚠️ PaymentMethod: Error al actualizar usuario local:', userError);
+            // No fallar la orden por esto
+          }
         }
+
+        // Proceder a confirmación
+        console.log('✅ PaymentMethod: Orden completada, llamando onOrderComplete');
+        onOrderComplete(customOrderId);
+
+      } catch (firestoreError) {
+        console.error('❌ PaymentMethod: Error en createOrder:', firestoreError);
+        throw new Error(`Error al crear la orden en la base de datos: ${firestoreError.message}`);
       }
 
-      // Proceder a confirmación
-      onOrderComplete(customOrderId);
-
     } catch (error) {
-      console.error('❌ Error al crear la orden:', error);
+      console.error('❌ PaymentMethod: Error al crear la orden:', error);
       setError(error.message);
       setLoading(false);
     }
@@ -198,6 +241,13 @@ const PaymentMethod = ({
   // shippingCost seguro para display
   const displayShippingCost = isNaN(shippingCost) ? 0 : shippingCost;
 
+  // Preparar información para mostrar en la tarjeta de envío
+  const shippingInfo = orderData.shippingInfo || {};
+  const nombreCompleto = shippingInfo.nombreCompleto || 
+    `${shippingInfo.nombre || shippingInfo.primerNombre || ''} ${shippingInfo.apellido || shippingInfo.primerApellido || ''}`.trim();
+  const direccionCompleta = 
+    `${shippingInfo.direccion || shippingInfo.nombreCalle || ''} ${shippingInfo.numero || shippingInfo.numeroCalle || ''}`.trim();
+
   return (
     <div className="payment-method">
       <h4 className="mb-4">Método de Pago</h4>
@@ -221,25 +271,25 @@ const PaymentMethod = ({
           <Card.Body>
             <Row>
               <Col md={6}>
-                <p className="mb-1"><strong>Nombre:</strong> {orderData.shippingInfo.nombreCompleto}</p>
-                <p className="mb-1"><strong>Email:</strong> {orderData.shippingInfo.email}</p>
-                <p className="mb-1"><strong>Teléfono:</strong> {orderData.shippingInfo.telefono}</p>
+                <p className="mb-1"><strong>Nombre:</strong> {nombreCompleto}</p>
+                <p className="mb-1"><strong>Email:</strong> {shippingInfo.email}</p>
+                <p className="mb-1"><strong>Teléfono:</strong> {shippingInfo.telefono}</p>
               </Col>
               <Col md={6}>
                 <p className="mb-1"><strong>Dirección:</strong></p>
                 <p className="mb-0 small">
-                  {orderData.shippingInfo.nombreCalle} {orderData.shippingInfo.numeroCalle}
-                  {orderData.shippingInfo.tipoViviendaName && `, ${orderData.shippingInfo.tipoViviendaName}`}
-                  {orderData.shippingInfo.codigoPostal && `, Código Postal: ${orderData.shippingInfo.codigoPostal}`}
+                  {direccionCompleta}
+                  {shippingInfo.tipoViviendaName && `, ${shippingInfo.tipoViviendaName}`}
+                  {shippingInfo.codigoPostal && `, Código Postal: ${shippingInfo.codigoPostal}`}
                   <br />
-                  {orderData.shippingInfo.comunaName}, {orderData.shippingInfo.regionName}
+                  {shippingInfo.comunaName || shippingInfo.comuna}, {shippingInfo.regionName || shippingInfo.region}
                 </p>
               </Col>
             </Row>
-            {orderData.shippingInfo.notes && (
+            {(shippingInfo.notes || shippingInfo.notas) && (
               <Row className="mt-2">
                 <Col>
-                  <p className="mb-0"><strong>Notas:</strong> {orderData.shippingInfo.notes}</p>
+                  <p className="mb-0"><strong>Notas:</strong> {shippingInfo.notes || shippingInfo.notas}</p>
                 </Col>
               </Row>
             )}
@@ -383,14 +433,14 @@ const PaymentMethod = ({
               ) : (
                 <>
                   Confirmar Pedido
-                  <i className="bi bi-check-lg me-2"></i>
+                  <i className="bi bi-check-lg ms-2"></i>
                 </>
               )}
             </Button>
           </Col>
         </Row>
       </div>
-    </div >
+    </div>
   );
 };
 

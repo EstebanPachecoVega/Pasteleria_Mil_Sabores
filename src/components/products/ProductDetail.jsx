@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Container, Row, Col, Button, Breadcrumb, Badge, InputGroup, Alert, Spinner } from 'react-bootstrap';
 import { obtenerProductoPorId } from '../../data/products';
+import { useCartContext } from '../../context/CartContext';
 import { formatPrice, formatearCategoria } from '../../utils/formatters';
 
 const ProductDetails = () => {
@@ -11,31 +12,40 @@ const ProductDetails = () => {
   const [cargando, setCargando] = useState(true);
   const [imagenSeleccionada, setImagenSeleccionada] = useState(0);
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
-  const [cantidadCarrito, setCantidadCarrito] = useState(0);
   const [error, setError] = useState(null);
 
-  const cantidadMaxima = 100;
-  const disponibleParaAgregar = cantidadMaxima - cantidadCarrito;
-  const limiteAlcanzado = cantidadCarrito >= cantidadMaxima;
-  
+  // Contexto del carrito
+  const { cartItems, addToCart, getProductStock } = useCartContext();
+
+  // Buscar el producto en el carrito
+  const itemCarrito = cartItems.find(item => item.id === productId);
+  const cantidadCarrito = itemCarrito ? (itemCarrito.quantity || itemCarrito.cantidad || 0) : 0;
+
+  // Obtener stock actual del producto
+  const stockDisponible = getProductStock(productId) || producto?.stock || 0;
+
+  // Calcular cuánto se puede agregar (mínimo entre stock disponible y límite de 100)
+  const maximoPorAgregar = Math.min(stockDisponible, 100);
+  const disponibleParaAgregar = Math.max(0, maximoPorAgregar - cantidadCarrito);
+  const limiteAlcanzado = cantidadCarrito >= 100 || cantidadCarrito >= maximoPorAgregar;
+
   const nombreProducto = producto?.nombre || producto?.name || 'Sin nombre';
   const precioProducto = producto?.precio || producto?.price || 0;
-  const stockProducto = producto?.stock || producto?.stock || 0;
   const descripcionProducto = producto?.descripcion || producto?.description || 'Sin descripción';
   const categoriaProducto = formatearCategoria(producto?.categoriaNombre || producto?.categoriaInfo?.nombre || producto?.categoria || 'Sin categoría');
   const activoProducto = producto?.activo !== false && producto?.active !== false;
   const destacadoProducto = producto?.destacado || producto?.featured || false;
-  
-  const sinStock = stockProducto === 0 || !activoProducto;
+
+  const sinStock = stockDisponible === 0 || !activoProducto;
 
   useEffect(() => {
     const cargarProducto = async () => {
       try {
         setCargando(true);
         setError(null);
-        
+
         const productoEncontrado = await obtenerProductoPorId(productId);
-        
+
         setProducto(productoEncontrado);
       } catch (err) {
         console.error('Error cargando producto:', err);
@@ -48,64 +58,57 @@ const ProductDetails = () => {
     cargarProducto();
   }, [productId]);
 
-  useEffect(() => {
-    const actualizarCantidadCarrito = () => {
-      const carrito = JSON.parse(localStorage.getItem('cart')) || [];
-      const itemCarrito = carrito.find(item => item.id === productId);
-      setCantidadCarrito(itemCarrito ? itemCarrito.cantidad : 0);
-    };
-
-    actualizarCantidadCarrito();
-    window.addEventListener('cartUpdated', actualizarCantidadCarrito);
-
-    return () => {
-      window.removeEventListener('cartUpdated', actualizarCantidadCarrito);
-    };
-  }, [productId]);
-
-  const manejarAgregarCarrito = () => {
+  const manejarAgregarCarrito = async () => {
     if (!producto || limiteAlcanzado || sinStock) {
       return;
     }
 
-    const carrito = JSON.parse(localStorage.getItem('cart')) || [];
-    const itemExistente = carrito.find(item => item.id === producto.id);
-
-    if (itemExistente) {
-      const nuevaCantidad = itemExistente.cantidad + cantidad;
-      itemExistente.cantidad = Math.min(nuevaCantidad, cantidadMaxima);
-    } else {
-      carrito.push({ 
-        ...producto, 
-        cantidad: cantidad,
-        nombre: nombreProducto,
-        precio: precioProducto,
-        stock: stockProducto,
-        destacado: destacadoProducto
-      });
+    // Validar que la cantidad no exceda lo disponible
+    if (cantidad > disponibleParaAgregar) {
+      alert(`Solo puedes agregar ${disponibleParaAgregar} unidades más de este producto.`);
+      return;
     }
 
-    localStorage.setItem('cart', JSON.stringify(carrito));
-    window.dispatchEvent(new Event('cartUpdated'));
+    try {
+      // Usar el hook para agregar al carrito
+      const success = await addToCart(producto, cantidad);
 
-    setMostrarAlerta(true);
-    setTimeout(() => setMostrarAlerta(false), 3000);
+      if (success) {
+        setMostrarAlerta(true);
+        setTimeout(() => setMostrarAlerta(false), 3000);
+
+        // Actualizar la cantidad en el carrito para mostrar en tiempo real
+        const updatedCantidadCarrito = cantidadCarrito + cantidad;
+
+        // Opcional: Mostrar notificación
+        const event = new CustomEvent('showNotification', {
+          detail: {
+            message: `¡${cantidad} ${producto.nombre || producto.name} agregado(s) al carrito!`,
+            type: 'success'
+          }
+        });
+        window.dispatchEvent(event);
+      }
+    } catch (error) {
+      console.error('Error al agregar al carrito:', error);
+      alert('Error al agregar el producto al carrito. Por favor, intenta nuevamente.');
+    }
   };
 
   const imagenesProducto = React.useMemo(() => {
     if (!producto) {
       return [];
     }
-    
+
     if (producto.images && Array.isArray(producto.images) && producto.images.length > 0) {
       return producto.images;
     }
-    
+
     const imagenPrincipal = producto.image || producto.imagen;
     if (imagenPrincipal) {
       return [imagenPrincipal];
     }
-    
+
     return [];
   }, [producto]);
 
@@ -161,7 +164,7 @@ const ProductDetails = () => {
           <i className="bi bi-check-circle-fill me-2"></i>
           ¡{cantidad} {nombreProducto} agregado(s) al carrito!
           {cantidad > disponibleParaAgregar && (
-            <div className="small mt-1">Se ha alcanzado el límite máximo de 100 unidades</div>
+            <div className="small mt-1">Se ha alcanzado el límite máximo de {maximoPorAgregar} unidades</div>
           )}
         </Alert>
       )}
@@ -224,7 +227,7 @@ const ProductDetails = () => {
                 </Badge>
               ) : (
                 <Badge bg="success" className="stock-badge-detail me-2">
-                  Disponible
+                  Disponible ({stockDisponible} unidades)
                 </Badge>
               )}
               {destacadoProducto && (
@@ -293,7 +296,7 @@ const ProductDetails = () => {
                       </Button>
                     </InputGroup>
                     <div className="form-text text-center text-md-start mt-1 w-100">
-                      {sinStock ? 'Producto no disponible' : 'Máximo 100 unidades por producto'}
+                      {sinStock ? 'Producto no disponible' : `Máximo ${maximoPorAgregar} unidades (stock: ${stockDisponible})`}
                     </div>
                   </div>
                 </Col>
@@ -306,15 +309,15 @@ const ProductDetails = () => {
                       type="button"
                       onClick={manejarAgregarCarrito}
                       disabled={limiteAlcanzado || cantidad > disponibleParaAgregar || sinStock}
-                      style={{ 
+                      style={{
                         minWidth: '200px',
                         backgroundColor: sinStock ? '#6c757d' : '',
                         borderColor: sinStock ? '#6c757d' : ''
                       }}
                     >
                       <i className="bi bi-cart-plus me-2"></i>
-                      {sinStock ? 'PRODUCTO AGOTADO' : 
-                       limiteAlcanzado ? 'Límite alcanzado (100)' : `Añadir al Carrito (${cantidad})`}
+                      {sinStock ? 'PRODUCTO AGOTADO' :
+                        limiteAlcanzado ? 'Límite alcanzado' : `Añadir al Carrito (${cantidad})`}
                     </Button>
                   </div>
                 </Col>
@@ -326,16 +329,16 @@ const ProductDetails = () => {
                     {sinStock && (
                       <div className="text-danger">
                         <small>Este producto no está disponible actualmente.</small>
-                        {stockProducto === 0 && <div>Stock: 0 unidades</div>}
+                        {stockDisponible === 0 && <div>Stock: 0 unidades</div>}
                         {!activoProducto && <div>Producto desactivado</div>}
                       </div>
                     )}
                     {!sinStock && limiteAlcanzado && (
                       <div className="text-danger">
-                        <small>Has alcanzado el límite máximo de 100 unidades de este producto en el carrito.</small>
+                        <small>Has alcanzado el límite máximo de {maximoPorAgregar} unidades de este producto en el carrito.</small>
                       </div>
                     )}
-                    {!sinStock && !limiteAlcanzado && disponibleParaAgregar < cantidadMaxima && (
+                    {!sinStock && !limiteAlcanzado && cantidadCarrito > 0 && (
                       <div className="text-muted">
                         <small>Actualmente tienes {cantidadCarrito} en el carrito. Puedes agregar hasta {disponibleParaAgregar} más.</small>
                       </div>

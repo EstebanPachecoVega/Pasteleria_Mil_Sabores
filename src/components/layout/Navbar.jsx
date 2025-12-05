@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../../hooks/useSearch';
 import CartOffCanvas from '../cart/CartOffCanvas';
 import { useAuth } from '../../context/AuthContext';
+import { useCartContext } from '../../context/CartContext';
 import { formatearCategoria } from '../../utils/formatters';
 import '../../styles/components/cart.css';
 
@@ -10,10 +11,11 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { currentUser, logout } = useAuth();
   const [showCart, setShowCart] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [cartItems, setCartItems] = useState([]);
+
+  // Contexto del carrito
+  const { cartItems, cartCount, updateCartQuantity, removeFromCart } = useCartContext();
 
   const {
     searchTerm,
@@ -25,58 +27,6 @@ const Navbar = () => {
   const navigate = useNavigate();
   const searchRef = useRef(null);
   const inputRef = useRef(null);
-
-  // === FUNCIONES PARA EL CARRITO ===
-  const updateCartCount = () => {
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    const totalItems = cart.reduce((total, item) => total + (item.quantity || 1), 0);
-    setCartCount(totalItems);
-  };
-
-  const loadCart = () => {
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    setCartItems(cart);
-    updateCartCount();
-  };
-
-  const updateCartQuantity = (productId, newQuantity) => {
-    if (newQuantity < 1) return;
-
-    setCartItems(prevItems => {
-      const updatedItems = prevItems.map(item =>
-        item.id === productId ? { ...item, quantity: newQuantity } : item
-      ).filter(item => item.quantity > 0);
-
-      localStorage.setItem('cart', JSON.stringify(updatedItems));
-      window.dispatchEvent(new Event('cartUpdated'));
-      return updatedItems;
-    });
-  };
-
-  const removeFromCart = (productId) => {
-    setCartItems(prevItems => {
-      const updatedItems = prevItems.filter(item => item.id !== productId);
-      localStorage.setItem('cart', JSON.stringify(updatedItems));
-      window.dispatchEvent(new Event('cartUpdated'));
-      return updatedItems;
-    });
-  };
-
-  // === EFECTOS PRINCIPALES ===
-  useEffect(() => {
-    // Cargar estado inicial
-    loadCart();
-
-    // Configurar listener para actualizaciones del carrito
-    const handleCartUpdate = () => {
-      loadCart();
-    };
-
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    return () => {
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, []);
 
   // Detectar si es móvil
   useEffect(() => {
@@ -184,8 +134,8 @@ const Navbar = () => {
   };
 
   const handleLogout = () => {
-    logout(); // Esto limpia el contexto y localStorage
-    navigate('/'); // Redirige al home después del logout
+    logout();
+    navigate('/');
     if (isMobile) setIsMenuOpen(false);
   };
 
@@ -564,9 +514,6 @@ const Navbar = () => {
       <CartOffCanvas
         show={showCart}
         onClose={() => setShowCart(false)}
-        cartItems={cartItems}
-        onUpdateQuantity={updateCartQuantity}
-        onRemoveItem={removeFromCart}
       />
     </>
   );
