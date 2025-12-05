@@ -114,3 +114,14 @@ export const obtenerProductosPorCategoriaRuta = async (slugCategoria) => {
         return [];
     }
 };
+
+// Función auxiliar para obtener stock de producto (usada en Checkout)
+export const getProductStock = async (productId) => {
+    try {
+        const producto = await obtenerProductoPorIdDeFirebase(productId);
+        return producto?.stock || 0;
+    } catch (error) {
+        console.error(`Error obteniendo stock para ${productId}:`, error);
+        return 0;
+    }
+};

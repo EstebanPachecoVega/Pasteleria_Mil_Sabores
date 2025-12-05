@@ -710,20 +710,27 @@ const ShippingInfo = ({
           </Form.Group>
         )}
 
-        <div className="checkout-actions">
-          <Row>
-            <Col>
+        <div className="checkout-actions mt-4">
+          <Row className="g-3">
+            <Col xs={12} md={6}>
               <Button
+                className="continue-shopping-btn btn-outline-secondary w-100 py-2"
                 variant="outline-secondary"
                 onClick={onPreviousStep}
-                className="me-3"
+                size="lg"
               >
+                <i className="bi bi-arrow-left me-2"></i>
                 Volver al Resumen
               </Button>
+            </Col>
+
+            <Col xs={12} md={6}>
               <Button
-                type="submit"
-                className="checkout-btn-primary"
+                className="proceed-payment-btn w-100 py-2"
+                onClick={onNextStep}
                 disabled={loading.regions || loading.communes || loading.housing}
+                size="lg"
+                type ="submit"
               >
                 {loading.regions || loading.communes || loading.housing ? (
                   <>
@@ -731,14 +738,17 @@ const ShippingInfo = ({
                     Cargando...
                   </>
                 ) : (
-                  'Continuar con Pago'
+                  <>
+                    Continuar con Pago
+                    <i className="bi bi-credit-card ms-2"></i>
+                  </>
                 )}
               </Button>
             </Col>
           </Row>
         </div>
-      </Form>
-    </div>
+      </Form >
+    </div >
   );
 };
 

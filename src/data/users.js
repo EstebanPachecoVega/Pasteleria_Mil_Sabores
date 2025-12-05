@@ -1,4 +1,6 @@
-export const getSpecialDiscounts = (currentUser) => {
+import { obtenerProductoPorId } from '../services/productService';
+
+export const getSpecialDiscounts = async (currentUser) => {
   if (!currentUser) return {};
   
   const discounts = {
@@ -56,7 +58,7 @@ export const getSpecialDiscounts = (currentUser) => {
 };
 
 // Función para calcular descuentos del usuario
-export const calculateUserDiscounts = (currentUser, subtotal, cartItems = []) => {
+export const calculateUserDiscounts = async (currentUser, subtotal, cartItems = []) => {
   if (!currentUser) {
     return {
       specialDiscounts: {},
@@ -66,7 +68,7 @@ export const calculateUserDiscounts = (currentUser, subtotal, cartItems = []) =>
     };
   }
   
-  const specialDiscounts = getSpecialDiscounts(currentUser);
+  const specialDiscounts = await getSpecialDiscounts(currentUser);
   let discountAmount = 0;
   const discountDetails = [];
   
@@ -127,9 +129,7 @@ export const calculateUserDiscounts = (currentUser, subtotal, cartItems = []) =>
   };
 };
 
-// Funciones existentes
-export const users = JSON.parse(localStorage.getItem('users')) || [];
-
+// Funciones para manejar usuarios desde Firebase
 export const userTypes = {
   REGULAR: 'regular',
   PREMIUM: 'premium', 
@@ -145,55 +145,136 @@ export const userDiscounts = {
   SENIOR: 50 
 };
 
-// Crear usuario
-export const createUser = (userData) => {
-  const newUser = {
-    id: `USER-${Date.now()}`,
-    createdAt: new Date().toISOString(),
-    type: userTypes.REGULAR,
-    orders: [],
-    ...userData
-  };
-  
-  users.push(newUser);
-  localStorage.setItem('users', JSON.stringify(users));
-  return newUser;
-};
-
-// Buscar usuario por email
-export const findUserByEmail = (email) => {
-  return users.find(user => user.email === email);
-};
-
-// Buscar usuario por ID
-export const findUserById = (id) => {
-  return users.find(user => user.id === id);
-};
-
-// Actualizar usuario
-export const updateUser = (userId, updates) => {
-  const userIndex = users.findIndex(user => user.id === userId);
-  if (userIndex !== -1) {
-    users[userIndex] = { ...users[userIndex], ...updates };
-    localStorage.setItem('users', JSON.stringify(users));
-    return users[userIndex];
+// Cargar usuario por email desde Firebase
+export const loadUserByEmail = async (email) => {
+  try {
+    const { findUserByEmail } = await import('../services/firestoreService');
+    return await findUserByEmail(email);
+  } catch (error) {
+    console.error('Error cargando usuario por email:', error);
+    return null;
   }
-  return null;
 };
 
-// Agregar pedido al usuario
-export const addOrderToUser = (userId, order) => {
-  const user = findUserById(userId);
-  if (user) {
-    if (!user.orders) user.orders = [];
-    user.orders.unshift(order);    
-    updateUser(userId, user);
-    return user;
+// Cargar usuario por ID desde Firebase
+export const loadUserById = async (id) => {
+  try {
+    const { findUserById } = await import('../services/firestoreService');
+    return await findUserById(id);
+  } catch (error) {
+    console.error('Error cargando usuario por ID:', error);
+    return null;
   }
-  return null;
+};
+
+// Crear usuario en Firebase
+export const createNewUser = async (userData) => {
+  try {
+    const { addUser } = await import('../services/firestoreService');
+    const newUser = {
+      id: `USER-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      type: userTypes.REGULAR,
+      orders: [],
+      ...userData
+    };
+    
+    const result = await addUser(newUser);
+    return result;
+  } catch (error) {
+    console.error('Error creando usuario en Firebase:', error);
+    throw error;
+  }
 };
 
 // Obtener descuento por tipo de usuario
 export const getUserDiscount = (userType) => {
   return userDiscounts[userType] || 0;
+};
+
+// Cargar productos para el carrito con stock actualizado
+export const loadProductsWithStock = async (cartItems) => {
+  try {
+    const productsWithStock = [];
+    
+    for (const item of cartItems) {
+      try {
+        const producto = await obtenerProductoPorId(item.id);
+        productsWithStock.push({
+          ...item,
+          stock: producto?.stock || 0,
+          maxStock: producto?.stock || 0
+        });
+      } catch (error) {
+        console.error(`Error cargando stock para ${item.id}:`, error);
+        productsWithStock.push({
+          ...item,
+          stock: 0,
+          maxStock: 0
+        });
+      }
+    }
+    
+    return productsWithStock;
+  } catch (error) {
+    console.error('Error cargando productos con stock:', error);
+    return cartItems;
+  }
+};
+
+// Función auxiliar para calcular edad
+export const calculateUserAge = (birthDateString) => {
+  if (!birthDateString) return 0;
+  
+  const birthDate = new Date(birthDateString);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+};
+
+// Función auxiliar para verificar si es cumpleaños
+export const isUserBirthdayToday = (birthDateString) => {
+  if (!birthDateString) return false;
+  
+  const birthDate = new Date(birthDateString);
+  const today = new Date();
+  
+  return today.getMonth() === birthDate.getMonth() && 
+         today.getDate() === birthDate.getDate();
+};
+
+// Función para actualizar usuario localmente (para compatibilidad)
+export const updateUserData = async (userId, updates) => {
+  try {
+    const { updateUser } = await import('../services/firestoreService');
+    return await updateUser(userId, updates);
+  } catch (error) {
+    console.error('Error actualizando usuario:', error);
+    return null;
+  }
+};
+
+// Función para agregar orden al usuario
+export const addOrderToUserData = async (userId, order) => {
+  try {
+    const user = await loadUserById(userId);
+    if (user) {
+      if (!user.orders) user.orders = [];
+      user.orders.unshift(order);
+      
+      // Actualizar en Firebase
+      const { updateUser } = await import('../services/firestoreService');
+      return await updateUser(userId, { orders: user.orders });
+    }
+    return null;
+  } catch (error) {
+    console.error('Error agregando orden al usuario:', error);
+    return null;
+  }
 };

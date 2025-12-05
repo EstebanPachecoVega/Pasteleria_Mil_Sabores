@@ -353,21 +353,25 @@ const PaymentMethod = ({
         </Card>
       )}
 
-      <div className="checkout-actions">
-        <Row>
-          <Col>
+      <div className="checkout-actions mt-4">
+        <Row className="g-3">
+          <Col xs={12} md={6}>
             <Button
+              className="continue-shopping-btn btn-outline-secondary w-100 py-2"
               variant="outline-secondary"
               onClick={onPreviousStep}
-              className="me-3"
               disabled={loading}
+              size="lg"
             >
               <i className="bi bi-arrow-left me-2"></i>
               Volver a Envío
             </Button>
+          </Col>
+
+          <Col xs={12} md={6} className="text-md-end">
             <Button
               onClick={handlePlaceOrder}
-              className="checkout-btn-primary"
+              className="proceed-payment-btn w-100 py-2"
               disabled={loading}
               size="lg"
             >
@@ -378,15 +382,15 @@ const PaymentMethod = ({
                 </>
               ) : (
                 <>
-                  <i className="bi bi-check-lg me-2"></i>
                   Confirmar Pedido
+                  <i className="bi bi-check-lg me-2"></i>
                 </>
               )}
             </Button>
           </Col>
         </Row>
       </div>
-    </div>
+    </div >
   );
 };
 

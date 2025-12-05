@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Button, Card, Spinner } from 'react-bootstrap';
+import { Row, Col, Button, Card, Spinner, Badge } from 'react-bootstrap';
 import { formatPrice } from '../../utils/formatters';
 
 const CheckoutSummary = ({
@@ -12,109 +12,242 @@ const CheckoutSummary = ({
   total,
   discountAmount,
   userDiscounts = {},
+  discountDetails = [],
+  productStocks = {},
   shippingConfig,
   hasRegionSelected,
   isShippingLoading
 }) => {
+
+  const handleIncrement = (itemId, currentQuantity) => {
+    const maxStock = productStocks[itemId] || 100;
+    if (currentQuantity < maxStock) {
+      onUpdateQuantity(itemId, currentQuantity + 1);
+    }
+  };
+
+  const handleDecrement = (itemId, currentQuantity) => {
+    if (currentQuantity > 1) {
+      onUpdateQuantity(itemId, currentQuantity - 1);
+    } else {
+      onRemoveItem(itemId);
+    }
+  };
+
+  const hasOverStock = cartItems.some(item =>
+    item.quantity > (productStocks[item.id] || 100)
+  );
+
   return (
     <div className="checkout-summary">
       <h4 className="mb-4">Resumen de tu Pedido</h4>
 
-      {/* DESCUENTOS - SOLO SI HAY */}
+      {/* DESCUENTOS */}
       {discountAmount > 0 && (
         <Card className="mb-3 border-success">
-          <Card.Body>
-            <div className="d-flex justify-content-between align-items-center">
-              <div className="text-success">
-                <i className="bi bi-tag-fill me-2"></i>
-                <strong>Descuentos Aplicados</strong>
+          <Card.Body className="p-2 p-md-3">
+            <div className="d-flex align-items-center justify-content-between mb-1 mb-md-2">
+              <div className="d-flex align-items-center">
+                <i className="bi bi-tag-fill text-success fs-5 me-2"></i>
+                <h6 className="mb-0 text-success d-none d-md-block">Descuentos Aplicados</h6>
+                <small className="mb-0 text-success d-md-none">Descuentos</small>
               </div>
-              <div className="text-success fw-bold">-${formatPrice(discountAmount)}</div>
+              <Badge bg="success" className="fs-6">
+                -${formatPrice(discountAmount)}
+              </Badge>
             </div>
-            <div className="mt-2">
-              {userDiscounts.seniorDiscount && (
-                <div className="small text-success">
-                  <i className="bi bi-coin me-1"></i> 50% descuento (Mayor de 50 años)
-                </div>
-              )}
-              {userDiscounts.codeDiscount && (
-                <div className="small text-success">
-                  <i className="bi bi-tag me-1"></i> 10% descuento (Código FELICES50)
-                </div>
-              )}
-              {userDiscounts.birthdayDiscount && (
-                <div className="small text-success">
-                  <i className="bi bi-gift me-1"></i> Torta gratis (Cumpleaños)
-                </div>
-              )}
-            </div>
+
+            {discountDetails.length > 0 && (
+              <div className="small text-success">
+                <i className="bi bi-check-circle me-1"></i>
+                {discountDetails[0]}
+                {discountDetails.length > 1 && (
+                  <span className="ms-1 d-none d-md-inline">+ {discountDetails.length - 1} más</span>
+                )}
+              </div>
+            )}
           </Card.Body>
         </Card>
       )}
 
       <div className="cart-items mb-4">
-        {cartItems.map(item => (
-          <Card key={item.id} className="mb-3">
+        {cartItems.length === 0 ? (
+          <Card className="text-center py-4 py-md-5">
             <Card.Body>
-              <Row className="align-items-center">
-                <Col md={2}>
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="img-fluid rounded"
-                    style={{ width: '60px', height: '60px', objectFit: 'cover' }}
-                  />
-                </Col>
-                <Col md={4}>
-                  <h6 className="mb-1">{item.name}</h6>
-                  <small className="text-muted">${formatPrice(item.price)} c/u</small>
-                </Col>
-                <Col md={3}>
-                  <div className="d-flex align-items-center">
-                    <Button
-                      variant="outline-secondary"
-                      size="sm"
-                      onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                      disabled={item.quantity <= 1}
-                    >
-                      -
-                    </Button>
-                    <span className="mx-3 fw-bold">{item.quantity}</span>
-                    <Button
-                      variant="outline-secondary"
-                      size="sm"
-                      onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                    >
-                      +
-                    </Button>
-                  </div>
-                </Col>
-                <Col md={2} className="text-end">
-                  <strong>${formatPrice(item.price * item.quantity)}</strong>
-                </Col>
-                <Col md={1}>
-                  <Button
-                    variant="outline-danger"
-                    size="sm"
-                    onClick={() => onRemoveItem(item.id)}
-                  >
-                    <i className="bi bi-trash"></i>
-                  </Button>
-                </Col>
-              </Row>
+              <i className="bi bi-cart-x text-muted" style={{ fontSize: '2.5rem' }}></i>
+              <h5 className="mt-3">Tu carrito está vacío</h5>
+              <p className="text-muted mb-0">Agrega productos para continuar con la compra.</p>
             </Card.Body>
           </Card>
-        ))}
+        ) : (
+          cartItems.map(item => {
+            const maxStock = productStocks[item.id] || item.maxStock || 100;
+            const stockAvailable = maxStock - item.quantity;
+            const isOverStock = item.quantity > maxStock;
+
+            return (
+              <Card key={item.id} className="mb-3">
+                <Card.Body className="p-2 p-md-3">
+                  {/* MÓVIL - Layout apilado */}
+                  <div className="d-md-none">
+                    <div className="d-flex align-items-start mb-3">
+                      <div className="me-3 flex-shrink-0">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="img-fluid rounded"
+                          style={{ width: '70px', height: '70px', objectFit: 'cover' }}
+                        />
+                      </div>
+                      <div className="flex-grow-1">
+                        <h6 className="mb-1">{item.name}</h6>
+                        <div className="mb-2">
+                          <small className="text-muted">${formatPrice(item.price)} c/u</small>
+                        </div>
+                        <div className="mb-3">
+                          <small className={stockAvailable <= 5 ? 'text-warning' : 'text-muted'}>
+                            Stock: {maxStock} unidades
+                          </small>
+                          {isOverStock && (
+                            <small className="text-danger d-block">
+                              <i className="bi bi-exclamation-triangle me-1"></i>
+                              Excede stock disponible
+                            </small>
+                          )}
+                        </div>
+
+                        <div className="d-flex align-items-center justify-content-between">
+                          <div className="d-flex align-items-center">
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="px-3 py-1"
+                              onClick={() => handleDecrement(item.id, item.quantity)}
+                              disabled={item.quantity <= 1}
+                            >
+                              -
+                            </Button>
+                            <span className="mx-3 fw-bold">{item.quantity}</span>
+                            <Button
+                              variant="outline-secondary"
+                              size="sm"
+                              className="px-3 py-1"
+                              onClick={() => handleIncrement(item.id, item.quantity)}
+                              disabled={item.quantity >= maxStock}
+                            >
+                              +
+                            </Button>
+                          </div>
+                          <div className="text-end">
+                            <div className="fw-bold mb-1">${formatPrice(item.price * item.quantity)}</div>
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              className="px-2 py-1"
+                              onClick={() => onRemoveItem(item.id)}
+                            >
+                              <i className="bi bi-trash"></i>
+                            </Button>
+                          </div>
+                        </div>
+
+                        {stockAvailable <= 5 && stockAvailable > 0 && (
+                          <small className="text-warning d-block mt-2 text-center">
+                            <i className="bi bi-exclamation-triangle me-1"></i>
+                            Solo {stockAvailable} disponible(s)
+                          </small>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* DESKTOP - Layout en fila */}
+                  <Row className="d-none d-md-flex align-items-center">
+                    <Col md={2}>
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="img-fluid rounded"
+                        style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                      />
+                    </Col>
+                    <Col md={4}>
+                      <h6 className="mb-1">{item.name}</h6>
+                      <div className="d-flex align-items-center">
+                        <small className="text-muted me-2">${formatPrice(item.price)} c/u</small>
+                      </div>
+                      <div className="mt-1">
+                        <small className={stockAvailable <= 5 ? 'text-warning' : 'text-muted'}>
+                          Stock disponible: {maxStock} unidades
+                        </small>
+                        {isOverStock && (
+                          <small className="text-danger d-block">
+                            <i className="bi bi-exclamation-triangle me-1"></i>
+                            Excede stock disponible
+                          </small>
+                        )}
+                      </div>
+                    </Col>
+                    <Col md={3}>
+                      <div className="d-flex flex-column align-items-center">
+                        <div className="d-flex align-items-center justify-content-center mb-1">
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="px-2 py-1"
+                            onClick={() => handleDecrement(item.id, item.quantity)}
+                            disabled={item.quantity <= 1}
+                          >
+                            -
+                          </Button>
+                          <span className="mx-2 fw-bold">{item.quantity}</span>
+                          <Button
+                            variant="outline-secondary"
+                            size="sm"
+                            className="px-2 py-1"
+                            onClick={() => handleIncrement(item.id, item.quantity)}
+                            disabled={item.quantity >= maxStock}
+                          >
+                            +
+                          </Button>
+                        </div>
+                        {stockAvailable <= 5 && stockAvailable > 0 && (
+                          <small className="text-warning text-center">
+                            <i className="bi bi-exclamation-triangle me-1"></i>
+                            Solo {stockAvailable} disponible(s)
+                          </small>
+                        )}
+                      </div>
+                    </Col>
+                    <Col md={2} className="text-end">
+                      <div className="fw-bold">${formatPrice(item.price * item.quantity)}</div>
+                    </Col>
+                    <Col md={1} className="text-end">
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        className="px-2 py-1"
+                        onClick={() => onRemoveItem(item.id)}
+                      >
+                        <i className="bi bi-trash"></i>
+                      </Button>
+                    </Col>
+                  </Row>
+                </Card.Body>
+              </Card>
+            );
+          })
+        )}
       </div>
 
       {/* RESUMEN */}
-      <Card className="bg-light">
-        <Card.Body>
+      <Card className="order-summary-card">
+        <Card.Body className="p-3">
           <div className="d-flex justify-content-between mb-2">
             <span>Subtotal:</span>
             <span>${formatPrice(subtotal)}</span>
           </div>
-          
+
           {discountAmount > 0 && (
             <div className="d-flex justify-content-between mb-2 text-success">
               <span>Descuentos:</span>
@@ -133,9 +266,16 @@ const CheckoutSummary = ({
           ) : hasRegionSelected ? (
             <div className="d-flex justify-content-between mb-2">
               <span>Envío:</span>
-              <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
+              <span className={shippingCost === 0 ? 'text-success fw-bold' : ''}>
+                {shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}
+              </span>
             </div>
-          ) : null}
+          ) : (
+            <div className="d-flex justify-content-between mb-2 text-muted">
+              <span>Envío:</span>
+              <small>Se calculará al seleccionar región</small>
+            </div>
+          )}
 
           <hr />
           <div className="d-flex justify-content-between fw-bold fs-5">
@@ -146,18 +286,40 @@ const CheckoutSummary = ({
       </Card>
 
       <div className="checkout-actions mt-4">
-        <Row>
-          <Col className="text-end">
+        <Row className="g-3">
+          <Col xs={12} md={6}>
             <Button
-              className="checkout-btn-primary"
-              onClick={onNextStep}
-              disabled={cartItems.length === 0}
+              className="continue-shopping-btn btn-outline-secondary w-100 py-2"
+              variant="outline-secondary"
+              onClick={() => window.history.back()}
               size="lg"
             >
-              {cartItems.length === 0 ? 'Carrito Vacío' : 'Continuar con Envío'}
+              <i className="bi bi-arrow-left me-2"></i>
+              Volver / Continuar Comprando
+            </Button>
+          </Col>
+
+          <Col xs={12} md={6}>
+            <Button
+              className="proceed-payment-btn w-100 py-2"
+              onClick={onNextStep}
+              disabled={cartItems.length === 0 || hasOverStock}
+              size="lg"
+            >
+              {hasOverStock ? 'Ajusta cantidades' : cartItems.length === 0 ? 'Carrito Vacío' : 'Continuar con Envío'}
+              <i className="bi bi-truck ms-2"></i>
             </Button>
           </Col>
         </Row>
+
+        {hasOverStock && (
+          <div className="mt-3 text-center">
+            <small className="text-warning">
+              <i className="bi bi-exclamation-triangle me-1"></i>
+              Algunos productos exceden el stock disponible
+            </small>
+          </div>
+        )}
       </div>
     </div>
   );
