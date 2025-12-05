@@ -11,7 +11,7 @@ const CheckoutSummary = ({
   shippingCost,
   total,
   discountAmount,
-  userDiscounts,
+  userDiscounts = {},
   shippingConfig,
   hasRegionSelected,
   isShippingLoading
@@ -20,18 +20,33 @@ const CheckoutSummary = ({
     <div className="checkout-summary">
       <h4 className="mb-4">Resumen de tu Pedido</h4>
 
-      {/* Mostrar descuentos aplicados */}
+      {/* DESCUENTOS - SOLO SI HAY */}
       {discountAmount > 0 && (
         <Card className="mb-3 border-success">
-          <Card.Body className="py-2">
-            <div className="d-flex justify-content-between align-items-center text-success">
-              <div>
+          <Card.Body>
+            <div className="d-flex justify-content-between align-items-center">
+              <div className="text-success">
                 <i className="bi bi-tag-fill me-2"></i>
-                <strong>Descuentos aplicados:</strong>
-                {userDiscounts.seniorDiscount && <span className="ms-2">50% (Mayor de 50 años)</span>}
-                {userDiscounts.codeDiscount && <span className="ms-2">10% (Código promocional)</span>}
+                <strong>Descuentos Aplicados</strong>
               </div>
-              <strong>-${formatPrice(discountAmount)}</strong>
+              <div className="text-success fw-bold">-${formatPrice(discountAmount)}</div>
+            </div>
+            <div className="mt-2">
+              {userDiscounts.seniorDiscount && (
+                <div className="small text-success">
+                  <i className="bi bi-coin me-1"></i> 50% descuento (Mayor de 50 años)
+                </div>
+              )}
+              {userDiscounts.codeDiscount && (
+                <div className="small text-success">
+                  <i className="bi bi-tag me-1"></i> 10% descuento (Código FELICES50)
+                </div>
+              )}
+              {userDiscounts.birthdayDiscount && (
+                <div className="small text-success">
+                  <i className="bi bi-gift me-1"></i> Torta gratis (Cumpleaños)
+                </div>
+              )}
             </div>
           </Card.Body>
         </Card>
@@ -59,7 +74,7 @@ const CheckoutSummary = ({
                     <Button
                       variant="outline-secondary"
                       size="sm"
-                      onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                      onClick={() => onUpdateQuantity(item.id, Math.max(1, item.quantity - 1))}
                       disabled={item.quantity <= 1}
                     >
                       -
@@ -92,13 +107,14 @@ const CheckoutSummary = ({
         ))}
       </div>
 
-      {/* Resumen de totales */}
+      {/* RESUMEN */}
       <Card className="bg-light">
         <Card.Body>
           <div className="d-flex justify-content-between mb-2">
             <span>Subtotal:</span>
             <span>${formatPrice(subtotal)}</span>
           </div>
+          
           {discountAmount > 0 && (
             <div className="d-flex justify-content-between mb-2 text-success">
               <span>Descuentos:</span>
@@ -106,7 +122,6 @@ const CheckoutSummary = ({
             </div>
           )}
 
-          {/* Mostrar loading, envío o nada según estado */}
           {isShippingLoading ? (
             <div className="d-flex justify-content-between mb-2">
               <span>Envío:</span>
@@ -116,23 +131,10 @@ const CheckoutSummary = ({
               </span>
             </div>
           ) : hasRegionSelected ? (
-            <>
-              <div className="d-flex justify-content-between mb-2">
-                <span>Envío:</span>
-                <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
-              </div>
-
-              {shippingConfig && (
-                <div className={`small mb-2 ${shippingCost === 0 ? 'text-success' : 'text-muted'}`}>
-                  <i className={`${shippingConfig.icon} me-1`}></i>
-                  {shippingCost === 0 ? (
-                    `¡Envío GRATIS para ${shippingConfig.name}!`
-                  ) : (
-                    `Envío ${shippingConfig.name} - Gratis desde $${formatPrice(shippingConfig.costoGratisDesde)}`
-                  )}
-                </div>
-              )}
-            </>
+            <div className="d-flex justify-content-between mb-2">
+              <span>Envío:</span>
+              <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
+            </div>
           ) : null}
 
           <hr />
@@ -150,8 +152,9 @@ const CheckoutSummary = ({
               className="checkout-btn-primary"
               onClick={onNextStep}
               disabled={cartItems.length === 0}
+              size="lg"
             >
-              Continuar con Envío
+              {cartItems.length === 0 ? 'Carrito Vacío' : 'Continuar con Envío'}
             </Button>
           </Col>
         </Row>

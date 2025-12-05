@@ -23,8 +23,8 @@ const PaymentMethod = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Usar subtotal calculado desde Checkout
-  const subtotal = total + discountAmount - (hasRegionSelected ? shippingCost : 0);
+  // Calcular subtotal
+  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
   const handlePlaceOrder = async () => {
     setLoading(true);
@@ -79,7 +79,8 @@ const PaymentMethod = ({
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        image: item.image
+        image: item.image,
+        categoryName: item.categoryName
       }));
 
       // Usar shippingInfo directamente

@@ -3,45 +3,83 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { calculateUserDiscounts } from '../../data/users';
 import { formatPrice } from '../../utils/formatters';
+import { obtenerProductoPorId } from '../../services/productService';
 
 const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveItem }) => {
   const [discountCode, setDiscountCode] = useState('');
   const [discountMessage, setDiscountMessage] = useState('');
-  const [appliedDiscounts, setAppliedDiscounts] = useState({
-    age: false,
-    code: false,
-    birthday: false
-  });
+  const [productStocks, setProductStocks] = useState({});
+  const [loadingStocks, setLoadingStocks] = useState({});
 
   const [editingItemId, setEditingItemId] = useState(null);
   const [editQuantity, setEditQuantity] = useState('');
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  // Calcular totales con useMemo para optimización
+  // Cargar stocks de productos
+  useEffect(() => {
+    const loadProductStocks = async () => {
+      const stockPromises = cartItems.map(async (item) => {
+        try {
+          const producto = await obtenerProductoPorId(item.id);
+          return { id: item.id, stock: producto?.stock || 0 };
+        } catch (error) {
+          console.error(`Error cargando stock para ${item.id}:`, error);
+          return { id: item.id, stock: 0 };
+        }
+      });
+
+      const stocks = await Promise.all(stockPromises);
+      const stockMap = {};
+      stocks.forEach(s => {
+        stockMap[s.id] = s.stock;
+      });
+      setProductStocks(stockMap);
+    };
+
+    if (show && cartItems.length > 0) {
+      loadProductStocks();
+    }
+  }, [show, cartItems]);
+
+  // Normalizar items del carrito
+  const normalizedCartItems = useMemo(() => {
+    return cartItems.map(item => ({
+      id: item.id || item.productId,
+      name: item.nombre || item.name || 'Producto sin nombre',
+      price: Number(item.precio || item.price || 0),
+      quantity: Number(item.cantidad || item.quantity || 1),
+      image: item.image || item.imagen || '/images/productos/default.png',
+      category: item.categoriaNombre || item.categoryName || '',
+      categoryId: item.categoriaId || item.categoryId || '',
+      stock: productStocks[item.id] || item.stock || 0
+    }));
+  }, [cartItems, productStocks]);
+
+  // Calcular totales con useMemo
   const { subtotal, ageDiscount, codeDiscount, birthdayDiscount, totalDiscounts, total } = useMemo(() => {
-    const subtotalValue = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const subtotalValue = normalizedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
     
-    // NUEVO: Calcular descuentos basados en el usuario
-    const userDiscounts = currentUser ? calculateUserDiscounts(currentUser, subtotalValue) : { specialDiscounts: {} };
+    // Calcular descuentos
+    const userDiscounts = currentUser ? calculateUserDiscounts(currentUser, subtotalValue, normalizedCartItems) : { specialDiscounts: {} };
     
     const ageDiscountValue = userDiscounts.specialDiscounts?.seniorDiscount ? subtotalValue * 0.5 : 0;
     const codeDiscountValue = userDiscounts.specialDiscounts?.codeDiscount ? subtotalValue * 0.1 : 0;
     
-    // Calcular descuento de torta gratis para cumpleaños
+    // Descuento de torta gratis
     let birthdayDiscountValue = 0;
     if (userDiscounts.specialDiscounts?.birthdayDiscount) {
-      const cake = cartItems.find(item => 
-        item.category.includes('tortas') || 
+      const cake = normalizedCartItems.find(item => 
+        item.category?.toLowerCase().includes('torta') || 
         item.name.toLowerCase().includes('torta')
       );
       if (cake) {
-        birthdayDiscountValue = cake.price;
+        birthdayDiscountValue = cake.price * cake.quantity;
       }
     }
 
     const totalDiscountsValue = ageDiscountValue + codeDiscountValue + birthdayDiscountValue;
-    const totalValue = subtotalValue - totalDiscountsValue;
+    const totalValue = Math.max(0, subtotalValue - totalDiscountsValue);
 
     return {
       subtotal: subtotalValue,
@@ -51,19 +89,20 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
       totalDiscounts: totalDiscountsValue,
       total: totalValue
     };
-  }, [cartItems, currentUser]);
+  }, [normalizedCartItems, currentUser]);
 
   // Aplicar código de descuento
   const applyDiscountCode = () => {
     if (discountCode.toUpperCase() === 'FELICES50') {
-      setAppliedDiscounts(prev => ({ ...prev, code: true }));
-      setDiscountMessage('¡10% de descuento aplicado!');
+      localStorage.setItem('discountCode', 'FELICES50');
+      setDiscountMessage('¡10% de descuento aplicado! Recarga para ver el efecto.');
+      setDiscountCode('');
     } else {
       setDiscountMessage('Código no válido');
     }
   };
 
-  // Funciones para manejar la edición del quantity
+  // Funciones para manejar la edición del quantity CORREGIDAS
   const startEditing = (item) => {
     setEditingItemId(item.id);
     setEditQuantity(item.quantity.toString());
@@ -74,14 +113,18 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     setEditQuantity('');
   };
 
-  const saveQuantity = (itemId) => {
-    let newQuantity = parseInt(editQuantity);
+  const saveQuantity = async (itemId) => {
+    let newQuantity = parseInt(editQuantity) || 1;
+    const maxStock = productStocks[itemId] || 100;
 
-    // Validaciones
-    if (isNaN(newQuantity) || newQuantity < 1) {
+    // Validar stock máximo
+    if (newQuantity > maxStock) {
+      newQuantity = maxStock;
+      setDiscountMessage(`Stock máximo disponible: ${maxStock} unidades`);
+    }
+
+    if (newQuantity < 1) {
       onRemoveItem(itemId);
-    } else if (newQuantity > 100) {
-      onUpdateQuantity(itemId, 100);
     } else {
       onUpdateQuantity(itemId, newQuantity);
     }
@@ -98,22 +141,35 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     }
   };
 
-  // Resetear descuentos y edición cuando se cierra el carrito
+  // Incrementar cantidad con validación de stock
+  const handleIncrement = (itemId, currentQuantity) => {
+    const maxStock = productStocks[itemId] || 100;
+    if (currentQuantity < maxStock) {
+      onUpdateQuantity(itemId, currentQuantity + 1);
+    } else {
+      setDiscountMessage(`Stock máximo: ${maxStock} unidades`);
+    }
+  };
+
+  // Decrementar cantidad
+  const handleDecrement = (itemId, currentQuantity) => {
+    if (currentQuantity > 1) {
+      onUpdateQuantity(itemId, currentQuantity - 1);
+    } else {
+      onRemoveItem(itemId);
+    }
+  };
+
+  // Resetear al cerrar
   useEffect(() => {
     if (!show) {
       setDiscountCode('');
       setDiscountMessage('');
-      setAppliedDiscounts({
-        age: false,
-        code: false,
-        birthday: false
-      });
       setEditingItemId(null);
       setEditQuantity('');
     }
   }, [show]);
 
-  // Manejar tecla Enter para aplicar descuento
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -121,10 +177,9 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
     }
   };
 
-  // Función para proceder al checkout
   const handleProceedToCheckout = () => {
-    onClose(); // Cerrar el offcanvas
-    navigate('/checkout'); // Navegar al checkout
+    onClose();
+    navigate('/checkout');
   };
 
   return (
@@ -149,7 +204,7 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
       </div>
 
       <div className="offcanvas-body">
-        {cartItems.length === 0 ? (
+        {normalizedCartItems.length === 0 ? (
           <div id="cart-empty-state" className="text-center py-5">
             <i className="bi bi-cart-x" style={{ fontSize: '3rem' }}></i>
             <p className="mt-3 text-muted">Tu carrito está vacío</p>
@@ -160,119 +215,114 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
         ) : (
           <div id="cart-items-container">
             <div className="cart-items-list">
-              {cartItems.map(item => (
-                <div key={item.id} className="cart-item d-flex align-items-center p-2 border-bottom">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="cart-item-image rounded me-3"
-                    style={{ width: '60px', height: '60px', objectFit: 'cover' }}
-                  />
-                  <div className="cart-item-details flex-grow-1">
-                    <h6 className="mb-2">{item.name}</h6>
-                    <div className="cart-item-controls d-flex align-items-center justify-content-between w-100">
-                      <div className="quantity-selector d-flex align-items-center">
-                        <button
-                          className="cart-item-decrease"
-                          onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                          aria-label="Disminuir cantidad"
-                        >
-                          -
-                        </button>
-                        {editingItemId === item.id ? (
-                          <div className="quantity-edit-container position-relative">
-                            <input
-                              type="number"
-                              className="quantity-input"
-                              value={editQuantity}
-                              onChange={(e) => {
-                                const value = e.target.value.replace(/[^0-9]/g, '');
-                                // Limitar a máximo 100
-                                const numericValue = parseInt(value) || 0;
-                                if (numericValue <= 100) {
-                                  setEditQuantity(value);
-                                } else {
-                                  setEditQuantity('100');
-                                }
-                              }}
-                              onKeyPress={(e) => handleQuantityKeyPress(e, item.id)}
-                              onBlur={() => saveQuantity(item.id)}
-                              autoFocus
-                              min="1"
-                              max="100"
-                              aria-label="Editar cantidad"
-                            />
-                          </div>
-                        ) : (
-                          <span
-                            className="quantity-number editable"
-                            onClick={() => startEditing(item)}
-                            title="Haz clic para editar la cantidad"
+              {normalizedCartItems.map(item => {
+                const maxStock = productStocks[item.id] || item.stock || 100;
+                const stockAvailable = maxStock - item.quantity;
+                
+                return (
+                  <div key={item.id} className="cart-item d-flex align-items-center p-2 border-bottom">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="cart-item-image rounded me-3"
+                      style={{ width: '60px', height: '60px', objectFit: 'cover' }}
+                    />
+                    <div className="cart-item-details flex-grow-1">
+                      <h6 className="mb-1">{item.name}</h6>
+                      <small className="text-muted">
+                        Stock disponible: {maxStock} unidades
+                      </small>
+                      
+                      <div className="cart-item-controls d-flex align-items-center justify-content-between w-100 mt-2">
+                        <div className="quantity-selector d-flex align-items-center">
+                          <button
+                            className="cart-item-decrease btn btn-outline-secondary btn-sm"
+                            onClick={() => handleDecrement(item.id, item.quantity)}
+                            disabled={item.quantity <= 1}
+                            aria-label="Disminuir cantidad"
                           >
-                            {item.quantity}
-                          </span>
-                        )}
-                        <button
-                          className="cart-item-increase"
-                          onClick={() => {
-                            if (item.quantity < 100) {
-                              onUpdateQuantity(item.id, item.quantity + 1);
-                            }
-                          }}
-                          disabled={item.quantity >= 100}
-                          aria-label="Aumentar cantidad"
-                        >
-                          +
-                        </button>
-                      </div>
-                      <div className="d-flex align-items-center">
-                        <div className="cart-item-price fw-bold me-3">
-                          ${formatPrice(item.price * item.quantity)}
+                            -
+                          </button>
+                          
+                          {editingItemId === item.id ? (
+                            <div className="quantity-edit-container position-relative mx-2">
+                              <input
+                                type="number"
+                                className="form-control form-control-sm"
+                                value={editQuantity}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/[^0-9]/g, '');
+                                  const numericValue = parseInt(value) || 0;
+                                  if (numericValue <= maxStock) {
+                                    setEditQuantity(value);
+                                  } else {
+                                    setEditQuantity(maxStock.toString());
+                                  }
+                                }}
+                                onKeyPress={(e) => handleQuantityKeyPress(e, item.id)}
+                                onBlur={() => saveQuantity(item.id)}
+                                autoFocus
+                                min="1"
+                                max={maxStock}
+                                style={{ width: '60px' }}
+                              />
+                            </div>
+                          ) : (
+                            <span
+                              className="quantity-number editable mx-3"
+                              onClick={() => startEditing(item)}
+                              title="Haz clic para editar la cantidad"
+                              style={{ cursor: 'pointer', minWidth: '30px', textAlign: 'center' }}
+                            >
+                              {item.quantity}
+                            </span>
+                          )}
+                          
+                          <button
+                            className="cart-item-increase btn btn-outline-secondary btn-sm"
+                            onClick={() => handleIncrement(item.id, item.quantity)}
+                            disabled={item.quantity >= maxStock}
+                            aria-label="Aumentar cantidad"
+                          >
+                            +
+                          </button>
                         </div>
-                        <button
-                          className="cart-item-remove btn btn-outline-danger btn-sm"
-                          onClick={() => onRemoveItem(item.id)}
-                          aria-label='Eliminar producto'
-                        >
-                          <i className="bi bi-trash"></i>
-                        </button>
+                        
+                        <div className="d-flex align-items-center">
+                          <div className="cart-item-price fw-bold me-3">
+                            ${formatPrice(item.price * item.quantity)}
+                          </div>
+                          <button
+                            className="cart-item-remove btn btn-outline-danger btn-sm"
+                            onClick={() => onRemoveItem(item.id)}
+                            aria-label='Eliminar producto'
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </div>
                       </div>
+                      
+                      {stockAvailable <= 5 && stockAvailable > 0 && (
+                        <small className="text-warning d-block mt-1">
+                          <i className="bi bi-exclamation-triangle"></i> Solo {stockAvailable} disponible(s)
+                        </small>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* Sección de descuentos y resumen */}
+            {/* Sección de descuentos */}
             <div className="discount-section mt-3 p-3 bg-light rounded">
               <h6 className="mb-2">¿Tienes un código de descuento?</h6>
-              <div className="input-group mb-2">
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Ingresa tu código"
-                  id="discount-code-input"
-                  value={discountCode}
-                  onChange={(e) => setDiscountCode(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                />
-                <button
-                  className="btn btn-outline-primary"
-                  type="button"
-                  id="apply-discount-btn"
-                  onClick={applyDiscountCode}
-                >
-                  Aplicar
-                </button>
-              </div>
               {discountMessage && (
-                <div id="discount-message" className={`small ${discountMessage.includes('no válido') ? 'text-danger' : 'text-success'}`}>
+                <div className={`small ${discountMessage.includes('no válido') ? 'text-danger' : 'text-success'}`}>
                   {discountMessage}
                 </div>
               )}
 
-              <div id="applied-discounts" className="mt-2">
+              <div className="mt-2">
                 {currentUser && (
                   <>
                     {ageDiscount > 0 && (
@@ -295,29 +345,29 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
               </div>
             </div>
 
+            {/* Resumen */}
             <div className="cart-summary mt-3 p-3 border-top">
               <div className="d-flex justify-content-between align-items-center mb-2">
                 <span>Subtotal:</span>
-                <span id="cart-subtotal">${formatPrice(subtotal)}</span>
+                <span>${formatPrice(subtotal)}</span>
               </div>
 
               {totalDiscounts > 0 && (
                 <div className="d-flex justify-content-between align-items-center mb-2 text-success">
                   <span>Descuentos:</span>
-                  <span id="cart-discounts">-${formatPrice(totalDiscounts)}</span>
+                  <span>-${formatPrice(totalDiscounts)}</span>
                 </div>
               )}
 
               <div className="d-flex justify-content-between align-items-center mb-3 fw-bold fs-5">
                 <span>Total:</span>
-                <span id="cart-total">${formatPrice(total)}</span>
+                <span>${formatPrice(total)}</span>
               </div>
 
               <div className="d-grid gap-2">
                 <button
                   className="btn proceed-payment-btn"
-                  id="proceed-to-checkout"
-                  onClick={handleProceedToCheckout}  // ← ESTA LÍNEA FUE AGREGADA
+                  onClick={handleProceedToCheckout}
                 >
                   <i className="bi bi-credit-card me-2"></i>
                   Proceder al Pago
@@ -325,17 +375,6 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                 <button className="btn continue-shopping-btn btn-outline-secondary" onClick={onClose}>
                   Continuar Comprando
                 </button>
-              </div>
-              {/* Información adicional del checkout */}
-              <div className="checkout-info mt-3 p-2 bg-light rounded small">
-                <div className="d-flex align-items-center mb-1">
-                  <i className="bi bi-shield-check text-success me-2"></i>
-                  <span>Compra 100% segura</span>
-                </div>
-                <div className="d-flex align-items-center mb-1">
-                  <i className="bi bi-truck text-primary me-2"></i>
-                  <span>Envío gratis sobre $50.000</span>
-                </div>
               </div>
             </div>
           </div>
