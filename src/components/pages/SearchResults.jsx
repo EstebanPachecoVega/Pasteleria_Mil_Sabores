@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { Container, Row, Alert, Button } from 'react-bootstrap';
 import ProductCard from '../products/ProductCard';
-import { searchProducts } from '../../data/products';
+import { buscarProductos } from '../../data/products';
 
 const SearchResults = () => {
   const [results, setResults] = useState([]);
@@ -10,20 +10,29 @@ const SearchResults = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const query = searchParams.get('q');
+    const loadSearchResults = async () => {
+      const searchParams = new URLSearchParams(location.search);
+      const query = searchParams.get('q');
 
-    if (query) {
-      setLoading(true);
-      setTimeout(() => {
-        const searchResults = searchProducts(query);
-        setResults(searchResults);
+      if (query) {
+        setLoading(true);
+        try {
+          // Buscar productos de forma asíncrona
+          const searchResults = await buscarProductos(query);
+          setResults(searchResults);
+        } catch (error) {
+          console.error('Error en búsqueda:', error);
+          setResults([]);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setResults([]);
         setLoading(false);
-      }, 400);
-    } else {
-      setResults([]);
-      setLoading(false);
-    }
+      }
+    };
+
+    loadSearchResults();
   }, [location]);
 
   const searchParams = new URLSearchParams(location.search);

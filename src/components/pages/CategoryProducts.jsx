@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Container, Row, Alert, Breadcrumb, Spinner } from 'react-bootstrap';
 import ProductCard from '../products/ProductCard';
-import { getProductsByCategoryRoute } from '../../data/products';
+import { obtenerProductosPorCategoriaRuta } from '../../data/products';
 
 const CategoryProducts = () => {
   const { category } = useParams();
@@ -19,7 +19,7 @@ const CategoryProducts = () => {
         setLoading(true);
         console.log('🔄 CategoryProducts - Cargando productos...');
         
-        const products = await getProductsByCategoryRoute(category);
+        const products = await obtenerProductosPorCategoriaRuta(category);
         
         console.log('📦 CategoryProducts - productos obtenidos:', products);
         console.log('📦 CategoryProducts - cantidad de productos:', products.length);

@@ -1,8 +1,8 @@
-// src/hooks/useSearch.js
 import { useState, useEffect, useRef } from 'react';
 import { buscarProductos, obtenerSugerenciasBusqueda } from '../data/products';
 import { formatearCategoria } from '../utils/formatters';
 
+// Custom hook para búsqueda de productos
 export const useSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -10,7 +10,6 @@ export const useSearch = () => {
   const [isSearching, setIsSearching] = useState(false);
   const debounceRef = useRef(null);
 
-  // Buscar sugerencias en tiempo real
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -20,23 +19,21 @@ export const useSearch = () => {
       setIsSearching(true);
       debounceRef.current = setTimeout(async () => {
         try {
-          const nuevasSugerencias = await obtenerSugerenciasBusqueda(searchTerm);
+          const newSuggestions = await obtenerSugerenciasBusqueda(searchTerm);
           
-          // Formatear categorías en las sugerencias
-          const suggestionsFormateadas = nuevasSugerencias.map(product => ({
+          const sugerenciasFormateadas = newSuggestions.map(product => ({
             ...product,
-            // Usar campo en español y formatear
-            categoria: formatearCategoria(product.categoria || product.category || '')
+            categoria: formatearCategoria(product.categoria)
           }));
           
-          setSuggestions(suggestionsFormateadas);
+          setSuggestions(sugerenciasFormateadas);
         } catch (error) {
-          console.error('❌ Error obteniendo sugerencias:', error);
+          console.error('Error obteniendo sugerencias:', error);
           setSuggestions([]);
         } finally {
           setIsSearching(false);
         }
-      }, 300);
+      }, 200);
     } else {
       setSuggestions([]);
       setIsSearching(false);
@@ -49,38 +46,24 @@ export const useSearch = () => {
     };
   }, [searchTerm]);
 
-  // Buscar productos completos
+  // Realizar búsqueda completa
   const performSearch = async (query) => {
-    if (!query || query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
     setIsSearching(true);
     try {
-      const resultados = await buscarProductos(query);
+      const results = await buscarProductos(query);
       
-      // ✅ FORMATEAR CATEGORÍAS EN LOS RESULTADOS
-      const resultsFormateados = resultados.map(product => ({
+      const resultsFormateados = results.map(product => ({
         ...product,
-        // Usar campo en español y formatear
-        categoria: formatearCategoria(product.categoria || product.category || '')
+        categoria: formatearCategoria(product.categoriaNombre || product.categoriaInfo?.nombre || product.categoria || '')
       }));
       
       setSearchResults(resultsFormateados);
     } catch (error) {
-      console.error('❌ Error en búsqueda:', error);
+      console.error('Error en búsqueda:', error);
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  };
-
-  // Limpiar resultados
-  const clearSearch = () => {
-    setSearchResults([]);
-    setSearchTerm('');
-    setSuggestions([]);
   };
 
   return {
@@ -89,7 +72,6 @@ export const useSearch = () => {
     suggestions,
     searchResults,
     isSearching,
-    performSearch,
-    clearSearch
+    performSearch
   };
 };

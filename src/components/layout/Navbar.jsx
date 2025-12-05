@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../../hooks/useSearch';
 import CartOffCanvas from '../cart/CartOffCanvas';
 import { useAuth } from '../../context/AuthContext';
-import { formatearCategoria } from '../../utils/formatters'; // ✅ Importar la función
+import { formatearCategoria } from '../../utils/formatters';
 import '../../styles/components/cart.css';
 
 const Navbar = () => {
@@ -262,36 +262,33 @@ const Navbar = () => {
                 <ul className="dropdown-menu dropdown-menu-bg">
                   {/* Sección Tortas */}
                   <li>
-                    <span className="dropdown-header text-uppercase small fw-bold">Tortas</span>
-                  </li>
-                  <li>
                     <Link
                       className="dropdown-item"
-                      to="/categoria/cuadradas"
-                      onClick={() => handleCategoryClick('/categoria/cuadradas')}
+                      to="/categoria/tortas-cuadradas"
+                      onClick={() => handleCategoryClick('/categoria/tortas-cuadradas')}
                     >
                       <i className="bi bi-square me-2"></i>
-                      {formatearNombreCategoria('cuadradas')}
+                      {formatearNombreCategoria('tortas-cuadradas')}
                     </Link>
                   </li>
                   <li>
                     <Link
                       className="dropdown-item"
-                      to="/categoria/circulares"
-                      onClick={() => handleCategoryClick('/categoria/circulares')}
+                      to="/categoria/tortas-circulares"
+                      onClick={() => handleCategoryClick('/categoria/tortas-circulares')}
                     >
                       <i className="bi bi-circle me-2"></i>
-                      {formatearNombreCategoria('circulares')}
+                      {formatearNombreCategoria('tortas-circulares')}
                     </Link>
                   </li>
                   <li>
                     <Link
                       className="dropdown-item"
-                      to="/categoria/especiales"
-                      onClick={() => handleCategoryClick('/categoria/especiales')}
+                      to="/categoria/tortas-especiales"
+                      onClick={() => handleCategoryClick('/categoria/tortas-especiales')}
                     >
                       <i className="bi bi-star me-2"></i>
-                      {formatearNombreCategoria('especiales')}
+                      {formatearNombreCategoria('tortas-especiales')}
                     </Link>
                   </li>
                   <li><hr className="dropdown-divider" /></li>
@@ -313,31 +310,31 @@ const Navbar = () => {
                   <li>
                     <Link
                       className="dropdown-item"
-                      to="/categoria/tradicional"
-                      onClick={() => handleCategoryClick('/categoria/tradicional')}
+                      to="/categoria/tradicionales"
+                      onClick={() => handleCategoryClick('/categoria/tradicionales')}
                     >
                       <i className="bi bi-heart me-2"></i>
-                      {formatearNombreCategoria('tradicional')}
+                      {formatearNombreCategoria('tradicionales')}
                     </Link>
                   </li>
                   <li>
                     <Link
                       className="dropdown-item"
-                      to="/categoria/sin_azucar"
-                      onClick={() => handleCategoryClick('/categoria/sin_azucar')}
+                      to="/categoria/sin-azucar"
+                      onClick={() => handleCategoryClick('/categoria/sin-azucar')}
                     >
                       <i className="bi bi-droplet me-2"></i>
-                      {formatearNombreCategoria('sin_azucar')}
+                      {formatearNombreCategoria('sin-azucar')}
                     </Link>
                   </li>
                   <li>
                     <Link
                       className="dropdown-item"
-                      to="/categoria/sin_gluten"
-                      onClick={() => handleCategoryClick('/categoria/sin_gluten')}
+                      to="/categoria/sin-gluten"
+                      onClick={() => handleCategoryClick('/categoria/sin-gluten')}
                     >
                       <i className="bi bi-flower1 me-2"></i>
-                      {formatearNombreCategoria('sin_gluten')}
+                      {formatearNombreCategoria('sin-gluten')}
                     </Link>
                   </li>
                   <li>

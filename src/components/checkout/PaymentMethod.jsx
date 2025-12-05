@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Row, Col, Button, Card, Form, Alert, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../context/AuthContext';
 import { createOrder } from '../../services/firestoreService';
-import { decreaseProductStock } from '../../services/productService';
+import { descontarStockProducto } from '../../services/productService';
 import { formatPrice } from '../../utils/formatters';
 
 const PaymentMethod = ({
@@ -63,7 +63,7 @@ const PaymentMethod = ({
       for (const item of cartItems) {
         console.log(`➖ Producto: ${item.name}, Cantidad: ${item.quantity}`);
         try {
-          await decreaseProductStock(item.id, item.quantity);
+          await descontarStockProducto(item.id, item.quantity);
           console.log(`✅ Stock actualizado: ${item.quantity} unidades de ${item.name}`);
         } catch (error) {
           console.error(`❌ Error actualizando stock de ${item.name}:`, error);

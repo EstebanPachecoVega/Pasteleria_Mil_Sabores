@@ -1,8 +1,7 @@
-// src/components/products/ProductDetails.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Container, Row, Col, Button, Breadcrumb, Badge, InputGroup, Alert, Spinner } from 'react-bootstrap';
-import { getProductById } from '../../data/products';
+import { obtenerProductoPorId } from '../../data/products';
 import { formatPrice, formatearCategoria } from '../../utils/formatters';
 
 const ProductDetails = () => {
@@ -19,48 +18,27 @@ const ProductDetails = () => {
   const disponibleParaAgregar = cantidadMaxima - cantidadCarrito;
   const limiteAlcanzado = cantidadCarrito >= cantidadMaxima;
   
-  // ✅ CAMPOS CONSISTENTES EN ESPAÑOL
   const nombreProducto = producto?.nombre || producto?.name || 'Sin nombre';
   const precioProducto = producto?.precio || producto?.price || 0;
   const stockProducto = producto?.stock || producto?.stock || 0;
   const descripcionProducto = producto?.descripcion || producto?.description || 'Sin descripción';
-  const categoriaProducto = producto?.categoria || producto?.category || 'Sin categoría';
+  const categoriaProducto = formatearCategoria(producto?.categoriaNombre || producto?.categoriaInfo?.nombre || producto?.categoria || 'Sin categoría');
   const activoProducto = producto?.activo !== false && producto?.active !== false;
   const destacadoProducto = producto?.destacado || producto?.featured || false;
-
-  const categoriaFormateada = formatearCategoria(categoriaProducto);
   
-  // ✅ VALIDACIÓN COMPLETA DE STOCK
-  const sinStock = React.useMemo(() => {
-    if (!producto) return false;
-    
-    console.log('📊 Validando stock - product.stock:', stockProducto);
-    console.log('📊 Validando stock - product.activo:', activoProducto);
-    console.log('📊 Validando stock - product.destacado:', destacadoProducto);
-    
-    const fueraDeStock = stockProducto === 0 || !activoProducto;
-    console.log('📊 Resultado validación - sinStock:', fueraDeStock);
-    
-    return fueraDeStock;
-  }, [producto, stockProducto, activoProducto, destacadoProducto]);
+  const sinStock = stockProducto === 0 || !activoProducto;
 
   useEffect(() => {
     const cargarProducto = async () => {
       try {
         setCargando(true);
         setError(null);
-        console.log('🔄 ProductDetail - Cargando producto desde Firebase...');
         
-        const productoEncontrado = await getProductById(productId);
-        
-        console.log('✅ ProductDetail - Producto cargado:', productoEncontrado);
-        console.log('📊 ProductDetail - Stock del producto:', productoEncontrado?.stock);
-        console.log('📊 ProductDetail - Estado activo:', productoEncontrado?.activo, productoEncontrado?.active);
-        console.log('📊 ProductDetail - Destacado:', productoEncontrado?.destacado, productoEncontrado?.featured);
+        const productoEncontrado = await obtenerProductoPorId(productId);
         
         setProducto(productoEncontrado);
       } catch (err) {
-        console.error('❌ ProductDetail - Error cargando producto:', err);
+        console.error('Error cargando producto:', err);
         setError('Error al cargar el producto');
       } finally {
         setCargando(false);
@@ -86,16 +64,7 @@ const ProductDetails = () => {
   }, [productId]);
 
   const manejarAgregarCarrito = () => {
-    console.log('🛒 Intentando agregar al carrito...');
-    console.log('🛒 sinStock:', sinStock);
-    console.log('🛒 limiteAlcanzado:', limiteAlcanzado);
-    
     if (!producto || limiteAlcanzado || sinStock) {
-      console.log('❌ No se puede agregar - Razón:', 
-        !producto ? 'No hay producto' : 
-        limiteAlcanzado ? 'Límite alcanzado' : 
-        'Sin stock'
-      );
       return;
     }
 
@@ -105,50 +74,38 @@ const ProductDetails = () => {
     if (itemExistente) {
       const nuevaCantidad = itemExistente.cantidad + cantidad;
       itemExistente.cantidad = Math.min(nuevaCantidad, cantidadMaxima);
-      console.log('🛒 Actualizando cantidad existente:', nuevaCantidad);
     } else {
       carrito.push({ 
         ...producto, 
         cantidad: cantidad,
-        // ✅ CAMPOS CONSISTENTES
         nombre: nombreProducto,
         precio: precioProducto,
         stock: stockProducto,
         destacado: destacadoProducto
       });
-      console.log('🛒 Agregando nuevo producto al carrito');
     }
 
     localStorage.setItem('cart', JSON.stringify(carrito));
     window.dispatchEvent(new Event('cartUpdated'));
 
-    console.log('✅ Producto agregado exitosamente');
     setMostrarAlerta(true);
     setTimeout(() => setMostrarAlerta(false), 3000);
   };
 
-  // Control manual de imágenes
   const imagenesProducto = React.useMemo(() => {
     if (!producto) {
-      console.log('📸 No hay producto, retornando array vacío');
       return [];
     }
     
-    // Si tiene array de imágenes, usarlo
     if (producto.images && Array.isArray(producto.images) && producto.images.length > 0) {
-      console.log('📸 Usando array de imágenes:', producto.images.length, 'imágenes');
       return producto.images;
     }
     
-    // Si no, crear array con la imagen principal
     const imagenPrincipal = producto.image || producto.imagen;
     if (imagenPrincipal) {
-      console.log('📸 Usando imagen principal en array:', [imagenPrincipal]);
       return [imagenPrincipal];
     }
     
-    // Si no hay imágenes, array vacío
-    console.log('📸 No hay imágenes, array vacío');
     return [];
   }, [producto]);
 
@@ -221,7 +178,6 @@ const ProductDetails = () => {
                   filter: sinStock ? 'grayscale(70%)' : 'none'
                 }}
                 onError={(e) => {
-                  console.error('❌ Error cargando imagen:', imagenesProducto[imagenSeleccionada]);
                   e.target.src = '/images/placeholder.jpg';
                 }}
               />
@@ -241,7 +197,6 @@ const ProductDetails = () => {
                         alt={`${nombreProducto} ${index + 1}`}
                         className="thumbnail-image"
                         onError={(e) => {
-                          console.error('❌ Error cargando miniatura:', image);
                           e.target.src = '/images/placeholder.jpg';
                         }}
                       />
@@ -261,11 +216,11 @@ const ProductDetails = () => {
 
             <div className="mb-3">
               <Badge className="category-badge-detail me-2">
-                {categoriaFormateada}
+                {categoriaProducto}
               </Badge>
               {sinStock ? (
                 <Badge bg="danger" className="stock-badge-detail me-2">
-                  No Disponible
+                  NO DISPONIBLE
                 </Badge>
               ) : (
                 <Badge bg="success" className="stock-badge-detail me-2">
@@ -317,7 +272,6 @@ const ProductDetails = () => {
                         max={sinStock ? 0 : disponibleParaAgregar}
                         onChange={(e) => {
                           if (sinStock) {
-                            console.log('❌ Intento de cambiar cantidad en producto sin stock');
                             return;
                           }
                           const valor = parseInt(e.target.value) || 1;
@@ -329,7 +283,6 @@ const ProductDetails = () => {
                         className="increase-quantity-detail"
                         onClick={() => {
                           if (sinStock) {
-                            console.log('❌ Intento de aumentar cantidad en producto sin stock');
                             return;
                           }
                           setCantidad(q => Math.min(disponibleParaAgregar, q + 1))

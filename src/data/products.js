@@ -1,131 +1,116 @@
-import { 
-    obtenerTodosProductos as obtenerTodosProductosDeFirebase, 
+import {
+    obtenerTodosProductos as obtenerTodosProductosDeFirebase,
     obtenerProductosPorCategoria as obtenerProductosPorCategoriaDeFirebase,
     obtenerProductosDestacados as obtenerProductosDestacadosDeFirebase,
     obtenerProductoPorId as obtenerProductoPorIdDeFirebase
-  } from '../services/productService'; 
-  
-  // Función para normalizar texto (sin tildes, minúsculas)
-  export const normalizarTexto = (texto) => {
-      return texto
-          .toLowerCase()
-          .normalize('NFD')
-          .replace(/[\u0300-\u036f]/g, '') // Eliminar tildes
-          .trim();
-  };
-  
-  // Función para buscar productos
-  export const buscarProductos = async (consulta) => {
-      if (!consulta || consulta.length < 2) return [];
-  
-      const consultaNormalizada = normalizarTexto(consulta);
-      const todosProductos = await obtenerTodosProductos();
-  
-      return todosProductos.filter(producto => {
-          const nombreNormalizado = normalizarTexto(producto.nombre || '');
-          const descripcionNormalizada = normalizarTexto(producto.descripcion || '');
-          const categoriaNormalizada = normalizarTexto(producto.categoria || '');
-  
-          return nombreNormalizado.includes(consultaNormalizada) ||
-              descripcionNormalizada.includes(consultaNormalizada) ||
-              categoriaNormalizada.includes(consultaNormalizada);
-      });
-  };
-  
-  // Función para obtener sugerencias de búsqueda
-  export const obtenerSugerenciasBusqueda = async (consulta, limite = 5) => {
-      const resultados = await buscarProductos(consulta);
-      return resultados.slice(0, limite);
-  };
-  
-  // 🔄 FUNCIONES ACTUALIZADAS PARA USAR SOLO FIREBASE
-  
-  // Función para obtener todos los productos (SOLO FIREBASE)
-  export const obtenerTodosProductos = async () => {
-      try {
-          console.log('🔥 obtenerTodosProductos - buscando en Firebase');
-          const productosFirebase = await obtenerTodosProductosDeFirebase();
-          console.log('✅ obtenerTodosProductos - productos obtenidos de Firebase:', productosFirebase.length);
-          return productosFirebase;
-      } catch (error) {
-          console.error("❌ obtenerTodosProductos - Error cargando productos de Firebase:", error);
-          // Retorna array vacío en lugar de datos locales
-          return [];
-      }
-  };
-  
-  // Función para obtener productos por categoría (SOLO FIREBASE)
-  export const obtenerProductosPorCategoria = async (categoria) => {
-      try {
-          console.log('🔥 obtenerProductosPorCategoria - buscando en Firebase, categoría:', categoria);
-          const productosFirebase = await obtenerProductosPorCategoriaDeFirebase(categoria);
-          console.log('✅ obtenerProductosPorCategoria - productos obtenidos de Firebase:', productosFirebase.length);
-          return productosFirebase;
-      } catch (error) {
-          console.error("❌ obtenerProductosPorCategoria - Error cargando productos de Firebase:", error);
-          // Retorna array vacío en lugar de datos locales
-          return [];
-      }
-  };
-  
-  // Función para obtener productos destacados (SOLO FIREBASE)
-  export const obtenerProductosDestacados = async () => {
-      try {
-          console.log('🔥 obtenerProductosDestacados - buscando productos destacados en Firebase');
-          const productosDestacados = await obtenerProductosDestacadosDeFirebase();
-          console.log('✅ obtenerProductosDestacados - productos destacados obtenidos:', productosDestacados.length);
-          return productosDestacados;
-      } catch (error) {
-          console.error("❌ obtenerProductosDestacados - Error cargando productos destacados:", error);
-          // Retorna array vacío en lugar de datos locales
-          return [];
-      }
-  };
-  
-  // Función para obtener producto por ID (SOLO FIREBASE)
-  export const obtenerProductoPorId = async (idProducto) => {
+} from '../services/productService';
+import { obtenerCategoriaPorSlug } from '../services/categoryService';
+import { normalizarTextoBusqueda, formatearCategoria } from '../utils/formatters';
+
+// Normalizar texto para búsqueda
+export const normalizarTexto = (texto) => normalizarTextoBusqueda(texto);
+
+// Buscar productos por consulta
+export const buscarProductos = async (consulta) => {
+    if (!consulta || consulta.length < 2) return [];
+
+    const consultaNormalizada = normalizarTextoBusqueda(consulta);
+    const todosProductos = await obtenerTodosProductos();
+
+    return todosProductos.filter(producto => {
+        const nombreNormalizado = normalizarTextoBusqueda(producto.nombre || '');
+        const descripcionNormalizada = normalizarTextoBusqueda(producto.descripcion || '');
+        const categoriaNormalizada = normalizarTextoBusqueda(producto.categoriaNombre || producto.categoriaInfo?.nombre || '');
+
+        return nombreNormalizado.includes(consultaNormalizada) ||
+            descripcionNormalizada.includes(consultaNormalizada) ||
+            categoriaNormalizada.includes(consultaNormalizada);
+    });
+};
+
+// Obtener sugerencias de búsqueda
+export const obtenerSugerenciasBusqueda = async (consulta, limite = 5) => {
+    const resultados = await buscarProductos(consulta);
+
+    const sugerenciasFormateadas = resultados.slice(0, limite).map(producto => ({
+        ...producto,
+        categoria: formatearCategoria(producto.categoriaNombre || '')
+    }));
+
+    return sugerenciasFormateadas;
+};
+
+// Obtener todos los productos
+export const obtenerTodosProductos = async () => {
     try {
-      console.log('🔥 obtenerProductoPorId - buscando en Firebase, ID:', idProducto);
-      const producto = await obtenerProductoPorIdDeFirebase(idProducto);
-      
-      if (producto) {
-        console.log('✅ obtenerProductoPorId - producto encontrado en Firebase:', producto);
-        console.log('📊 obtenerProductoPorId - stock:', producto.stock);
-        console.log('📊 obtenerProductoPorId - activo:', producto.activo);
-        return producto;
-      } else {
-        console.log('❌ obtenerProductoPorId - producto no encontrado en Firebase');
-        return null;
-      }
+        const productosFirebase = await obtenerTodosProductosDeFirebase();
+        console.log('📦 Productos obtenidos del servicio:', productosFirebase.length);
+        return productosFirebase;
     } catch (error) {
-      console.error("❌ obtenerProductoPorId - Error cargando producto de Firebase:", error);
-      return null;
+        console.error("Error cargando productos:", error);
+        return [];
     }
-  };
-  
-  // Función para rutas (SOLO FIREBASE)
-  export const obtenerProductosPorCategoriaRuta = async (claveCategoria) => {
-      try {
-          console.log('🔥 obtenerProductosPorCategoriaRuta - buscando en Firebase, categoría:', claveCategoria);
-          
-          const productosFirebase = await obtenerProductosPorCategoriaDeFirebase(claveCategoria);
-          
-          console.log('✅ obtenerProductosPorCategoriaRuta - productos de Firebase:', productosFirebase.length);
-          
-          return productosFirebase;
-      } catch (error) {
-          console.error("❌ obtenerProductosPorCategoriaRuta - Error cargando productos de Firebase:", error);
-          // Retorna array vacío en lugar de datos locales
-          return [];
-      }
-  };
-  
-  // 🔄 MANTENER COMPATIBILIDAD CON CÓDIGO EXISTENTE (alias en inglés)
-  export const getAllProducts = obtenerTodosProductos;
-  export const getProductsByCategory = obtenerProductosPorCategoria;
-  export const getFeaturedProducts = obtenerProductosDestacados;
-  export const getProductById = obtenerProductoPorId;
-  export const getProductsByCategoryRoute = obtenerProductosPorCategoriaRuta;
-  export const searchProducts = buscarProductos;
-  export const getSearchSuggestions = obtenerSugerenciasBusqueda;
-  export const normalizeText = normalizarTexto;
+};
+
+// Obtener productos por categoría 
+export const obtenerProductosPorCategoria = async (slugCategoria) => {
+    try {
+        console.log(`🔍 Buscando productos para categoría slug: ${slugCategoria}`);
+        const productosFirebase = await obtenerProductosPorCategoriaDeFirebase(slugCategoria);
+        console.log(`✅ Productos encontrados para ${slugCategoria}:`, productosFirebase.length);
+        return productosFirebase;
+    } catch (error) {
+        console.error("Error cargando productos por categoría:", error);
+        return [];
+    }
+};
+
+// Obtener productos destacados
+export const obtenerProductosDestacados = async () => {
+    try {
+        console.log('🔍 Buscando productos destacados...');
+        const productosDestacados = await obtenerProductosDestacadosDeFirebase();
+        console.log('✅ Productos destacados encontrados:', productosDestacados.length);
+        return productosDestacados;
+    } catch (error) {
+        console.error("Error cargando productos destacados:", error);
+        return [];
+    }
+};
+
+// Obtener producto por ID
+export const obtenerProductoPorId = async (idProducto) => {
+    try {
+        const producto = await obtenerProductoPorIdDeFirebase(idProducto);
+
+        if (producto) {
+            return producto;
+        } else {
+            console.warn(`Producto con ID ${idProducto} no encontrado`);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error cargando producto:", error);
+        return null;
+    }
+};
+
+// Obtener productos por categoría desde ruta (slug)
+export const obtenerProductosPorCategoriaRuta = async (slugCategoria) => {
+    try {
+        console.log(`🛣️ Obteniendo productos para ruta categoría: ${slugCategoria}`);
+
+        // Primero intentar obtener categoría
+        const categoria = await obtenerCategoriaPorSlug(slugCategoria);
+        console.log('📋 Categoría encontrada para ruta:', categoria?.nombre);
+
+        // Luego obtener productos
+        const productosFirebase = await obtenerProductosPorCategoriaDeFirebase(slugCategoria);
+        console.log(`📦 Productos obtenidos para ruta ${slugCategoria}:`, productosFirebase.length);
+
+        return productosFirebase;
+    } catch (error) {
+        console.error("Error cargando productos por categoría (ruta):", error);
+        return [];
+    }
+};

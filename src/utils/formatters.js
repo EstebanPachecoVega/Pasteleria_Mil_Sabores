@@ -1,32 +1,83 @@
-// src/utils/formatters.js
 export const formatPrice = (price) => {
+  if (typeof price !== 'number') {
+    price = parseFloat(price) || 0;
+  }
   return new Intl.NumberFormat('es-CL', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(price);
 };
 
+// Formatear categoría para mostrar al usuario
 export const formatearCategoria = (categoria) => {
-  if (!categoria || categoria === 'Sin categoría' || categoria === 'sin_categoria') {
+  if (!categoria || categoria.trim() === '') {
     return 'Sin categoría';
   }
-  
-  // Si ya está formateada correctamente, no hacer cambios
-  if (categoria === categoria.charAt(0).toUpperCase() + categoria.slice(1).toLowerCase() && 
-      !categoria.includes('_') && !categoria.includes('-')) {
+
+  if (!categoria.includes('-') && !categoria.includes('_') &&
+    categoria.charAt(0) === categoria.charAt(0).toUpperCase()) {
     return categoria;
   }
-  
-  // Reemplazar underscores y guiones con espacios
-  let formateada = categoria.replace(/[_-]/g, ' ');
-  
-  // Capitalizar cada palabra
-  formateada = formateada.replace(/\w\S*/g, (palabra) => {
-    if (palabra.length <= 3 && palabra.toUpperCase() === palabra) {
-      return palabra.charAt(0).toUpperCase() + palabra.substr(1).toLowerCase();
-    }
-    return palabra.charAt(0).toUpperCase() + palabra.substr(1).toLowerCase();
-  });
-  
-  return formateada;
+
+  if (categoria.includes('-')) {
+    return categoria
+      .split('-')
+      .map(palabra => {
+        if (palabra === 'sin') return 'Sin';
+        if (palabra === 'y') return 'y';
+        if (palabra === 'de') return 'de';
+        if (palabra === 'del') return 'del';
+        if (palabra === 'la') return 'la';
+        if (palabra === 'las') return 'las';
+        if (palabra === 'el') return 'el';
+        if (palabra === 'los') return 'los';
+        return palabra.charAt(0).toUpperCase() + palabra.slice(1);
+      })
+      .join(' ');
+  }
+
+  if (categoria.includes('_')) {
+    return categoria
+      .split('_')
+      .map(palabra => {
+        const palabraLower = palabra.toLowerCase();
+        if (palabraLower === 'sin') return 'Sin';
+        if (palabraLower === 'y') return 'y';
+        if (palabraLower === 'de') return 'de';
+        if (palabraLower === 'del') return 'del';
+        if (palabraLower === 'la') return 'la';
+        if (palabraLower === 'las') return 'las';
+        if (palabraLower === 'el') return 'el';
+        if (palabraLower === 'los') return 'los';
+        return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
+      })
+      .join(' ');
+  }
+
+  return categoria
+    .split(' ')
+    .map(palabra => {
+      const palabraLower = palabra.toLowerCase();
+      if (palabraLower === 'sin') return 'Sin';
+      if (palabraLower === 'y') return 'y';
+      if (palabraLower === 'de') return 'de';
+      if (palabraLower === 'del') return 'del';
+      if (palabraLower === 'la') return 'la';
+      if (palabraLower === 'las') return 'las';
+      if (palabraLower === 'el') return 'el';
+      if (palabraLower === 'los') return 'los';
+      return palabra.charAt(0).toUpperCase() + palabra.slice(1).toLowerCase();
+    })
+    .join(' ');
+};
+
+// Normalizar texto para búsquedas
+export const normalizarTextoBusqueda = (texto) => {
+  if (!texto) return '';
+
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 };

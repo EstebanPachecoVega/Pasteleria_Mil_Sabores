@@ -7,7 +7,7 @@ const ProductCard = ({ product, onAddToCart }) => {
   const precioProducto = product.precio || product.price || 0;
   const stockProducto = product.stock || product.stock || 0;
   const imagenProducto = product.image || product.imagen || '/images/placeholder.jpg';
-  const categoriaProducto = product.categoria || product.category || 'Sin categoría';
+  const categoriaProducto = product.categoriaNombre || product.categoriaInfo?.nombre || product.categoria || 'Sin categoría';
   const activoProducto = product.activo !== false && product.active !== false;
   const destacadoProducto = product.destacado || product.featured || false;
   
@@ -63,7 +63,6 @@ const ProductCard = ({ product, onAddToCart }) => {
             position: 'relative'
           }}
         >
-          {/* BADGE DE NO DISPONIBLE */}
           {sinStock && (
             <div 
               className="position-absolute top-0 start-0 m-2 bg-danger text-white px-2 py-1 rounded"
@@ -77,7 +76,6 @@ const ProductCard = ({ product, onAddToCart }) => {
             </div>
           )}
 
-          {/* BADGE DE DESTACADO */}
           {destacadoProducto && !sinStock && (
             <div 
               className="position-absolute top-0 end-0 m-2 bg-warning text-dark px-2 py-1 rounded"
@@ -91,7 +89,6 @@ const ProductCard = ({ product, onAddToCart }) => {
             </div>
           )}
 
-          {/* Contenedor de imagen con tamaño fijo */}
           <div className="product-image-container" style={{ height: '200px', overflow: 'hidden' }}>
             <img
               src={imagenProducto}
