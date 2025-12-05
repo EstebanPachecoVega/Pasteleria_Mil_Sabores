@@ -80,16 +80,18 @@ const OrderConfirmation = ({ orderNumber, orderData }) => {
                 <Button
                   as={Link}
                   to="/productos"
-                  variant="primary"
+                  className="proceed-payment-btn w-100 py-2"
                   size="lg"
                 >
-                  <i className="bi bi-bag me-2"></i>
                   Seguir Comprando
+                  <i className="bi bi-bag ms-2"></i>
                 </Button>
                 <Button
                   as={Link}
                   to="/"
-                  variant="outline-primary"
+                  className="continue-shopping-btn w-100 py-2"
+                  variant="outline-secondary"
+                  size="lg"
                 >
                   <i className="bi bi-house me-2"></i>
                   Volver al Inicio

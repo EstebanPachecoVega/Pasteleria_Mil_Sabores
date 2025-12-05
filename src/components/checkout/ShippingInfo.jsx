@@ -714,7 +714,7 @@ const ShippingInfo = ({
           <Row className="g-3">
             <Col xs={12} md={6}>
               <Button
-                className="continue-shopping-btn btn-outline-secondary w-100 py-2"
+                className="continue-shopping-btn w-100 py-2"
                 variant="outline-secondary"
                 onClick={onPreviousStep}
                 size="lg"
@@ -727,7 +727,6 @@ const ShippingInfo = ({
             <Col xs={12} md={6}>
               <Button
                 className="proceed-payment-btn w-100 py-2"
-                onClick={onNextStep}
                 disabled={loading.regions || loading.communes || loading.housing}
                 size="lg"
                 type ="submit"
