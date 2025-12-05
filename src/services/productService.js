@@ -1,265 +1,316 @@
-// productService.js - VERSIÓN CORREGIDA
 import { db } from '../config/firebase';
 import {
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  runTransaction,
-  orderBy
+    collection,
+    getDocs,
+    query,
+    where,
+    doc,
+    getDoc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    runTransaction,
+    orderBy,
+    serverTimestamp
 } from 'firebase/firestore';
 import { obtenerCategoriaPorId, obtenerCategoriaPorSlug } from './categoryService';
 
-// Obtener todos los productos CON CATEGORÍA COMPLETA
 export const obtenerTodosProductos = async () => {
-  try {
-    const q = query(
-      collection(db, "producto"),
-      where("activo", "==", true),
-      orderBy("createdAt", "desc")
-    );
+    try {
+        const consulta = query(
+            collection(db, "producto"),
+            where("activo", "==", true),
+            orderBy("createdAt", "desc")
+        );
 
-    const querySnapshot = await getDocs(q);
-    const productos = [];
+        const snapshot = await getDocs(consulta);
+        
+        const productosPromesas = snapshot.docs.map(async (documento) => {
+            const productoData = documento.data();
+            const producto = {
+                id: documento.id,
+                nombre: productoData.nombre || '',
+                descripcion: productoData.descripcion || '',
+                precio: productoData.precio || 0,
+                stock: productoData.stock || 0,
+                categoriaId: productoData.categoriaId || '',
+                image: productoData.image || '',
+                images: productoData.images || [],
+                destacado: productoData.destacado || false,
+                activo: productoData.activo !== false,
+                slug: productoData.slug || '',
+                createdAt: productoData.createdAt,
+                updatedAt: productoData.updatedAt
+            };
 
-    // Usar Promise.all para obtener categorías en paralelo
-    const productosPromises = querySnapshot.docs.map(async (docSnap) => {
-      const producto = {
-        id: docSnap.id,
-        ...docSnap.data()
-      };
+            if (producto.categoriaId) {
+                try {
+                    const categoria = await obtenerCategoriaPorId(producto.categoriaId);
+                    if (categoria) {
+                        producto.categoriaInfo = categoria;
+                        producto.categoriaNombre = categoria.nombre;
+                        producto.categoriaSlug = categoria.slug;
+                    }
+                } catch (error) {
+                    console.warn(`No se pudo obtener categoría para producto ${producto.id}:`, error);
+                }
+            }
 
-      // Obtener información de la categoría
-      if (producto.categoriaId) {
-        try {
-          const categoria = await obtenerCategoriaPorId(producto.categoriaId);
-          producto.categoriaInfo = categoria;
-          producto.categoriaNombre = categoria?.nombre || '';
-          producto.categoriaSlug = categoria?.slug || '';
-        } catch (error) {
-          console.warn(`No se pudo obtener categoría para producto ${producto.id}:`, error);
-        }
-      }
+            return producto;
+        });
 
-      return producto;
-    });
-
-    return await Promise.all(productosPromises);
-  } catch (error) {
-    console.error("Error obteniendo productos:", error);
-    throw error;
-  }
+        return await Promise.all(productosPromesas);
+    } catch (error) {
+        console.error("Error obteniendo productos:", error);
+        throw error;
+    }
 };
 
-// Obtener productos por categoría (slug) - VERSIÓN CORREGIDA
 export const obtenerProductosPorCategoria = async (slugCategoria) => {
-  try {
-    console.log('🔍 Buscando categoría con slug:', slugCategoria);
+    try {
+        const categoria = await obtenerCategoriaPorSlug(slugCategoria);
 
-    // Obtener categoría por slug
-    const categoria = await obtenerCategoriaPorSlug(slugCategoria);
-    console.log('📋 Categoría encontrada:', categoria);
+        if (!categoria) {
+            return [];
+        }
 
-    if (!categoria) {
-      console.warn(`❌ No se encontró categoría con slug: ${slugCategoria}`);
-      return [];
+        const consulta = query(
+            collection(db, "producto"),
+            where("categoriaId", "==", categoria.id),
+            where("activo", "==", true),
+            orderBy("nombre")
+        );
+
+        const snapshot = await getDocs(consulta);
+
+        return snapshot.docs.map(documento => {
+            const productoData = documento.data();
+            return {
+                id: documento.id,
+                nombre: productoData.nombre || '',
+                descripcion: productoData.descripcion || '',
+                precio: productoData.precio || 0,
+                stock: productoData.stock || 0,
+                categoriaId: productoData.categoriaId || '',
+                image: productoData.image || '',
+                images: productoData.images || [],
+                destacado: productoData.destacado || false,
+                activo: productoData.activo !== false,
+                slug: productoData.slug || '',
+                createdAt: productoData.createdAt,
+                updatedAt: productoData.updatedAt,
+                categoriaInfo: categoria,
+                categoriaNombre: categoria.nombre,
+                categoriaSlug: categoria.slug
+            };
+        });
+    } catch (error) {
+        console.error("Error obteniendo productos por categoría:", error);
+        throw error;
     }
-
-    // Buscar productos con ese categoriaId
-    const q = query(
-      collection(db, "producto"),
-      where("categoriaId", "==", categoria.id),
-      where("activo", "==", true),
-      orderBy("nombre")
-    );
-
-    const querySnapshot = await getDocs(q);
-    console.log(`📦 Productos encontrados para categoría ${categoria.nombre}:`, querySnapshot.size);
-
-    const productos = querySnapshot.docs.map(doc => {
-      const producto = {
-        id: doc.id,
-        ...doc.data(),
-        categoriaInfo: categoria,
-        categoriaNombre: categoria.nombre,
-        categoriaSlug: categoria.slug
-      };
-      console.log('✅ Producto procesado:', producto.nombre);
-      return producto;
-    });
-
-    return productos;
-  } catch (error) {
-    console.error("❌ Error obteniendo productos por categoría:", error);
-    throw error;
-  }
 };
 
-// Obtener productos destacados CON CATEGORÍA
 export const obtenerProductosDestacados = async () => {
-  try {
-    const q = query(
-      collection(db, "producto"),
-      where("destacado", "==", true),
-      where("activo", "==", true),
-      orderBy("createdAt", "desc")
-    );
+    try {
+        const consulta = query(
+            collection(db, "producto"),
+            where("destacado", "==", true),
+            where("activo", "==", true),
+            orderBy("createdAt", "desc")
+        );
 
-    const querySnapshot = await getDocs(q);
-    const productosPromises = querySnapshot.docs.map(async (docSnap) => {
-      const producto = {
-        id: docSnap.id,
-        ...docSnap.data()
-      };
+        const snapshot = await getDocs(consulta);
+        const productosPromesas = snapshot.docs.map(async (documento) => {
+            const productoData = documento.data();
+            const producto = {
+                id: documento.id,
+                nombre: productoData.nombre || '',
+                descripcion: productoData.descripcion || '',
+                precio: productoData.precio || 0,
+                stock: productoData.stock || 0,
+                categoriaId: productoData.categoriaId || '',
+                image: productoData.image || '',
+                images: productoData.images || [],
+                destacado: productoData.destacado || false,
+                activo: productoData.activo !== false,
+                slug: productoData.slug || '',
+                createdAt: productoData.createdAt,
+                updatedAt: productoData.updatedAt
+            };
 
-      // Obtener información de la categoría
-      if (producto.categoriaId) {
-        try {
-          const categoria = await obtenerCategoriaPorId(producto.categoriaId);
-          producto.categoriaInfo = categoria;
-          producto.categoriaNombre = categoria?.nombre || '';
-          producto.categoriaSlug = categoria?.slug || '';
-        } catch (error) {
-          console.warn(`No se pudo obtener categoría para producto destacado ${producto.id}:`, error);
-        }
-      }
+            if (producto.categoriaId) {
+                try {
+                    const categoria = await obtenerCategoriaPorId(producto.categoriaId);
+                    if (categoria) {
+                        producto.categoriaInfo = categoria;
+                        producto.categoriaNombre = categoria.nombre;
+                        producto.categoriaSlug = categoria.slug;
+                    }
+                } catch (error) {
+                    console.warn(`No se pudo obtener categoría para producto ${producto.id}:`, error);
+                }
+            }
 
-      return producto;
-    });
+            return producto;
+        });
 
-    return await Promise.all(productosPromises);
-  } catch (error) {
-    console.error("Error obteniendo productos destacados:", error);
-    throw error;
-  }
-};
-
-// Obtener producto por ID CON CATEGORÍA
-export const obtenerProductoPorId = async (idProducto) => {
-  try {
-    const docRef = doc(db, "producto", idProducto);
-    const docSnap = await getDoc(docRef);
-
-    if (docSnap.exists()) {
-      const producto = { id: docSnap.id, ...docSnap.data() };
-
-      // Obtener información de la categoría
-      if (producto.categoriaId) {
-        try {
-          const categoria = await obtenerCategoriaPorId(producto.categoriaId);
-          producto.categoriaInfo = categoria;
-          producto.categoriaNombre = categoria?.nombre || '';
-          producto.categoriaSlug = categoria?.slug || '';
-        } catch (error) {
-          console.warn(`No se pudo obtener categoría para producto ${producto.id}:`, error);
-        }
-      }
-
-      return producto;
+        return await Promise.all(productosPromesas);
+    } catch (error) {
+        console.error("Error obteniendo productos destacados:", error);
+        throw error;
     }
-
-    return null;
-  } catch (error) {
-    console.error("Error obteniendo producto:", error);
-    throw error;
-  }
 };
 
-// Crear nuevo producto
+export const obtenerProductoPorId = async (idProducto) => {
+    try {
+        const productoRef = doc(db, "producto", idProducto);
+        const productoSnap = await getDoc(productoRef);
+
+        if (productoSnap.exists()) {
+            const productoData = productoSnap.data();
+            const producto = {
+                id: productoSnap.id,
+                nombre: productoData.nombre || '',
+                descripcion: productoData.descripcion || '',
+                precio: productoData.precio || 0,
+                stock: productoData.stock || 0,
+                categoriaId: productoData.categoriaId || '',
+                image: productoData.image || '',
+                images: productoData.images || [],
+                destacado: productoData.destacado || false,
+                activo: productoData.activo !== false,
+                slug: productoData.slug || '',
+                createdAt: productoData.createdAt,
+                updatedAt: productoData.updatedAt
+            };
+
+            if (producto.categoriaId) {
+                try {
+                    const categoria = await obtenerCategoriaPorId(producto.categoriaId);
+                    if (categoria) {
+                        producto.categoriaInfo = categoria;
+                        producto.categoriaNombre = categoria.nombre;
+                        producto.categoriaSlug = categoria.slug;
+                    }
+                } catch (error) {
+                    console.warn(`No se pudo obtener categoría para producto ${producto.id}:`, error);
+                }
+            }
+
+            return producto;
+        }
+
+        return null;
+    } catch (error) {
+        console.error("Error obteniendo producto:", error);
+        throw error;
+    }
+};
+
 export const crearProducto = async (datosProducto) => {
-  try {
-    const docRef = await addDoc(collection(db, "producto"), {
-      ...datosProducto,
-      activo: true,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
+    try {
+        const productoNormalizado = {
+            nombre: datosProducto.nombre?.trim(),
+            descripcion: datosProducto.descripcion?.trim() || '',
+            categoriaId: datosProducto.categoriaId,
+            precio: Number(datosProducto.precio) || 0,
+            stock: Number(datosProducto.stock) || 0,
+            image: datosProducto.image || '/images/productos/default.png',
+            images: datosProducto.images || [],
+            destacado: datosProducto.destacado || false,
+            novedad: datosProducto.novedad || false,
+            activo: datosProducto.activo !== false,
+            slug: datosProducto.slug || datosProducto.nombre?.toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9\s]/g, '')
+                .trim()
+                .replace(/\s+/g, '-'),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        };
 
-    return docRef.id;
-  } catch (error) {
-    console.error("Error creando producto:", error);
-    throw error;
-  }
+        const docRef = await addDoc(collection(db, "producto"), productoNormalizado);
+        return docRef.id;
+    } catch (error) {
+        console.error("Error creando producto:", error);
+        throw error;
+    }
 };
 
-// Actualizar producto existente
 export const actualizarProducto = async (idProducto, datosActualizados) => {
-  try {
-    const docRef = doc(db, "producto", idProducto);
-    await updateDoc(docRef, {
-      ...datosActualizados,
-      updatedAt: new Date()
-    });
+    try {
+        const productoRef = doc(db, "producto", idProducto);
+        const datosNormalizados = {
+            ...datosActualizados,
+            precio: Number(datosActualizados.precio) || 0,
+            stock: Number(datosActualizados.stock) || 0,
+            updatedAt: serverTimestamp()
+        };
 
-    return true;
-  } catch (error) {
-    console.error("Error actualizando producto:", error);
-    throw error;
-  }
+        await updateDoc(productoRef, datosNormalizados);
+        return true;
+    } catch (error) {
+        console.error("Error actualizando producto:", error);
+        throw error;
+    }
 };
 
-// Eliminar producto (marcar como inactivo)
 export const eliminarProducto = async (idProducto) => {
-  try {
-    const docRef = doc(db, "producto", idProducto);
-    await updateDoc(docRef, {
-      activo: false,
-      updatedAt: new Date()
-    });
-
-    return true;
-  } catch (error) {
-    console.error("Error eliminando producto:", error);
-    throw error;
-  }
+    try {
+        const productoRef = doc(db, "producto", idProducto);
+        await updateDoc(productoRef, {
+            activo: false,
+            updatedAt: serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error eliminando producto:", error);
+        throw error;
+    }
 };
 
-// Actualizar stock de producto
 export const actualizarStockProducto = async (idProducto, nuevoStock) => {
-  try {
-    const docRef = doc(db, "producto", idProducto);
-    await updateDoc(docRef, {
-      stock: nuevoStock,
-      updatedAt: new Date()
-    });
-
-    return true;
-  } catch (error) {
-    console.error("Error actualizando stock:", error);
-    throw error;
-  }
+    try {
+        const productoRef = doc(db, "producto", idProducto);
+        await updateDoc(productoRef, {
+            stock: Number(nuevoStock) || 0,
+            updatedAt: serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        console.error("Error actualizando stock:", error);
+        throw error;
+    }
 };
 
-// Descontar stock de producto
 export const descontarStockProducto = async (idProducto, cantidad) => {
-  try {
-    const docRef = doc(db, "producto", idProducto);
+    try {
+        const productoRef = doc(db, "producto", idProducto);
 
-    await runTransaction(db, async (transaccion) => {
-      const documento = await transaccion.get(docRef);
-      if (!documento.exists()) {
-        throw new Error("Producto no existe");
-      }
+        await runTransaction(db, async (transaccion) => {
+            const documento = await transaccion.get(productoRef);
+            if (!documento.exists()) {
+                throw new Error("Producto no existe");
+            }
 
-      const producto = documento.data();
-      if (producto.stock < cantidad) {
-        throw new Error(`Stock insuficiente. Disponible: ${producto.stock}`);
-      }
+            const producto = documento.data();
+            const stockActual = producto.stock || 0;
+            const cantidadDescontar = Number(cantidad) || 0;
 
-      transaccion.update(docRef, {
-        stock: producto.stock - cantidad,
-        updatedAt: new Date()
-      });
-    });
+            if (stockActual < cantidadDescontar) {
+                throw new Error(`Stock insuficiente. Disponible: ${stockActual}`);
+            }
 
-    return true;
-  } catch (error) {
-    console.error("Error descontando stock:", error);
-    throw error;
-  }
+            transaccion.update(productoRef, {
+                stock: stockActual - cantidadDescontar,
+                updatedAt: serverTimestamp()
+            });
+        });
+
+        return true;
+    } catch (error) {
+        console.error("Error descontando stock:", error);
+        throw error;
+    }
 };

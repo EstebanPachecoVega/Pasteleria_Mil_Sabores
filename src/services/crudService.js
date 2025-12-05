@@ -7,24 +7,23 @@ import {
     doc,
     getDocs,
     getDoc,
+    setDoc,
     query,
     where,
     orderBy,
-    Timestamp
+    serverTimestamp
 } from "firebase/firestore";
 
 export class CrudService {
 
-    // ==================== ÓRDENES ====================
-    static async getOrdenes() {
+    static async obtenerOrdenes() {
         try {
             const ordenesRef = collection(db, "order");
-            const q = query(ordenesRef, orderBy("fecha", "desc"));
-            const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => ({
+            const consulta = query(ordenesRef, orderBy("createdAt", "desc"));
+            const snapshot = await getDocs(consulta);
+            return snapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data(),
-                fecha: doc.data().fecha?.toDate?.() || doc.data().fecha
+                ...doc.data()
             }));
         } catch (error) {
             console.error("Error obteniendo órdenes:", error);
@@ -32,17 +31,12 @@ export class CrudService {
         }
     }
 
-    static async getOrdenById(id) {
+    static async obtenerOrdenPorId(id) {
         try {
             const ordenRef = doc(db, "order", id);
             const ordenSnap = await getDoc(ordenRef);
             if (ordenSnap.exists()) {
-                const data = ordenSnap.data();
-                return {
-                    id: ordenSnap.id,
-                    ...data,
-                    fecha: data.fecha?.toDate?.() || data.fecha
-                };
+                return { id: ordenSnap.id, ...ordenSnap.data() };
             }
             return null;
         } catch (error) {
@@ -51,32 +45,12 @@ export class CrudService {
         }
     }
 
-    static async getOrdenesPorEstado(estado) {
-        try {
-            const ordenesRef = collection(db, "order");
-            const q = query(
-                ordenesRef,
-                where("estado", "==", estado),
-                orderBy("fecha", "desc")
-            );
-            const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
-                fecha: doc.data().fecha?.toDate?.() || doc.data().fecha
-            }));
-        } catch (error) {
-            console.error("Error obteniendo órdenes por estado:", error);
-            return [];
-        }
-    }
-
-    static async updateOrdenEstado(id, nuevoEstado) {
+    static async actualizarEstadoOrden(id, nuevoEstado) {
         try {
             const ordenRef = doc(db, "order", id);
             await updateDoc(ordenRef, {
                 estado: nuevoEstado,
-                updatedAt: Timestamp.now()
+                updatedAt: serverTimestamp()
             });
             return true;
         } catch (error) {
@@ -85,12 +59,16 @@ export class CrudService {
         }
     }
 
-    // ==================== PRODUCTOS ====================
-    static async getProductos() {
+    static async obtenerProductos() {
         try {
             const productosRef = collection(db, "producto");
-            const querySnapshot = await getDocs(productosRef);
-            return querySnapshot.docs.map(doc => ({
+            const consulta = query(
+                productosRef,
+                where("activo", "==", true),
+                orderBy("createdAt", "desc")
+            );
+            const snapshot = await getDocs(consulta);
+            return snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
@@ -100,12 +78,16 @@ export class CrudService {
         }
     }
 
-    static async getProductoById(id) {
+    static async obtenerProductoPorId(id) {
         try {
             const productoRef = doc(db, "producto", id);
             const productSnap = await getDoc(productoRef);
             if (productSnap.exists()) {
-                return { id: productSnap.id, ...productSnap.data() };
+                const data = productSnap.data();
+                return {
+                    id: productSnap.id,
+                    ...data
+                };
             }
             return null;
         } catch (error) {
@@ -114,13 +96,30 @@ export class CrudService {
         }
     }
 
-    static async createProducto(producto) {
+    static async crearProducto(producto) {
         try {
-            const docRef = await addDoc(collection(db, "producto"), {
-                ...producto,
-                createdAt: Timestamp.now(),
-                activo: true
-            });
+            const productoNormalizado = {
+                nombre: producto.nombre?.trim(),
+                descripcion: producto.descripcion?.trim() || '',
+                categoriaId: producto.categoriaId,
+                precio: Number(producto.precio) || 0,
+                stock: Number(producto.stock) || 0,
+                image: producto.image || '/images/productos/default.png',
+                images: producto.images || [],
+                destacado: producto.destacado || false,
+                novedad: producto.novedad || false,
+                activo: producto.activo !== false,
+                slug: producto.slug || producto.nombre?.toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .replace(/[^a-z0-9\s]/g, '')
+                    .trim()
+                    .replace(/\s+/g, '-'),
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+
+            const docRef = await addDoc(collection(db, "producto"), productoNormalizado);
             return docRef.id;
         } catch (error) {
             console.error("Error creando producto:", error);
@@ -128,13 +127,17 @@ export class CrudService {
         }
     }
 
-    static async updateProducto(id, datos) {
+    static async actualizarProducto(id, datos) {
         try {
             const productoRef = doc(db, "producto", id);
-            await updateDoc(productoRef, {
+            const datosActualizados = {
                 ...datos,
-                updatedAt: Timestamp.now()
-            });
+                precio: Number(datos.precio) || 0,
+                stock: Number(datos.stock) || 0,
+                updatedAt: serverTimestamp()
+            };
+
+            await updateDoc(productoRef, datosActualizados);
             return true;
         } catch (error) {
             console.error("Error actualizando producto:", error);
@@ -142,9 +145,13 @@ export class CrudService {
         }
     }
 
-    static async deleteProducto(id) {
+    static async eliminarProducto(id) {
         try {
-            await deleteDoc(doc(db, "producto", id));
+            const productoRef = doc(db, "producto", id);
+            await updateDoc(productoRef, {
+                activo: false,
+                updatedAt: serverTimestamp()
+            });
             return true;
         } catch (error) {
             console.error("Error eliminando producto:", error);
@@ -152,12 +159,16 @@ export class CrudService {
         }
     }
 
-    // ==================== CATEGORÍAS ====================
-    static async getCategorias() {
+    static async obtenerCategorias() {
         try {
             const categoriasRef = collection(db, "categoria");
-            const querySnapshot = await getDocs(categoriasRef);
-            return querySnapshot.docs.map(doc => ({
+            const consulta = query(
+                categoriasRef,
+                where("activa", "==", true),
+                orderBy("orden")
+            );
+            const snapshot = await getDocs(consulta);
+            return snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
@@ -167,26 +178,68 @@ export class CrudService {
         }
     }
 
-    static async createCategoria(categoria) {
+    static async crearCategoria(categoria) {
         try {
-            const docRef = await addDoc(collection(db, "categoria"), {
-                ...categoria,
-                createdAt: Timestamp.now(),
-                activa: true
-            });
-            return docRef.id;
+            const nombre = categoria.nombre?.trim();
+            if (!nombre) {
+                throw new Error('El nombre de la categoría es requerido');
+            }
+
+            // Crear ID personalizado: cat_nombre (en minúsculas, con _)
+            const categoriaId = 'cat_' + nombre
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9\s]/g, '')
+                .trim()
+                .replace(/\s+/g, '_');
+
+            // Crear slug para URLs: nombre (en minúsculas, con -)
+            const slug = nombre
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-z0-9\s]/g, '')
+                .trim()
+                .replace(/\s+/g, '-');
+
+            const categoriaNormalizada = {
+                nombre: nombre,
+                descripcion: categoria.descripcion?.trim() || '',
+                orden: Number(categoria.orden) || 0,
+                slug: slug,
+                activa: true,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+
+            // Verificar si la categoría ya existe
+            const categoriaRef = doc(db, "categoria", categoriaId);
+            const categoriaSnap = await getDoc(categoriaRef);
+
+            if (categoriaSnap.exists()) {
+                // Si existe, actualizamos
+                await updateDoc(categoriaRef, categoriaNormalizada);
+                console.log(`✅ Categoría actualizada: ${categoriaId} (${nombre})`);
+            } else {
+                // Si no existe, creamos con ID personalizado
+                await setDoc(categoriaRef, categoriaNormalizada);
+                console.log(`✅ Categoría creada: ${categoriaId} (${nombre})`);
+            }
+
+            return categoriaId;
         } catch (error) {
-            console.error("Error creando categoría:", error);
-            return null;
+            console.error("Error creando/actualizando categoría:", error);
+            throw error;
         }
     }
 
-    static async updateCategoria(id, datos) {
+    static async actualizarCategoria(id, datos) {
         try {
             const categoriaRef = doc(db, "categoria", id);
             await updateDoc(categoriaRef, {
                 ...datos,
-                updatedAt: Timestamp.now()
+                updatedAt: serverTimestamp()
             });
             return true;
         } catch (error) {
@@ -195,9 +248,13 @@ export class CrudService {
         }
     }
 
-    static async deleteCategoria(id) {
+    static async eliminarCategoria(id) {
         try {
-            await deleteDoc(doc(db, "categoria", id));
+            const categoriaRef = doc(db, "categoria", id);
+            await updateDoc(categoriaRef, {
+                activa: false,
+                updatedAt: serverTimestamp()
+            });
             return true;
         } catch (error) {
             console.error("Error eliminando categoría:", error);
@@ -205,15 +262,23 @@ export class CrudService {
         }
     }
 
-    // ==================== USUARIOS ====================
-    static async getUsuarios() {
+    static async eliminarCategoriaPermanente(id) {
+        try {
+            await deleteDoc(doc(db, "categoria", id));
+            return true;
+        } catch (error) {
+            console.error("Error eliminando categoría permanentemente:", error);
+            return false;
+        }
+    }
+
+    static async obtenerUsuarios() {
         try {
             const usuariosRef = collection(db, "usuario");
-            const querySnapshot = await getDocs(usuariosRef);
-            return querySnapshot.docs.map(doc => ({
+            const snapshot = await getDocs(usuariosRef);
+            return snapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data(),
-                createdAt: doc.data().createdAt?.toDate?.() || doc.data().createdAt
+                ...doc.data()
             }));
         } catch (error) {
             console.error("Error obteniendo usuarios:", error);
@@ -221,99 +286,22 @@ export class CrudService {
         }
     }
 
-    static async getUsuarioById(id) {
+    static async obtenerProductosPorCategoriaId(categoriaId) {
         try {
-            const usuarioRef = doc(db, "usuario", id);
-            const usuarioSnap = await getDoc(usuarioRef);
-            if (usuarioSnap.exists()) {
-                const data = usuarioSnap.data();
-                return {
-                    id: usuarioSnap.id,
-                    ...data,
-                    createdAt: data.createdAt?.toDate?.() || data.createdAt
-                };
-            }
-            return null;
-        } catch (error) {
-            console.error("Error obteniendo usuario:", error);
-            return null;
-        }
-    }
-
-    static async updateUsuario(id, datos) {
-        try {
-            const usuarioRef = doc(db, "usuario", id);
-            await updateDoc(usuarioRef, {
-                ...datos,
-                updatedAt: Timestamp.now()
-            });
-            return true;
-        } catch (error) {
-            console.error("Error actualizando usuario:", error);
-            return false;
-        }
-    }
-
-    static async deleteUsuario(id) {
-        try {
-            await deleteDoc(doc(db, "usuario", id));
-            return true;
-        } catch (error) {
-            console.error("Error eliminando usuario:", error);
-            return false;
-        }
-    }
-
-    // ==================== REPORTES ====================
-    static async getReporteVentas(fechaInicio, fechaFin) {
-        try {
-            const comprasRef = collection(db, "order");
-            const q = query(
-                comprasRef,
-                where("fecha", ">=", fechaInicio),
-                where("fecha", "<=", fechaFin),
-                orderBy("fecha", "desc")
+            const productosRef = collection(db, "producto");
+            const consulta = query(
+                productosRef,
+                where("categoriaId", "==", categoriaId),
+                where("activo", "==", true),
+                orderBy("nombre")
             );
-            const querySnapshot = await getDocs(q);
-            return querySnapshot.docs.map(doc => ({
+            const snapshot = await getDocs(consulta);
+            return snapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data(),
-                fecha: doc.data().fecha?.toDate?.() || doc.data().fecha
+                ...doc.data()
             }));
         } catch (error) {
-            console.error("Error obteniendo reporte de ventas:", error);
-            return [];
-        }
-    }
-
-    static async getProductosMasVendidos() {
-        try {
-            // Esta es una implementación básica - puedes mejorarla según tus necesidades
-            const comprasRef = collection(db, "order");
-            const querySnapshot = await getDocs(comprasRef);
-
-            const productosVendidos = {};
-            querySnapshot.forEach(doc => {
-                const compra = doc.data();
-                if (compra.productos) {
-                    compra.productos.forEach(producto => {
-                        if (productosVendidos[producto.id]) {
-                            productosVendidos[producto.id].cantidad += producto.cantidad;
-                        } else {
-                            productosVendidos[producto.id] = {
-                                ...producto,
-                                cantidad: producto.cantidad
-                            };
-                        }
-                    });
-                }
-            });
-
-            return Object.values(productosVendidos)
-                .sort((a, b) => b.cantidad - a.cantidad)
-                .slice(0, 10);
-        } catch (error) {
-            console.error("Error obteniendo productos más vendidos:", error);
+            console.error("Error obteniendo productos por categoría:", error);
             return [];
         }
     }

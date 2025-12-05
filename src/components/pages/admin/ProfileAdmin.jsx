@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Nav, Modal, Form, Table, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Nav, Modal, Form, Table, Badge, Alert } from 'react-bootstrap';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CrudService } from '../../../services/crudService';
@@ -10,52 +10,65 @@ const ProfileAdmin = () => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Estados
-  const [activeSection, setActiveSection] = useState('dashboard');
-  const [stats, setStats] = useState(null);
+  const [seccionActiva, setSeccionActiva] = useState('dashboard');
+  const [estadisticas, setEstadisticas] = useState(null);
   const [ordenes, setOrdenes] = useState([]);
   const [productos, setProductos] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
   const [categorias, setCategorias] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [cargando, setCargando] = useState(false);
 
-  // Estados para modales
-  const [showProductModal, setShowProductModal] = useState(false);
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showOrderModal, setShowOrderModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-
-  // Estados para formularios
-  const [productoForm, setProductoForm] = useState({ nombre: '', precio: '', stock: '', categoria: '' });
-  const [categoriaForm, setCategoriaForm] = useState({ nombre: '', descripcion: '' });
+  const [mostrarModalProducto, setMostrarModalProducto] = useState(false);
+  const [mostrarModalCategoria, setMostrarModalCategoria] = useState(false);
+  const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
+  const [mostrarModalDetalle, setMostrarModalDetalle] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
 
-  // Cargar datos
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
+  const [mostrarModalEditarCategoria, setMostrarModalEditarCategoria] = useState(false);
+  const [mostrarModalEliminarCategoria, setMostrarModalEliminarCategoria] = useState(false);
+
+  const [formularioProducto, setFormularioProducto] = useState({
+    nombre: '',
+    descripcion: '',
+    precio: '',
+    stock: '',
+    categoriaId: '',
+    destacado: false,
+    activo: true
+  });
+
+  const [formularioCategoria, setFormularioCategoria] = useState({
+    nombre: '',
+    descripcion: '',
+    orden: ''
+  });
+
+  const [cargandoAccion, setCargandoAccion] = useState(false);
+  const [erroresFormulario, setErroresFormulario] = useState({});
+
   useEffect(() => {
-    loadDashboardData();
+    cargarDatosDashboard();
   }, []);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
+  const cargarDatosDashboard = async () => {
+    setCargando(true);
     try {
       const [
-        estadisticas,
+        estadisticasData,
         ordenesData,
         productosData,
         usuariosData,
         categoriasData
       ] = await Promise.all([
-        DashboardService.getEstadisticasCompletas(),
-        CrudService.getOrdenes(),
-        CrudService.getProductos(),
-        CrudService.getUsuarios(),
-        CrudService.getCategorias()
+        DashboardService.obtenerEstadisticasCompletas(),
+        CrudService.obtenerOrdenes(),
+        CrudService.obtenerProductos(),
+        CrudService.obtenerUsuarios(),
+        CrudService.obtenerCategorias()
       ]);
 
-      setStats(estadisticas);
+      setEstadisticas(estadisticasData);
       setOrdenes(ordenesData);
       setProductos(productosData);
       setUsuarios(usuariosData);
@@ -63,10 +76,10 @@ const ProfileAdmin = () => {
     } catch (error) {
       console.error('Error cargando datos:', error);
     }
-    setLoading(false);
+    setCargando(false);
   };
 
-  const handleLogout = async () => {
+  const manejarCerrarSesion = async () => {
     try {
       await logout();
       navigate('/');
@@ -75,244 +88,396 @@ const ProfileAdmin = () => {
     }
   };
 
-  const handleBackToStore = () => {
+  const manejarVolverTienda = () => {
     navigate('/');
   };
 
-  // Función helper para obtener campos de producto
   const obtenerCampoProducto = (producto, campo) => {
     const mapaCampos = {
-      nombre: ['nombre', 'name', 'title', 'productName', 'descripcion', 'description'],
-      precio: ['precio', 'price', 'valor', 'cost', 'precioFinal', 'finalPrice'],
-      stock: ['stock', 'cantidad', 'quantity', 'inventory', 'disponibles', 'available'],
-      categoria: ['categoria', 'category', 'categoriaId', 'type', 'tipo'],
-      descripcion: ['descripcion', 'description', 'desc', 'detalles'],
-      destacado: ['destacado', 'featured', 'highlighted'],
-      activo: ['activo', 'active', 'estado', 'status', 'enabled', 'available']
+      nombre: ['nombre', 'name', 'title'],
+      precio: ['precio', 'price', 'valor'],
+      stock: ['stock', 'cantidad', 'quantity'],
+      categoriaId: ['categoriaId', 'categoria', 'category'],
+      descripcion: ['descripcion', 'description'],
+      destacado: ['destacado', 'featured'],
+      activo: ['activo', 'active', 'estado']
     };
 
     const camposPosibles = mapaCampos[campo] || [campo];
     for (const nombreCampo of camposPosibles) {
-      if (producto[nombreCampo] !== undefined && producto[nombreCampo] !== null && producto[nombreCampo] !== '') {
+      if (producto[nombreCampo] !== undefined && producto[nombreCampo] !== null) {
         return producto[nombreCampo];
       }
     }
 
-    const defaults = {
+    const valoresPorDefecto = {
       nombre: 'Sin nombre',
       precio: 0,
       stock: 0,
-      categoria: 'Sin categoría',
+      categoriaId: '',
       descripcion: '',
       destacado: false,
       activo: true
     };
 
-    return defaults[campo] || '';
+    return valoresPorDefecto[campo] || '';
   };
 
-  // Función helper para obtener estado del producto
   const obtenerEstadoProducto = (producto) => {
     const activo = obtenerCampoProducto(producto, 'activo');
-
-    if (typeof activo === 'boolean') return activo;
-    if (typeof activo === 'string') {
-      const inactiveKeywords = ['inactivo', 'disabled', 'false', '0', 'no', 'off', 'inactive'];
-      return !inactiveKeywords.includes(activo.toLowerCase().trim());
-    }
-    if (typeof activo === 'number') return activo !== 0;
-
-    return true;
+    return activo !== false && activo !== 'false' && activo !== 0;
   };
 
-  // Handlers para CRUD
-  const handleCreateProducto = async (e) => {
-    e.preventDefault();
-    try {
-      const productoData = {
-        nombre: productoForm.nombre.trim(),
-        precio: Number(productoForm.precio),
-        stock: Number(productoForm.stock),
-        categoria: productoForm.categoria,
-        descripcion: productoForm.descripcion?.trim() || '',
-        destacado: productoForm.destacado || false,
-        activo: productoForm.activo !== false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
+  const validarFormularioProducto = () => {
+    const errores = {};
 
-      const productId = await CrudService.createProducto(productoData);
-
-      if (productId) {
-        console.log('✅ Producto creado exitosamente');
-        setShowProductModal(false);
-        setProductoForm({
-          nombre: '',
-          precio: '',
-          stock: '',
-          categoria: '',
-          descripcion: '',
-          destacado: false,
-          activo: true
-        });
-        loadDashboardData();
-      }
-    } catch (error) {
-      console.error('❌ Error creando producto:', error);
+    if (!formularioProducto.nombre?.trim()) {
+      errores.nombre = 'El nombre del producto es requerido';
     }
+
+    const precio = Number(formularioProducto.precio);
+    if (!formularioProducto.precio || isNaN(precio) || precio <= 0) {
+      errores.precio = 'El precio debe ser mayor a 0';
+    }
+
+    const stock = Number(formularioProducto.stock);
+    if (stock < 0) {
+      errores.stock = 'El stock no puede ser negativo';
+    }
+
+    if (!formularioProducto.categoriaId) {
+      errores.categoriaId = 'Selecciona una categoría';
+    }
+
+    setErroresFormulario(errores);
+    return Object.keys(errores).length === 0;
   };
 
-  const handleUpdateProducto = async (e) => {
-    e.preventDefault();
-    if (!productoSeleccionado) return;
+  // Manejo de creación y actualización de productos
 
-    setActionLoading(true);
+  const manejarCrearProducto = async (e) => {
+    e.preventDefault();
+
+    if (!validarFormularioProducto()) return;
+
+    setCargandoAccion(true);
     try {
-      const productoData = {
-        nombre: productoForm.nombre.trim(),
-        precio: Number(productoForm.precio),
-        stock: Number(productoForm.stock),
-        categoria: productoForm.categoria,
-        descripcion: productoForm.descripcion?.trim() || '',
-        destacado: productoForm.destacado || false,
-        activo: productoForm.activo !== false,
-        updatedAt: new Date()
+      const datosProducto = {
+        nombre: formularioProducto.nombre.trim(),
+        descripcion: formularioProducto.descripcion?.trim() || '',
+        precio: Number(formularioProducto.precio),
+        stock: Number(formularioProducto.stock),
+        categoriaId: formularioProducto.categoriaId,
+        destacado: formularioProducto.destacado || false,
+        activo: formularioProducto.activo !== false
       };
 
-      const success = await CrudService.updateProducto(productoSeleccionado.id, productoData);
-      if (success) {
-        console.log('✅ Producto actualizado exitosamente');
-        setShowProductModal(false);
-        setProductoSeleccionado(null);
-        setProductoForm({
-          nombre: '',
-          precio: '',
-          stock: '',
-          categoria: '',
-          descripcion: '',
-          destacado: false,
-          activo: true
-        });
-        loadDashboardData();
+      const productoId = await CrudService.crearProducto(datosProducto);
+
+      if (productoId) {
+        setMostrarModalProducto(false);
+        resetearFormularioProducto();
+        cargarDatosDashboard();
       }
     } catch (error) {
-      console.error('❌ Error actualizando producto:', error);
+      console.error('Error creando producto:', error);
+      setErroresFormulario({ submit: 'Error al crear el producto' });
     } finally {
-      setActionLoading(false);
+      setCargandoAccion(false);
     }
   };
 
-  const handleCreateCategoria = async (e) => {
+  const manejarActualizarProducto = async (e) => {
     e.preventDefault();
+
+    if (!productoSeleccionado || !validarFormularioProducto()) return;
+
+    setCargandoAccion(true);
     try {
-      await CrudService.createCategoria(categoriaForm);
-      setShowCategoryModal(false);
-      setCategoriaForm({ nombre: '', descripcion: '' });
-      loadDashboardData();
+      const datosActualizados = {
+        nombre: formularioProducto.nombre.trim(),
+        descripcion: formularioProducto.descripcion?.trim() || '',
+        precio: Number(formularioProducto.precio),
+        stock: Number(formularioProducto.stock),
+        categoriaId: formularioProducto.categoriaId,
+        destacado: formularioProducto.destacado || false,
+        activo: formularioProducto.activo !== false
+      };
+
+      const exito = await CrudService.actualizarProducto(productoSeleccionado.id, datosActualizados);
+
+      if (exito) {
+        setMostrarModalProducto(false);
+        resetearFormularioProducto();
+        cargarDatosDashboard();
+      }
+    } catch (error) {
+      console.error('Error actualizando producto:', error);
+      setErroresFormulario({ submit: 'Error al actualizar el producto' });
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
+  const manejarCrearCategoria = async (e) => {
+    e.preventDefault();
+
+    if (!formularioCategoria.nombre?.trim()) {
+      alert('❌ El nombre de la categoría es requerido');
+      return;
+    }
+
+    setCargandoAccion(true);
+    try {
+      const datosCategoria = {
+        nombre: formularioCategoria.nombre.trim(),
+        descripcion: formularioCategoria.descripcion?.trim() || '',
+        orden: Number(formularioCategoria.orden) || 0
+      };
+
+      const categoriaId = await CrudService.crearCategoria(datosCategoria);
+
+      if (categoriaId) {
+        setMostrarModalCategoria(false);
+        resetearFormularioCategoria();
+        cargarDatosDashboard();
+
+        alert(`✅ Categoría creada exitosamente\nID: ${categoriaId}\nSlug: ${categoriaId.replace('cat_', '').replace('_', '-')}`);
+      }
     } catch (error) {
       console.error('Error creando categoría:', error);
+      alert(`❌ Error creando categoría: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setCargandoAccion(false);
     }
   };
 
-  const handleUpdateOrdenEstado = async (ordenId, nuevoEstado) => {
+  const manejarEditarCategoria = async (e) => {
+    e.preventDefault();
+
+    if (!categoriaSeleccionada) return;
+
+    setCargandoAccion(true);
     try {
-      await CrudService.updateOrdenEstado(ordenId, nuevoEstado);
-      loadDashboardData();
+      const datosActualizados = {
+        nombre: formularioCategoria.nombre.trim(),
+        descripcion: formularioCategoria.descripcion?.trim() || '',
+        orden: Number(formularioCategoria.orden) || 0,
+        slug: formularioCategoria.nombre.toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9\s]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+      };
+
+      const exito = await CrudService.actualizarCategoria(
+        categoriaSeleccionada.id,
+        datosActualizados
+      );
+
+      if (exito) {
+        setMostrarModalEditarCategoria(false);
+        setCategoriaSeleccionada(null);
+        resetearFormularioCategoria();
+        cargarDatosDashboard();
+        alert('✅ Categoría actualizada exitosamente');
+      }
+    } catch (error) {
+      console.error('Error actualizando categoría:', error);
+      alert('❌ Error actualizando categoría');
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
+  const manejarEliminarCategoria = async () => {
+    if (!categoriaSeleccionada) return;
+
+    setCargandoAccion(true);
+    try {
+      // Primero verificar si hay productos usando esta categoría
+      const productos = await CrudService.obtenerProductosPorCategoriaId(categoriaSeleccionada.id);
+
+      if (productos.length > 0) {
+        alert(`⚠️ No se puede eliminar la categoría "${categoriaSeleccionada.nombre}"\n\nTiene ${productos.length} productos asociados.`);
+        setCargandoAccion(false);
+        return;
+      }
+
+      // Preguntar al usuario qué tipo de eliminación quiere
+      const confirmacion = window.confirm(
+        `¿Cómo quieres eliminar la categoría "${categoriaSeleccionada.nombre}"?\n\n` +
+        `✅ Ocultar (marcar como inactiva):\n` +
+        `   • Se puede reactivar después\n` +
+        `   • Recomendado\n\n` +
+        `🗑️ Eliminar permanentemente:\n` +
+        `   • NO se puede recuperar\n` +
+        `   • Solo si estás seguro`
+      );
+
+      let exito = false;
+
+      if (confirmacion) {
+        // Eliminación permanente
+        exito = await CrudService.eliminarCategoriaPermanente(categoriaSeleccionada.id);
+        if (exito) {
+          alert(`🗑️ Categoría eliminada permanentemente`);
+        }
+      } else {
+        // Soft delete (marcar como inactiva)
+        exito = await CrudService.eliminarCategoria(categoriaSeleccionada.id);
+        if (exito) {
+          alert(`👁️ Categoría marcada como inactiva`);
+        }
+      }
+
+      if (exito) {
+        setMostrarModalEliminarCategoria(false);
+        setCategoriaSeleccionada(null);
+        cargarDatosDashboard();
+      }
+    } catch (error) {
+      console.error('Error eliminando categoría:', error);
+      alert('❌ Error eliminando categoría');
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
+  const manejarActualizarEstadoOrden = async (ordenId, nuevoEstado) => {
+    try {
+      await CrudService.actualizarEstadoOrden(ordenId, nuevoEstado);
+      cargarDatosDashboard();
     } catch (error) {
       console.error('Error actualizando orden:', error);
     }
   };
 
-  // Funciones para las acciones de productos
-  const manejarEditarProducto = (producto) => {
-    console.log('📝 Editando producto:', producto);
-    setProductoSeleccionado(producto);
-    setProductoForm({
-      nombre: obtenerCampoProducto(producto, 'nombre'),
-      precio: obtenerCampoProducto(producto, 'precio'),
-      stock: obtenerCampoProducto(producto, 'stock'),
-      categoria: obtenerCampoProducto(producto, 'categoria'),
-      descripcion: obtenerCampoProducto(producto, 'descripcion'),
-      destacado: obtenerCampoProducto(producto, 'destacado') || false,
-      activo: obtenerEstadoProducto(producto)
-    });
-    setShowProductModal(true);
-  };
-
-  const manejarEliminarProducto = (producto) => {
-    console.log('🗑️ Eliminando producto:', producto);
-    setProductoSeleccionado(producto);
-    setShowDeleteModal(true);
-  };
-
-  const manejarVerDetalle = (producto) => {
-    console.log('👀 Viendo detalles de producto:', producto);
-    setProductoSeleccionado(producto);
-    setShowDetailModal(true);
-  };
-
-  // Función para eliminar producto
-  const confirmarEliminarProducto = async () => {
+  const manejarEliminarProducto = async () => {
     if (!productoSeleccionado) return;
 
-    setActionLoading(true);
+    setCargandoAccion(true);
     try {
-      const success = await CrudService.deleteProducto(productoSeleccionado.id);
-      if (success) {
-        console.log('✅ Producto eliminado exitosamente');
-        setShowDeleteModal(false);
+      const exito = await CrudService.eliminarProducto(productoSeleccionado.id);
+
+      if (exito) {
+        setMostrarModalEliminar(false);
         setProductoSeleccionado(null);
-        loadDashboardData();
+        cargarDatosDashboard();
       }
     } catch (error) {
-      console.error('❌ Error eliminando producto:', error);
+      console.error('Error eliminando producto:', error);
     } finally {
-      setActionLoading(false);
+      setCargandoAccion(false);
     }
   };
 
-  // Renderizar sección activa
-  const renderActiveSection = () => {
-    switch (activeSection) {
+  const abrirModalEditarProducto = (producto) => {
+    setProductoSeleccionado(producto);
+    setFormularioProducto({
+      nombre: obtenerCampoProducto(producto, 'nombre'),
+      descripcion: obtenerCampoProducto(producto, 'descripcion'),
+      precio: obtenerCampoProducto(producto, 'precio'),
+      stock: obtenerCampoProducto(producto, 'stock'),
+      categoriaId: obtenerCampoProducto(producto, 'categoriaId'),
+      destacado: obtenerCampoProducto(producto, 'destacado') || false,
+      activo: obtenerEstadoProducto(producto)
+    });
+    setMostrarModalProducto(true);
+    setErroresFormulario({});
+  };
+
+  const abrirModalNuevoProducto = () => {
+    setProductoSeleccionado(null);
+    resetearFormularioProducto();
+    setMostrarModalProducto(true);
+    setErroresFormulario({});
+  };
+
+  const abrirModalEditarCategoria = (categoria) => {
+    setCategoriaSeleccionada(categoria);
+    setFormularioCategoria({
+      nombre: categoria.nombre,
+      descripcion: categoria.descripcion || '',
+      orden: categoria.orden || 0
+    });
+    setMostrarModalEditarCategoria(true);
+  };
+
+  const abrirModalEliminarCategoria = (categoria) => {
+    setCategoriaSeleccionada(categoria);
+    setMostrarModalEliminarCategoria(true);
+  };
+
+  const resetearFormularioProducto = () => {
+    setFormularioProducto({
+      nombre: '',
+      descripcion: '',
+      precio: '',
+      stock: '',
+      categoriaId: '',
+      destacado: false,
+      activo: true
+    });
+  };
+
+  const resetearFormularioCategoria = () => {
+    setFormularioCategoria({
+      nombre: '',
+      descripcion: '',
+      orden: ''
+    });
+  };
+
+  const renderizarSeccionActiva = () => {
+    switch (seccionActiva) {
       case 'dashboard':
-        return <DashboardSection stats={stats} loading={loading} />;
+        return <SeccionDashboard estadisticas={estadisticas} />;
       case 'usuarios':
-        return <UsuariosSection usuarios={usuarios} loading={loading} />;
+        return <SeccionUsuarios usuarios={usuarios} />;
       case 'productos':
-        return <ProductosSection
-          productos={productos}
-          categorias={categorias}
-          loading={loading}
-          onShowModal={() => {
-            setProductoSeleccionado(null);
-            setShowProductModal(true);
-          }}
-          onEditar={manejarEditarProducto}
-          onEliminar={manejarEliminarProducto}
-          onVerDetalle={manejarVerDetalle}
-        />;
+        return (
+          <SeccionProductos
+            productos={productos}
+            categorias={categorias}
+            onNuevoProducto={abrirModalNuevoProducto}
+            onEditarProducto={abrirModalEditarProducto}
+            onEliminarProducto={(producto) => {
+              setProductoSeleccionado(producto);
+              setMostrarModalEliminar(true);
+            }}
+            onVerDetalle={(producto) => {
+              setProductoSeleccionado(producto);
+              setMostrarModalDetalle(true);
+            }}
+          />
+        );
       case 'categorias':
-        return <CategoriasSection
-          categorias={categorias}
-          loading={loading}
-          onShowModal={() => setShowCategoryModal(true)}
-        />;
+        return (
+          <SeccionCategorias
+            categorias={categorias}
+            onNuevaCategoria={() => setMostrarModalCategoria(true)}
+            onEditarCategoria={abrirModalEditarCategoria}
+            onEliminarCategoria={abrirModalEliminarCategoria}
+          />
+        );
       case 'ventas':
-        return <VentasSection ordenes={ordenes} loading={loading} />;
+        return <SeccionVentas ordenes={ordenes} />;
       case 'pedidos':
-        return <PedidosSection
-          ordenes={ordenes}
-          loading={loading}
-          onUpdateEstado={handleUpdateOrdenEstado}
-        />;
+        return (
+          <SeccionPedidos
+            ordenes={ordenes}
+            onActualizarEstado={manejarActualizarEstadoOrden}
+          />
+        );
       default:
-        return <DashboardSection stats={stats} loading={loading} />;
+        return <SeccionDashboard estadisticas={estadisticas} />;
     }
   };
 
   return (
     <Container fluid className="p-4 admin-dashboard" style={{ height: '100vh', overflow: 'hidden' }}>
-      {/* Header */}
       <Row>
         <Col>
           <div>
@@ -323,9 +488,8 @@ const ProfileAdmin = () => {
           </div>
         </Col>
       </Row>
-  
+
       <Row style={{ height: 'calc(100vh - 100px)' }}>
-        {/* Sidebar de Navegación - SCROLL PROPIO */}
         <Col md={2} className="h-100">
           <Card className="h-100" style={{ overflowY: 'auto' }}>
             <Card.Header className="bg-primary text-white">
@@ -335,8 +499,8 @@ const ProfileAdmin = () => {
               <Nav variant="pills" className="flex-column">
                 <Nav.Item>
                   <Nav.Link
-                    active={activeSection === 'dashboard'}
-                    onClick={() => setActiveSection('dashboard')}
+                    active={seccionActiva === 'dashboard'}
+                    onClick={() => setSeccionActiva('dashboard')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-speedometer2 me-2"></i>
@@ -345,28 +509,28 @@ const ProfileAdmin = () => {
                 </Nav.Item>
                 <Nav.Item>
                   <Nav.Link
-                    active={activeSection === 'usuarios'}
-                    onClick={() => setActiveSection('usuarios')}
+                    active={seccionActiva === 'usuarios'}
+                    onClick={() => setSeccionActiva('usuarios')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-people me-2"></i>
-                    Gestión de Usuarios
+                    Usuarios
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
                   <Nav.Link
-                    active={activeSection === 'productos'}
-                    onClick={() => setActiveSection('productos')}
+                    active={seccionActiva === 'productos'}
+                    onClick={() => setSeccionActiva('productos')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-box-seam me-2"></i>
-                    Productos y Stock
+                    Productos
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
                   <Nav.Link
-                    active={activeSection === 'categorias'}
-                    onClick={() => setActiveSection('categorias')}
+                    active={seccionActiva === 'categorias'}
+                    onClick={() => setSeccionActiva('categorias')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-tags me-2"></i>
@@ -375,32 +539,31 @@ const ProfileAdmin = () => {
                 </Nav.Item>
                 <Nav.Item>
                   <Nav.Link
-                    active={activeSection === 'ventas'}
-                    onClick={() => setActiveSection('ventas')}
+                    active={seccionActiva === 'ventas'}
+                    onClick={() => setSeccionActiva('ventas')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-graph-up me-2"></i>
-                    Reportes de Ventas
+                    Ventas
                   </Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
                   <Nav.Link
-                    active={activeSection === 'pedidos'}
-                    onClick={() => setActiveSection('pedidos')}
+                    active={seccionActiva === 'pedidos'}
+                    onClick={() => setSeccionActiva('pedidos')}
                     style={{ cursor: 'pointer' }}
                   >
                     <i className="bi bi-receipt me-2"></i>
-                    Órdenes y Boletas
+                    Pedidos
                   </Nav.Link>
                 </Nav.Item>
               </Nav>
 
-              {/* Botones de acción debajo del menú */}
               <div className="p-3 border-top">
                 <Button
                   variant="outline-primary"
                   className="w-100 mb-2"
-                  onClick={handleBackToStore}
+                  onClick={manejarVolverTienda}
                 >
                   <i className="bi bi-shop me-2"></i>
                   Volver a la Tienda
@@ -408,7 +571,7 @@ const ProfileAdmin = () => {
                 <Button
                   variant="outline-danger"
                   className="w-100"
-                  onClick={handleLogout}
+                  onClick={manejarCerrarSesion}
                 >
                   <i className="bi bi-box-arrow-right me-2"></i>
                   Cerrar Sesión
@@ -418,72 +581,94 @@ const ProfileAdmin = () => {
           </Card>
         </Col>
 
-        {/* Contenido Principal */}
         <Col md={10} className="h-100">
-        <div style={{ height: '100%', overflowY: 'auto', paddingRight: '10px' }}>
-          {loading ? (
-            <div className="text-center p-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Cargando...</span>
+          <div style={{ height: '100%', overflowY: 'auto', paddingRight: '10px' }}>
+            {cargando ? (
+              <div className="text-center p-5">
+                <div className="spinner-border text-primary" role="status">
+                  <span className="visually-hidden">Cargando...</span>
+                </div>
+                <p className="mt-3">Cargando datos...</p>
               </div>
-              <p className="mt-3">Cargando datos...</p>
-            </div>
-          ) : (
-            renderActiveSection()
-          )}
-        </div>
-      </Col>
-    </Row>
+            ) : (
+              renderizarSeccionActiva()
+            )}
+          </div>
+        </Col>
+      </Row>
 
-      {/* MODALES - Al final del return */}
-      <ProductModal
-        show={showProductModal}
-        onHide={() => {
-          setShowProductModal(false);
-          setProductoSeleccionado(null);
-        }}
-        onSubmit={productoSeleccionado ? handleUpdateProducto : handleCreateProducto}
-        formData={productoForm}
-        onFormChange={setProductoForm}
+      <ModalProducto
+        show={mostrarModalProducto}
+        onHide={() => setMostrarModalProducto(false)}
+        onSubmit={productoSeleccionado ? manejarActualizarProducto : manejarCrearProducto}
+        formulario={formularioProducto}
+        onChangeFormulario={setFormularioProducto}
         categorias={categorias}
         productoSeleccionado={productoSeleccionado}
-        loading={actionLoading}
+        cargando={cargandoAccion}
+        errores={erroresFormulario}
       />
 
-      <DeleteModal
-        show={showDeleteModal}
-        onHide={() => {
-          setShowDeleteModal(false);
-          setProductoSeleccionado(null);
-        }}
-        onConfirm={confirmarEliminarProducto}
+      <ModalEliminarProducto
+        show={mostrarModalEliminar}
+        onHide={() => setMostrarModalEliminar(false)}
+        onConfirmar={manejarEliminarProducto}
         producto={productoSeleccionado}
-        loading={actionLoading}
+        cargando={cargandoAccion}
       />
 
-      <DetailModal
-        show={showDetailModal}
-        onHide={() => {
-          setShowDetailModal(false);
-          setProductoSeleccionado(null);
-        }}
+      <ModalDetalleProducto
+        show={mostrarModalDetalle}
+        onHide={() => setMostrarModalDetalle(false)}
         producto={productoSeleccionado}
       />
 
-      <CategoryModal
-        show={showCategoryModal}
-        onHide={() => setShowCategoryModal(false)}
-        onSubmit={handleCreateCategoria}
-        formData={categoriaForm}
-        onFormChange={setCategoriaForm}
+      <ModalCategoria
+        show={mostrarModalCategoria}
+        onHide={() => setMostrarModalCategoria(false)}
+        onSubmit={manejarCrearCategoria}
+        formulario={formularioCategoria}
+        onChangeFormulario={setFormularioCategoria}
+      />
+
+      <ModalEditarCategoria
+        show={mostrarModalEditarCategoria}
+        onHide={() => {
+          setMostrarModalEditarCategoria(false);
+          setCategoriaSeleccionada(null);
+          resetearFormularioCategoria();
+        }}
+        onSubmit={manejarEditarCategoria}
+        formulario={formularioCategoria}
+        onChangeFormulario={setFormularioCategoria}
+        categoria={categoriaSeleccionada}
+        cargando={cargandoAccion}
+      />
+
+      <ModalEliminarCategoria
+        show={mostrarModalEliminarCategoria}
+        onHide={() => {
+          setMostrarModalEliminarCategoria(false);
+          setCategoriaSeleccionada(null);
+        }}
+        onConfirmar={manejarEliminarCategoria}
+        categoria={categoriaSeleccionada}
+        cargando={cargandoAccion}
       />
     </Container>
   );
 };
 
-// COMPONENTES DE SECCIÓN
-const DashboardSection = ({ stats, loading }) => {
-  if (!stats) return null;
+const SeccionDashboard = ({ estadisticas }) => {
+  if (!estadisticas) return null;
+
+  const formatearMoneda = (valor) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0
+    }).format(valor);
+  };
 
   return (
     <>
@@ -492,9 +677,11 @@ const DashboardSection = ({ stats, loading }) => {
           <Card className="text-center h-100">
             <Card.Body>
               <i className="bi bi-people fs-1 text-primary"></i>
-              <h3 className="mt-2">{stats.totalUsuarios}</h3>
-              <p className="text-muted mb-0">Usuarios Registrados</p>
-              <small className="text-success">+{stats.nuevosUsuariosMes} este mes</small>
+              <h3 className="mt-2">{estadisticas.totalUsuarios}</h3>
+              <p className="text-muted mb-0">Usuarios</p>
+              <small className="text-success">
+                +{estadisticas.nuevosUsuariosMes} este mes
+              </small>
             </Card.Body>
           </Card>
         </Col>
@@ -502,10 +689,10 @@ const DashboardSection = ({ stats, loading }) => {
           <Card className="text-center h-100">
             <Card.Body>
               <i className="bi bi-cart-check fs-1 text-success"></i>
-              <h3 className="mt-2">{stats.totalCompras}</h3>
-              <p className="text-muted mb-0">Total Compras</p>
-              <small className={stats.proyeccionCompras >= 0 ? "text-success" : "text-danger"}>
-                {stats.proyeccionCompras >= 0 ? '+' : ''}{stats.proyeccionCompras}% vs mes anterior
+              <h3 className="mt-2">{estadisticas.totalCompras}</h3>
+              <p className="text-muted mb-0">Compras</p>
+              <small className={estadisticas.proyeccionCompras >= 0 ? "text-success" : "text-danger"}>
+                {estadisticas.proyeccionCompras >= 0 ? '+' : ''}{estadisticas.proyeccionCompras}%
               </small>
             </Card.Body>
           </Card>
@@ -514,9 +701,11 @@ const DashboardSection = ({ stats, loading }) => {
           <Card className="text-center h-100">
             <Card.Body>
               <i className="bi bi-box-seam fs-1 text-warning"></i>
-              <h3 className="mt-2">{stats.totalProductos}</h3>
-              <p className="text-muted mb-0">Productos Activos</p>
-              <small className="text-muted">Inventario: {stats.inventarioTotal}</small>
+              <h3 className="mt-2">{estadisticas.totalProductos}</h3>
+              <p className="text-muted mb-0">Productos</p>
+              <small className="text-muted">
+                Stock: {estadisticas.inventarioTotal}
+              </small>
             </Card.Body>
           </Card>
         </Col>
@@ -524,39 +713,51 @@ const DashboardSection = ({ stats, loading }) => {
           <Card className="text-center h-100">
             <Card.Body>
               <i className="bi bi-currency-dollar fs-1 text-info"></i>
-              <h3 className="mt-2">${stats.totalCompras * 25000}</h3>
-              <p className="text-muted mb-0">Ventas Estimadas</p>
-              <small className="text-muted">Promedio por orden</small>
+              <h3 className="mt-2">{formatearMoneda(estadisticas.ventasTotales)}</h3>
+              <p className="text-muted mb-0">Ventas Totales</p>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
       <Row>
-        <Col md={8} className="mb-4">
+        <Col md={8}>
           <Card className="h-100">
             <Card.Header>
-              <h5 className="mb-0">Ventas de los Últimos 7 Días</h5>
+              <h5 className="mb-0">Ventas Recientes</h5>
             </Card.Header>
             <Card.Body>
               <div className="text-center p-5 bg-light rounded">
                 <i className="bi bi-bar-chart fs-1 text-muted"></i>
-                <p className="mt-3 text-muted">Gráfico de ventas se cargará aquí</p>
+                <p className="mt-3 text-muted">Gráfico de ventas</p>
               </div>
             </Card.Body>
           </Card>
         </Col>
-
-        <Col md={4} className="mb-4">
+        <Col md={4}>
           <Card className="h-100">
             <Card.Header>
-              <h5 className="mb-0">Productos Más Vendidos</h5>
+              <h5 className="mb-0">Estadísticas</h5>
             </Card.Header>
             <Card.Body>
-              <div className="text-center p-5 bg-light rounded">
-                <i className="bi bi-trophy fs-1 text-muted"></i>
-                <p className="mt-3 text-muted">Top productos se cargará aquí</p>
-              </div>
+              <Table borderless>
+                <tbody>
+                  <tr>
+                    <td><strong>Usuarios Nuevos:</strong></td>
+                    <td className="text-end">{estadisticas.nuevosUsuariosMes}</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Crecimiento:</strong></td>
+                    <td className={`text-end ${estadisticas.proyeccionCompras >= 0 ? "text-success" : "text-danger"}`}>
+                      {estadisticas.proyeccionCompras >= 0 ? '+' : ''}{estadisticas.proyeccionCompras}%
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><strong>Stock Total:</strong></td>
+                    <td className="text-end">{estadisticas.inventarioTotal}</td>
+                  </tr>
+                </tbody>
+              </Table>
             </Card.Body>
           </Card>
         </Col>
@@ -565,84 +766,26 @@ const DashboardSection = ({ stats, loading }) => {
   );
 };
 
-const ProductosSection = ({ productos, categorias, loading, onShowModal, onEditar, onEliminar, onVerDetalle }) => {
-
-  // Función helper para obtener campos con fallbacks
-  const getProductField = (producto, field) => {
-    const fieldMap = {
-      nombre: ['nombre', 'name', 'title', 'productName', 'descripcion', 'description'],
-      precio: ['precio', 'price', 'valor', 'cost', 'precioFinal', 'finalPrice'],
-      stock: ['stock', 'cantidad', 'quantity', 'inventory', 'disponibles', 'available'],
-      categoria: ['categoria', 'category', 'categoriaId', 'type', 'tipo'],
-      destacado: ['destacado', 'featured', 'highlighted', 'esDestacado'],
-      activo: ['activo', 'active', 'estado', 'status', 'enabled', 'available']
-    };
-
-    const possibleFields = fieldMap[field] || [field];
-    for (const fieldName of possibleFields) {
-      if (producto[fieldName] !== undefined && producto[fieldName] !== null && producto[fieldName] !== '') {
-        return producto[fieldName];
-      }
-    }
-
-    // Valores por defecto más específicos
-    const defaults = {
-      nombre: 'Sin nombre',
-      precio: 0,
-      stock: 0,
-      categoria: 'Sin categoría',
-      destacado: false,
-      activo: true
-    };
-
-    return defaults[field] || 'N/A';
+const SeccionProductos = ({ productos, categorias, onNuevoProducto, onEditarProducto, onEliminarProducto, onVerDetalle }) => {
+  const obtenerNombreCategoria = (categoriaId) => {
+    if (!categoriaId) return 'Sin categoría';
+    const categoria = categorias.find(cat => cat.id === categoriaId);
+    return categoria ? categoria.nombre : categoriaId;
   };
 
-  const getEstadoProducto = (producto) => {
-    const activo = getProductField(producto, 'activo');
-
-    if (typeof activo === 'boolean') return activo;
-    if (typeof activo === 'string') {
-      const inactiveKeywords = ['inactivo', 'disabled', 'false', '0', 'no', 'off', 'inactive'];
-      return !inactiveKeywords.includes(activo.toLowerCase().trim());
-    }
-    if (typeof activo === 'number') return activo !== 0;
-
-    return true; // Por defecto activo
-  };
-
-  // Función para obtener si el producto es destacado
-  const getProductoDestacado = (producto) => {
-    const destacado = getProductField(producto, 'destacado');
-
-    if (typeof destacado === 'boolean') return destacado;
-    if (typeof destacado === 'string') {
-      const trueKeywords = ['true', 'yes', 'sí', 'si', '1', 'verdadero'];
-      return trueKeywords.includes(destacado.toLowerCase().trim());
-    }
-    if (typeof destacado === 'number') return destacado !== 0;
-
-    return false; // Por defecto no destacado
-  };
-
-  // Función para formatear precio con separadores de miles
-  const formatPrecio = (precio) => {
-    const precioNum = Number(precio);
-    if (isNaN(precioNum)) return '$0';
-
-    return `$${precioNum.toLocaleString('es-CL')}`;
-  };
-
-  // Función para formatear nombres de categoría (quitar underscores y capitalizar)
-  const formatCategoria = (categoria) => {
-    return formatearCategoria(categoria);
+  const formatearPrecio = (precio) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0
+    }).format(precio || 0);
   };
 
   return (
     <Card>
       <Card.Header className="d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">Gestión de Productos ({productos.length})</h5>
-        <Button variant="primary" onClick={onShowModal}>
+        <h5 className="mb-0">Productos ({productos.length})</h5>
+        <Button variant="primary" onClick={onNuevoProducto}>
           <i className="bi bi-plus-circle me-2"></i>
           Nuevo Producto
         </Button>
@@ -652,7 +795,7 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
           <div className="text-center py-4">
             <i className="bi bi-inbox fs-1 text-muted"></i>
             <p className="mt-3 text-muted">No hay productos registrados</p>
-            <Button variant="primary" onClick={onShowModal}>
+            <Button variant="primary" onClick={onNuevoProducto}>
               Crear primer producto
             </Button>
           </div>
@@ -664,46 +807,35 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                 <th>Precio</th>
                 <th>Stock</th>
                 <th>Categoría</th>
-                <th>Destacado</th>
                 <th>Estado</th>
-                <th width="180">Acciones</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {productos.map((producto, index) => (
-                <tr key={producto.id || `product-${index}`}>
+              {productos.map((producto) => (
+                <tr key={producto.id}>
                   <td className="fw-semibold">
-                    {getProductField(producto, 'nombre')}
+                    {producto.nombre || 'Sin nombre'}
                   </td>
                   <td className="text-success fw-bold">
-                    {formatPrecio(getProductField(producto, 'precio'))}
+                    {formatearPrecio(producto.precio)}
                   </td>
                   <td>
-                    <span className={
-                      Number(getProductField(producto, 'stock')) > 10
-                        ? 'text-success'
-                        : Number(getProductField(producto, 'stock')) > 0
-                          ? 'text-warning'
-                          : 'text-danger'
+                    <Badge bg={
+                      (producto.stock || 0) > 10 ? 'success' :
+                        (producto.stock || 0) > 0 ? 'warning' : 'danger'
                     }>
-                      {Number(getProductField(producto, 'stock'))}
-                    </span>
-                  </td>
-                  <td>
-                    <Badge bg="info" className="text-capitalize">
-                      {formatCategoria(getProductField(producto, 'categoria'))}
+                      {producto.stock || 0}
                     </Badge>
                   </td>
                   <td>
-                    <Badge bg={getProductoDestacado(producto) ? 'warning' : 'secondary'}>
-                      <i className={`bi bi-${getProductoDestacado(producto) ? 'star-fill' : 'star'} me-1`}></i>
-                      {getProductoDestacado(producto) ? 'Sí' : 'No'}
+                    <Badge bg="info">
+                      {formatearCategoria(obtenerNombreCategoria(producto.categoriaId))}
                     </Badge>
                   </td>
                   <td>
-                    <Badge bg={getEstadoProducto(producto) ? 'success' : 'secondary'}>
-                      <i className={`bi bi-${getEstadoProducto(producto) ? 'check-circle' : 'x-circle'} me-1`}></i>
-                      {getEstadoProducto(producto) ? 'Activo' : 'Inactivo'}
+                    <Badge bg={producto.activo !== false ? 'success' : 'secondary'}>
+                      {producto.activo !== false ? 'Activo' : 'Inactivo'}
                     </Badge>
                   </td>
                   <td>
@@ -711,8 +843,7 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                       <Button
                         variant="outline-primary"
                         size="sm"
-                        title="Editar producto"
-                        onClick={() => onEditar && onEditar(producto)}
+                        onClick={() => onEditarProducto(producto)}
                         className="mb-1"
                       >
                         <i className="bi bi-pencil"></i> Editar
@@ -720,8 +851,7 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                       <Button
                         variant="outline-danger"
                         size="sm"
-                        title="Eliminar producto"
-                        onClick={() => onEliminar && onEliminar(producto)}
+                        onClick={() => onEliminarProducto(producto)}
                         className="mb-1"
                       >
                         <i className="bi bi-trash"></i> Eliminar
@@ -729,8 +859,7 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
                       <Button
                         variant="outline-info"
                         size="sm"
-                        title="Ver detalles"
-                        onClick={() => onVerDetalle && onVerDetalle(producto)}
+                        onClick={() => onVerDetalle(producto)}
                       >
                         <i className="bi bi-eye"></i> Detalles
                       </Button>
@@ -746,12 +875,17 @@ const ProductosSection = ({ productos, categorias, loading, onShowModal, onEdita
   );
 };
 
-const CategoriasSection = ({ categorias, loading, onShowModal }) => {
+const SeccionCategorias = ({ categorias, onNuevaCategoria, onEditarCategoria, onEliminarCategoria }) => {
+  // Ordenar categorías por orden numérico
+  const categoriasOrdenadas = [...categorias].sort((a, b) => {
+    return (a.orden || 0) - (b.orden || 0);
+  });
+
   return (
     <Card>
       <Card.Header className="d-flex justify-content-between align-items-center">
-        <h5 className="mb-0">Gestión de Categorías</h5>
-        <Button variant="primary" onClick={onShowModal}>
+        <h5 className="mb-0">Categorías ({categorias.length})</h5>
+        <Button variant="primary" onClick={onNuevaCategoria}>
           <i className="bi bi-plus-circle me-2"></i>
           Nueva Categoría
         </Button>
@@ -760,6 +894,7 @@ const CategoriasSection = ({ categorias, loading, onShowModal }) => {
         <Table responsive striped>
           <thead>
             <tr>
+              <th>Orden</th>
               <th>Nombre</th>
               <th>Descripción</th>
               <th>Estado</th>
@@ -767,22 +902,36 @@ const CategoriasSection = ({ categorias, loading, onShowModal }) => {
             </tr>
           </thead>
           <tbody>
-            {categorias.map(categoria => (
+            {categoriasOrdenadas.map(categoria => (
               <tr key={categoria.id}>
+                <td className="fw-bold">{categoria.orden || 0}</td>
                 <td>{categoria.nombre}</td>
-                <td>{categoria.descripcion}</td>
+                <td>{categoria.descripcion || '-'}</td>
                 <td>
-                  <Badge bg={categoria.activa ? 'success' : 'secondary'}>
-                    {categoria.activa ? 'Activa' : 'Inactiva'}
+                  <Badge bg={categoria.activa !== false ? 'success' : 'secondary'}>
+                    {categoria.activa !== false ? 'Activa' : 'Inactiva'}
                   </Badge>
                 </td>
                 <td>
-                  <Button variant="outline-primary" size="sm" className="me-1">
-                    <i className="bi bi-pencil"></i>
-                  </Button>
-                  <Button variant="outline-danger" size="sm">
-                    <i className="bi bi-trash"></i>
-                  </Button>
+                  <div className="btn-group btn-group-sm">
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      title="Editar categoría"
+                      onClick={() => onEditarCategoria(categoria)}
+                      className="me-1"
+                    >
+                      <i className="bi bi-pencil"></i>
+                    </Button>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      title="Eliminar categoría"
+                      onClick={() => onEliminarCategoria(categoria)}
+                    >
+                      <i className="bi bi-trash"></i>
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -793,9 +942,9 @@ const CategoriasSection = ({ categorias, loading, onShowModal }) => {
   );
 };
 
-const PedidosSection = ({ ordenes, loading, onUpdateEstado }) => {
-  const getEstadoBadge = (estado) => {
-    const estados = {
+const SeccionPedidos = ({ ordenes, onActualizarEstado }) => {
+  const obtenerColorEstado = (estado) => {
+    const colores = {
       'pendiente': 'warning',
       'confirmado': 'primary',
       'en_preparacion': 'info',
@@ -803,13 +952,24 @@ const PedidosSection = ({ ordenes, loading, onUpdateEstado }) => {
       'entregado': 'success',
       'cancelado': 'danger'
     };
-    return estados[estado] || 'secondary';
+    return colores[estado] || 'secondary';
+  };
+
+  const formatearFecha = (fecha) => {
+    if (!fecha) return 'N/A';
+    if (typeof fecha.toDate === 'function') {
+      return fecha.toDate().toLocaleDateString('es-CL');
+    }
+    if (fecha instanceof Date) {
+      return fecha.toLocaleDateString('es-CL');
+    }
+    return fecha;
   };
 
   return (
     <Card>
       <Card.Header>
-        <h5 className="mb-0">Gestión de Órdenes</h5>
+        <h5 className="mb-0">Pedidos ({ordenes.length})</h5>
       </Card.Header>
       <Card.Body>
         <Table responsive striped>
@@ -826,23 +986,25 @@ const PedidosSection = ({ ordenes, loading, onUpdateEstado }) => {
           <tbody>
             {ordenes.map(orden => (
               <tr key={orden.id}>
-                <td>#{orden.id.slice(-6)}</td>
-                <td>{orden.fecha?.toLocaleDateString?.() || 'N/A'}</td>
-                <td>{orden.userId || 'Cliente'}</td>
-                <td>${orden.total?.toLocaleString() || '0'}</td>
+                <td>#{orden.id?.slice(-6) || orden.id}</td>
+                <td>{formatearFecha(orden.createdAt || orden.fecha)}</td>
+                <td>{orden.userId || orden.cliente || 'Cliente'}</td>
+                <td>${(orden.total || 0).toLocaleString('es-CL')}</td>
                 <td>
-                  <Badge bg={getEstadoBadge(orden.estado)}>
+                  <Badge bg={obtenerColorEstado(orden.estado)}>
                     {orden.estado || 'pendiente'}
                   </Badge>
                 </td>
                 <td>
-                  <Button
-                    variant="outline-success"
-                    size="sm"
-                    onClick={() => onUpdateEstado(orden.id, 'confirmado')}
-                  >
-                    Confirmar
-                  </Button>
+                  {orden.estado === 'pendiente' && (
+                    <Button
+                      variant="outline-success"
+                      size="sm"
+                      onClick={() => onActualizarEstado(orden.id, 'confirmado')}
+                    >
+                      Confirmar
+                    </Button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -853,11 +1015,11 @@ const PedidosSection = ({ ordenes, loading, onUpdateEstado }) => {
   );
 };
 
-const UsuariosSection = ({ usuarios, loading }) => {
+const SeccionUsuarios = ({ usuarios }) => {
   return (
     <Card>
       <Card.Header>
-        <h5 className="mb-0">Gestión de Usuarios</h5>
+        <h5 className="mb-0">Usuarios ({usuarios.length})</h5>
       </Card.Header>
       <Card.Body>
         <Table responsive striped>
@@ -867,7 +1029,6 @@ const UsuariosSection = ({ usuarios, loading }) => {
               <th>Email</th>
               <th>Teléfono</th>
               <th>Registro</th>
-              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -875,15 +1036,9 @@ const UsuariosSection = ({ usuarios, loading }) => {
               <tr key={usuario.id}>
                 <td>{usuario.name}</td>
                 <td>{usuario.email}</td>
-                <td>{usuario.phone}</td>
-                <td>{usuario.createdAt?.toLocaleDateString?.() || 'N/A'}</td>
+                <td>{usuario.phone || 'N/A'}</td>
                 <td>
-                  <Button variant="outline-primary" size="sm" className="me-1">
-                    <i className="bi bi-pencil"></i>
-                  </Button>
-                  <Button variant="outline-info" size="sm">
-                    <i className="bi bi-eye"></i>
-                  </Button>
+                  {usuario.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'N/A'}
                 </td>
               </tr>
             ))}
@@ -894,167 +1049,60 @@ const UsuariosSection = ({ usuarios, loading }) => {
   );
 };
 
-const VentasSection = ({ ordenes, loading }) => {
+const SeccionVentas = ({ ordenes }) => {
+  const calcularTotalVentas = () => {
+    return ordenes.reduce((total, orden) => total + (orden.total || 0), 0);
+  };
+
   return (
     <Card>
       <Card.Header>
         <h5 className="mb-0">Reportes de Ventas</h5>
       </Card.Header>
       <Card.Body>
-        <div className="text-center p-5 bg-light rounded">
-          <i className="bi bi-graph-up fs-1 text-muted"></i>
-          <p className="mt-3 text-muted">Reportes detallados de ventas se cargarán aquí</p>
-        </div>
+        <Row>
+          <Col md={4}>
+            <Card className="text-center">
+              <Card.Body>
+                <h3 className="text-success">
+                  ${calcularTotalVentas().toLocaleString('es-CL')}
+                </h3>
+                <p className="text-muted mb-0">Ventas Totales</p>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card className="text-center">
+              <Card.Body>
+                <h3>{ordenes.length}</h3>
+                <p className="text-muted mb-0">Pedidos Totales</p>
+              </Card.Body>
+            </Card>
+          </Col>
+          <Col md={4}>
+            <Card className="text-center">
+              <Card.Body>
+                <h3>
+                  ${(calcularTotalVentas() / (ordenes.length || 1)).toLocaleString('es-CL')}
+                </h3>
+                <p className="text-muted mb-0">Promedio por Pedido</p>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
       </Card.Body>
     </Card>
   );
 };
 
-// COMPONENTES DE MODAL (FUERA del componente principal)
-const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categorias, productoSeleccionado, loading }) => {
-  const [errores, setErrores] = useState({});
-  const [enviando, setEnviando] = useState(false);
-
-  // Función helper igual que en la tabla para consistencia
-  const obtenerCampoCategoria = (categoria, campo) => {
-    const mapaCampos = {
-      nombre: ['nombre', 'name', 'title', 'categoriaName'],
-      descripcion: ['descripcion', 'description', 'desc', 'detalles']
-    };
-
-    const camposPosibles = mapaCampos[campo] || [campo];
-    for (const nombreCampo of camposPosibles) {
-      if (categoria[nombreCampo] !== undefined && categoria[nombreCampo] !== null && categoria[nombreCampo] !== '') {
-        return categoria[nombreCampo];
-      }
-    }
-
-    return campo === 'nombre' ? 'Sin categoría' : '';
-  };
-
-  // Función para formatear nombres de categoría (igual que en la tabla)
-  const formatearCategoria = (categoriaRaw) => {
-    if (!categoriaRaw || categoriaRaw === 'Sin categoría') return 'Sin categoría';
-
-    let categoria = categoriaRaw;
-
-    // Si es un objeto categoría, extraer el nombre
-    if (typeof categoria === 'object') {
-      categoria = obtenerCampoCategoria(categoria, 'nombre');
-    }
-
-    // Reemplazar underscores y guiones con espacios
-    let formateado = categoria.replace(/[_-]/g, ' ');
-
-    // Capitalizar cada palabra
-    formateado = formateado.replace(/\w\S*/g, (txt) => {
-      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-    });
-
-    return formateado;
-  };
-
-  // Validación del formulario
-  const validarFormulario = () => {
-    const nuevosErrores = {};
-
-    if (!formData.nombre?.trim()) {
-      nuevosErrores.nombre = 'El nombre del producto es requerido';
-    } else if (formData.nombre.trim().length < 2) {
-      nuevosErrores.nombre = 'El nombre debe tener al menos 2 caracteres';
-    }
-
-    const precio = Number(formData.precio);
-    if (!formData.precio || isNaN(precio) || precio <= 0) {
-      nuevosErrores.precio = 'El precio debe ser un número mayor a 0';
-    } else if (precio > 1000000) {
-      nuevosErrores.precio = 'El precio no puede ser mayor a $1.000.000';
-    }
-
-    const stock = Number(formData.stock);
-    if (!formData.stock || isNaN(stock) || stock < 0) {
-      nuevosErrores.stock = 'El stock debe ser un número positivo';
-    } else if (stock > 10000) {
-      nuevosErrores.stock = 'El stock no puede ser mayor a 10.000 unidades';
-    }
-
-    if (!formData.categoria) {
-      nuevosErrores.categoria = 'Selecciona una categoría';
-    }
-
-    setErrores(nuevosErrores);
-    return Object.keys(nuevosErrores).length === 0;
-  };
-
-  // Manejar cambio de categoría
-  const manejarCambioCategoria = (e) => {
-    const valor = e.target.value;
-    onFormChange({ ...formData, categoria: valor });
-  };
-
-  // Obtener categorías únicas y formateadas para el dropdown
-  const obtenerOpcionesCategorias = () => {
-    const categoriasUnicas = [];
-    const vistas = new Set();
-
-    categorias.forEach(cat => {
-      const nombreRaw = obtenerCampoCategoria(cat, 'nombre');
-      const nombreFormateado = formatearCategoria(nombreRaw);
-
-      if (!vistas.has(nombreFormateado)) {
-        vistas.add(nombreFormateado);
-        categoriasUnicas.push({
-          id: cat.id,
-          nombreRaw: nombreRaw,
-          nombreFormateado: nombreFormateado
-        });
-      }
-    });
-
-    return categoriasUnicas;
-  };
-
-  const opcionesCategorias = obtenerOpcionesCategorias();
-
-  // Manejar envío del formulario
-  const manejarEnvio = async (e) => {
+const ModalProducto = ({ show, onHide, onSubmit, formulario, onChangeFormulario, categorias, productoSeleccionado, cargando, errores }) => {
+  const manejarEnvio = (e) => {
     e.preventDefault();
-
-    if (!validarFormulario()) return;
-
-    setEnviando(true);
-    try {
-      await onSubmit(e);
-    } catch (error) {
-      console.error('Error en el modal:', error);
-    } finally {
-      setEnviando(false);
-    }
-  };
-
-  // Resetear el modal cuando se cierra
-  const manejarCerrar = () => {
-    setErrores({});
-    setEnviando(false);
-    onHide();
-  };
-
-  // Formatear precio para vista previa (usando puntos como separadores de miles)
-  const formatearPrecio = (precio) => {
-    const precioNum = Number(precio);
-    if (isNaN(precioNum)) return '$0';
-
-    // Usar formato chileno con puntos para miles
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(precioNum);
+    onSubmit(e);
   };
 
   return (
-    <Modal show={show} onHide={manejarCerrar} size="lg" backdrop="static">
+    <Modal show={show} onHide={onHide} size="lg" backdrop="static">
       <Modal.Header closeButton>
         <Modal.Title>
           <i className={`bi bi-${productoSeleccionado ? 'pencil' : 'plus-circle'} me-2`}></i>
@@ -1063,244 +1111,125 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
       </Modal.Header>
       <Form onSubmit={manejarEnvio}>
         <Modal.Body>
-          {/* Nombre del Producto */}
+          {errores.submit && (
+            <Alert variant="danger">
+              {errores.submit}
+            </Alert>
+          )}
+
           <Form.Group className="mb-3">
-            <Form.Label>
-              Nombre del Producto <span className="text-danger">*</span>
-            </Form.Label>
+            <Form.Label>Nombre del Producto *</Form.Label>
             <Form.Control
               type="text"
-              placeholder="Ej: Pan Integral Artesanal, Queque de Vainilla, etc."
-              value={formData.nombre || ''}
-              onChange={(e) => onFormChange({ ...formData, nombre: e.target.value })}
+              value={formulario.nombre}
+              onChange={(e) => onChangeFormulario({ ...formulario, nombre: e.target.value })}
               isInvalid={!!errores.nombre}
-              disabled={enviando || loading}
+              disabled={cargando}
             />
             <Form.Control.Feedback type="invalid">
               {errores.nombre}
             </Form.Control.Feedback>
-            <Form.Text className="text-muted">
-              Nombre descriptivo del producto (mín. 2 caracteres)
-            </Form.Text>
           </Form.Group>
 
           <Row>
-            {/* Precio */}
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>
-                  Precio <span className="text-danger">*</span>
-                </Form.Label>
-                <div className="input-group">
-                  <span className="input-group-text">$</span>
-                  <Form.Control
-                    type="number"
-                    placeholder="0"
-                    min="0"
-                    step="100"
-                    value={formData.precio || ''}
-                    onChange={(e) => onFormChange({ ...formData, precio: e.target.value })}
-                    isInvalid={!!errores.precio}
-                    disabled={enviando || loading}
-                  />
-                  <span className="input-group-text">CLP</span>
-                </div>
+                <Form.Label>Precio *</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={formulario.precio}
+                  onChange={(e) => onChangeFormulario({ ...formulario, precio: e.target.value })}
+                  isInvalid={!!errores.precio}
+                  disabled={cargando}
+                />
                 <Form.Control.Feedback type="invalid">
                   {errores.precio}
                 </Form.Control.Feedback>
-                <Form.Text className="text-muted">
-                  Precio de venta al público ($1 - $1.000.000)
-                </Form.Text>
               </Form.Group>
             </Col>
-
-            {/* Stock */}
             <Col md={6}>
               <Form.Group className="mb-3">
-                <Form.Label>
-                  Stock Inicial <span className="text-danger">*</span>
-                </Form.Label>
+                <Form.Label>Stock</Form.Label>
                 <Form.Control
                   type="number"
-                  placeholder="0"
-                  min="0"
-                  max="10000"
-                  value={formData.stock || ''}
-                  onChange={(e) => onFormChange({ ...formData, stock: e.target.value })}
+                  value={formulario.stock}
+                  onChange={(e) => onChangeFormulario({ ...formulario, stock: e.target.value })}
                   isInvalid={!!errores.stock}
-                  disabled={enviando || loading}
+                  disabled={cargando}
                 />
                 <Form.Control.Feedback type="invalid">
                   {errores.stock}
                 </Form.Control.Feedback>
-                <Form.Text className="text-muted">
-                  Cantidad disponible (0 - 10.000 unidades)
-                </Form.Text>
               </Form.Group>
             </Col>
           </Row>
 
-          <Row>
-            {/* Categoría */}
-            <Col md={12}>
-              <Form.Group className="mb-3">
-                <Form.Label>
-                  Categoría <span className="text-danger">*</span>
-                </Form.Label>
-                <Form.Select
-                  value={formData.categoria || ''}
-                  onChange={manejarCambioCategoria}
-                  isInvalid={!!errores.categoria}
-                  disabled={enviando || loading}
-                >
-                  <option value="">Seleccionar categoría</option>
-                  {opcionesCategorias.map(cat => (
-                    <option key={cat.id} value={cat.nombreRaw}>
-                      {cat.nombreFormateado}
-                    </option>
-                  ))}
-                  <option disabled>──────────</option>
-                  <option value="nueva_categoria">+ Crear nueva categoría</option>
-                </Form.Select>
-                <Form.Control.Feedback type="invalid">
-                  {errores.categoria}
-                </Form.Control.Feedback>
-                <Form.Text className="text-muted">
-                  {opcionesCategorias.length} categorías disponibles
-                </Form.Text>
-              </Form.Group>
-            </Col>
-          </Row>
-
-          {/* Descripción */}
           <Form.Group className="mb-3">
-            <Form.Label>Descripción del Producto</Form.Label>
+            <Form.Label>Categoría *</Form.Label>
+            <Form.Select
+              value={formulario.categoriaId}
+              onChange={(e) => onChangeFormulario({ ...formulario, categoriaId: e.target.value })}
+              isInvalid={!!errores.categoriaId}
+              disabled={cargando}
+            >
+              <option value="">Seleccionar categoría</option>
+              {categorias.map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.nombre}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Control.Feedback type="invalid">
+              {errores.categoriaId}
+            </Form.Control.Feedback>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Descripción</Form.Label>
             <Form.Control
               as="textarea"
               rows={3}
-              placeholder="Describe las características, ingredientes, beneficios del producto..."
-              value={formData.descripcion || ''}
-              onChange={(e) => onFormChange({ ...formData, descripcion: e.target.value })}
-              disabled={enviando || loading}
-              maxLength={500}
+              value={formulario.descripcion}
+              onChange={(e) => onChangeFormulario({ ...formulario, descripcion: e.target.value })}
+              disabled={cargando}
             />
-            <Form.Text className="text-muted">
-              {(formData.descripcion?.length || 0)}/500 caracteres
-            </Form.Text>
           </Form.Group>
 
-          {/* Opciones adicionales */}
           <Row>
             <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Check
-                  type="checkbox"
-                  label="Producto destacado"
-                  checked={formData.destacado || false}
-                  onChange={(e) => onFormChange({ ...formData, destacado: e.target.checked })}
-                  disabled={enviando || loading}
-                />
-                <Form.Text className="text-muted">
-                  Aparecerá en la sección de productos destacados
-                </Form.Text>
-              </Form.Group>
+              <Form.Check
+                type="checkbox"
+                label="Producto destacado"
+                checked={formulario.destacado}
+                onChange={(e) => onChangeFormulario({ ...formulario, destacado: e.target.checked })}
+                disabled={cargando}
+              />
             </Col>
             <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Check
-                  type="checkbox"
-                  label="Producto activo"
-                  checked={formData.activo !== false}
-                  onChange={(e) => onFormChange({ ...formData, activo: e.target.checked })}
-                  disabled={enviando || loading}
-                />
-                <Form.Text className="text-muted">
-                  Visible para los clientes
-                </Form.Text>
-              </Form.Group>
+              <Form.Check
+                type="checkbox"
+                label="Producto activo"
+                checked={formulario.activo}
+                onChange={(e) => onChangeFormulario({ ...formulario, activo: e.target.checked })}
+                disabled={cargando}
+              />
             </Col>
           </Row>
-
-          {/* Previsualización de datos */}
-          {(formData.nombre || formData.precio || formData.categoria) && (
-            <Card className="mt-3 border-info">
-              <Card.Header className="bg-info text-white py-2">
-                <small><i className="bi bi-eye me-1"></i>Vista previa - Como se verá en la tabla</small>
-              </Card.Header>
-              <Card.Body className="py-2">
-                <Row className="align-items-center">
-                  <Col md={4}>
-                    <strong>Nombre:</strong>
-                    <div className="fw-semibold">{formData.nombre || 'Sin nombre'}</div>
-                  </Col>
-                  <Col md={2}>
-                    <strong>Precio:</strong>
-                    <div className="text-success fw-bold">
-                      {formatearPrecio(formData.precio)}
-                    </div>
-                  </Col>
-                  <Col md={2}>
-                    <strong>Stock:</strong>
-                    <div>
-                      <Badge bg={Number(formData.stock || 0) > 10 ? 'success' : Number(formData.stock || 0) > 0 ? 'warning' : 'danger'}>
-                        {Number(formData.stock || 0).toLocaleString('es-CL')}
-                      </Badge>
-                    </div>
-                  </Col>
-                  <Col md={4}>
-                    <strong>Categoría:</strong>
-                    <div>
-                      <Badge bg="info" className="text-capitalize">
-                        {formatearCategoria(formData.categoria)}
-                      </Badge>
-                    </div>
-                  </Col>
-                </Row>
-                <Row className="mt-2">
-                  <Col>
-                    <strong>Estado:</strong>{' '}
-                    <Badge bg={formData.active !== false ? 'success' : 'secondary'}>
-                      <i className={`bi bi-${formData.active !== false ? 'check-circle' : 'x-circle'} me-1`}></i>
-                      {formData.active !== false ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                    {formData.destacado && (
-                      <>
-                        {' '}
-                        <Badge bg="warning">
-                          <i className="bi bi-star me-1"></i>
-                          Destacado
-                        </Badge>
-                      </>
-                    )}
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
-          )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={manejarCerrar}
-            disabled={enviando || loading}
-          >
-            <i className="bi bi-x-circle me-1"></i>
+          <Button variant="secondary" onClick={onHide} disabled={cargando}>
             Cancelar
           </Button>
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={enviando || loading}
-          >
-            {enviando ? (
+          <Button variant="primary" type="submit" disabled={cargando}>
+            {cargando ? (
               <>
-                <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                <span className="spinner-border spinner-border-sm me-2"></span>
                 {productoSeleccionado ? 'Guardando...' : 'Creando...'}
               </>
             ) : (
               <>
                 <i className={`bi bi-${productoSeleccionado ? 'check-circle' : 'plus-circle'} me-1`}></i>
-                {productoSeleccionado ? 'Guardar Cambios' : 'Crear Producto'}
+                {productoSeleccionado ? 'Guardar' : 'Crear'}
               </>
             )}
           </Button>
@@ -1310,7 +1239,7 @@ const ProductModal = ({ show, onHide, onSubmit, formData, onFormChange, categori
   );
 };
 
-const DeleteModal = ({ show, onHide, onConfirm, producto, loading }) => {
+const ModalEliminarProducto = ({ show, onHide, onConfirmar, producto, cargando }) => {
   if (!producto) return null;
 
   return (
@@ -1325,27 +1254,24 @@ const DeleteModal = ({ show, onHide, onConfirm, producto, loading }) => {
         <div className="text-center">
           <i className="bi bi-trash fs-1 text-danger"></i>
           <h5 className="mt-3">¿Estás seguro de eliminar este producto?</h5>
-          <p className="fw-bold text-danger">{producto.nombre || producto.name || 'Producto sin nombre'}</p>
+          <p className="fw-bold">{producto.nombre || 'Producto sin nombre'}</p>
           <p className="text-muted">
-            Esta acción no se puede deshacer. El producto será eliminado permanentemente.
+            Esta acción marcará el producto como inactivo.
           </p>
         </div>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide} disabled={loading}>
+        <Button variant="secondary" onClick={onHide} disabled={cargando}>
           Cancelar
         </Button>
-        <Button variant="danger" onClick={onConfirm} disabled={loading}>
-          {loading ? (
+        <Button variant="danger" onClick={onConfirmar} disabled={cargando}>
+          {cargando ? (
             <>
-              <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+              <span className="spinner-border spinner-border-sm me-2"></span>
               Eliminando...
             </>
           ) : (
-            <>
-              <i className="bi bi-trash me-1"></i>
-              Sí, Eliminar
-            </>
+            'Sí, Eliminar'
           )}
         </Button>
       </Modal.Footer>
@@ -1353,31 +1279,23 @@ const DeleteModal = ({ show, onHide, onConfirm, producto, loading }) => {
   );
 };
 
-const DetailModal = ({ show, onHide, producto }) => {
+const ModalDetalleProducto = ({ show, onHide, producto }) => {
   if (!producto) return null;
 
   const formatearPrecio = (precio) => {
-    const precioNum = Number(precio);
-    if (isNaN(precioNum)) return '$0';
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
       currency: 'CLP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(precioNum);
+      minimumFractionDigits: 0
+    }).format(precio || 0);
   };
 
-  const formatearCategoria = (categoriaRaw) => {
-    if (!categoriaRaw || categoriaRaw === 'Sin categoría') return 'Sin categoría';
-    let categoria = categoriaRaw;
-    if (typeof categoria === 'object') {
-      categoria = categoria.nombre || categoria.name || categoriaRaw;
+  const formatearFecha = (fecha) => {
+    if (!fecha) return 'N/A';
+    if (typeof fecha.toDate === 'function') {
+      return fecha.toDate().toLocaleString('es-CL');
     }
-    let formateado = categoria.replace(/[_-]/g, ' ');
-    formateado = formateado.replace(/\w\S*/g, (txt) => {
-      return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-    });
-    return formateado;
+    return fecha;
   };
 
   return (
@@ -1391,13 +1309,13 @@ const DetailModal = ({ show, onHide, producto }) => {
       <Modal.Body>
         <Row>
           <Col md={8}>
-            <h4 className="text-primary">{producto.nombre || producto.name || 'Sin nombre'}</h4>
-            <p className="text-muted">{producto.descripcion || producto.description || 'Sin descripción'}</p>
+            <h4>{producto.nombre || 'Sin nombre'}</h4>
+            <p className="text-muted">{producto.descripcion || 'Sin descripción'}</p>
           </Col>
           <Col md={4} className="text-end">
-            <h3 className="text-success">{formatearPrecio(producto.precio || producto.price || 0)}</h3>
-            <Badge bg={Number(producto.stock || producto.cantidad || 0) > 0 ? 'success' : 'danger'}>
-              Stock: {Number(producto.stock || producto.cantidad || 0)}
+            <h3 className="text-success">{formatearPrecio(producto.precio)}</h3>
+            <Badge bg={(producto.stock || 0) > 0 ? 'success' : 'danger'}>
+              Stock: {producto.stock || 0}
             </Badge>
           </Col>
         </Row>
@@ -1407,43 +1325,36 @@ const DetailModal = ({ show, onHide, producto }) => {
         <Row>
           <Col md={6}>
             <h6>Información General</h6>
-            <table className="table table-sm">
+            <Table size="sm">
               <tbody>
                 <tr>
                   <td><strong>Categoría:</strong></td>
-                  <td>
-                    <Badge bg="info" className="text-capitalize">
-                      {formatearCategoria(producto.categoria || producto.category || 'Sin categoría')}
-                    </Badge>
-                  </td>
+                  <td>{formatearCategoria(producto.categoria || producto.categoriaId || 'Sin categoría')}</td>
                 </tr>
                 <tr>
                   <td><strong>Estado:</strong></td>
                   <td>
-                    <Badge bg={(producto.activo !== false && producto.active !== false) ? 'success' : 'secondary'}>
-                      {(producto.activo !== false && producto.active !== false) ? 'Activo' : 'Inactivo'}
+                    <Badge bg={producto.activo !== false ? 'success' : 'secondary'}>
+                      {producto.activo !== false ? 'Activo' : 'Inactivo'}
                     </Badge>
                   </td>
                 </tr>
                 <tr>
                   <td><strong>Destacado:</strong></td>
                   <td>
-                    {producto.destacado || producto.featured ? (
-                      <Badge bg="warning">
-                        <i className="bi bi-star me-1"></i>
-                        Sí
-                      </Badge>
+                    {producto.destacado ? (
+                      <Badge bg="warning">Sí</Badge>
                     ) : (
-                      <span className="text-muted">No</span>
+                      <span>No</span>
                     )}
                   </td>
                 </tr>
               </tbody>
-            </table>
+            </Table>
           </Col>
           <Col md={6}>
-            <h6>Información Adicional</h6>
-            <table className="table table-sm">
+            <h6>Información Técnica</h6>
+            <Table size="sm">
               <tbody>
                 <tr>
                   <td><strong>ID:</strong></td>
@@ -1451,28 +1362,16 @@ const DetailModal = ({ show, onHide, producto }) => {
                 </tr>
                 <tr>
                   <td><strong>Creado:</strong></td>
-                  <td>
-                    {producto.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'No disponible'}
-                  </td>
+                  <td>{formatearFecha(producto.createdAt)}</td>
                 </tr>
                 <tr>
                   <td><strong>Actualizado:</strong></td>
-                  <td>
-                    {producto.updatedAt?.toDate?.()?.toLocaleDateString('es-CL') || 'No disponible'}
-                  </td>
+                  <td>{formatearFecha(producto.updatedAt)}</td>
                 </tr>
               </tbody>
-            </table>
+            </Table>
           </Col>
         </Row>
-
-        {producto.descripcion && (
-          <>
-            <hr />
-            <h6>Descripción Completa</h6>
-            <p className="text-muted">{producto.descripcion}</p>
-          </>
-        )}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onHide}>
@@ -1483,42 +1382,281 @@ const DetailModal = ({ show, onHide, producto }) => {
   );
 };
 
-const CategoryModal = ({ show, onHide, onSubmit, formData, onFormChange }) => (
-  <Modal show={show} onHide={onHide}>
-    <Modal.Header closeButton>
-      <Modal.Title>Nueva Categoría</Modal.Title>
-    </Modal.Header>
-    <Form onSubmit={onSubmit}>
+const ModalCategoria = ({ show, onHide, onSubmit, formulario, onChangeFormulario, categorias }) => {
+  const [errores, setErrores] = useState({});
+
+  const manejarEnvio = (e) => {
+    e.preventDefault();
+    
+    // Validaciones
+    const erroresValidacion = {};
+    
+    if (!formulario.nombre?.trim()) {
+      erroresValidacion.nombre = 'El nombre es requerido';
+    }
+    
+    const orden = parseInt(formulario.orden);
+    if (isNaN(orden) || orden <= 0) {
+      erroresValidacion.orden = 'El orden debe ser un número mayor a 0';
+    }
+    
+    // Verificar si el orden ya existe
+    const ordenExistente = categorias?.some(cat => 
+      parseInt(cat.orden || 0) === orden
+    );
+    
+    if (ordenExistente) {
+      erroresValidacion.orden = 'Este número de orden ya está en uso';
+    }
+    
+    if (Object.keys(erroresValidacion).length > 0) {
+      setErrores(erroresValidacion);
+      return;
+    }
+    
+    setErrores({});
+    onSubmit(e);
+  };
+
+  return (
+    <Modal show={show} onHide={onHide}>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <i className="bi bi-plus-circle me-2"></i>
+          Nueva Categoría
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={manejarEnvio}>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Orden *</Form.Label>
+            <Form.Control
+              type="number"
+              min="1"
+              placeholder="Ej: 1, 2, 3..."
+              value={formulario.orden}
+              onChange={(e) => onChangeFormulario({ ...formulario, orden: e.target.value })}
+              isInvalid={!!errores.orden}
+              required
+            />
+            <Form.Control.Feedback type="invalid">
+              {errores.orden}
+            </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              Número mayor a 0. Menor número = aparece primero
+            </Form.Text>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Nombre *</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="Ej: Tortas Circulares"
+              value={formulario.nombre}
+              onChange={(e) => onChangeFormulario({ ...formulario, nombre: e.target.value })}
+              isInvalid={!!errores.nombre}
+              required
+            />
+            <Form.Control.Feedback type="invalid">
+              {errores.nombre}
+            </Form.Control.Feedback>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Descripción</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              placeholder="Describe la categoría..."
+              value={formulario.descripcion}
+              onChange={(e) => onChangeFormulario({ ...formulario, descripcion: e.target.value })}
+            />
+          </Form.Group>
+
+          <Alert variant="info" className="mt-3">
+            <div className="d-flex align-items-start">
+              <i className="bi bi-info-circle me-2 mt-1"></i>
+              <div>
+                <strong>Nota:</strong>
+                <ul className="mb-0 mt-1">
+                  <li>El orden determina la posición en la tienda</li>
+                </ul>
+              </div>
+            </div>
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit">
+            <i className="bi bi-check-circle me-1"></i>
+            Crear Categoría
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+};
+
+const ModalEditarCategoria = ({ show, onHide, onSubmit, formulario, onChangeFormulario, categoria, categorias, cargando }) => {
+  const [errores, setErrores] = useState({});
+
+  const manejarEnvio = (e) => {
+    e.preventDefault();
+    
+    // Validaciones
+    const erroresValidacion = {};
+    
+    if (!formulario.nombre?.trim()) {
+      erroresValidacion.nombre = 'El nombre es requerido';
+    }
+    
+    const orden = parseInt(formulario.orden);
+    if (isNaN(orden) || orden <= 0) {
+      erroresValidacion.orden = 'El orden debe ser un número mayor a 0';
+    }
+    
+    // Verificar si el orden ya existe (excluyendo la categoría actual)
+    const ordenExistente = categorias?.some(cat => 
+      cat.id !== categoria?.id && 
+      parseInt(cat.orden || 0) === orden
+    );
+    
+    if (ordenExistente) {
+      erroresValidacion.orden = 'Este número de orden ya está en uso por otra categoría';
+    }
+    
+    if (Object.keys(erroresValidacion).length > 0) {
+      setErrores(erroresValidacion);
+      return;
+    }
+    
+    setErrores({});
+    onSubmit(e);
+  };
+
+  return (
+    <Modal show={show} onHide={onHide}>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <i className="bi bi-pencil me-2"></i>
+          Editar Categoría
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={manejarEnvio}>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Orden *</Form.Label>
+            <Form.Control
+              type="number"
+              min="1"
+              value={formulario.orden}
+              onChange={(e) => onChangeFormulario({ ...formulario, orden: e.target.value })}
+              isInvalid={!!errores.orden}
+              required
+              disabled={cargando}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errores.orden}
+            </Form.Control.Feedback>
+            <Form.Text className="text-muted">
+              Determina el orden de aparición en la tienda
+            </Form.Text>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Nombre *</Form.Label>
+            <Form.Control
+              type="text"
+              value={formulario.nombre}
+              onChange={(e) => onChangeFormulario({ ...formulario, nombre: e.target.value })}
+              isInvalid={!!errores.nombre}
+              required
+              disabled={cargando}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errores.nombre}
+            </Form.Control.Feedback>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Descripción</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              value={formulario.descripcion}
+              onChange={(e) => onChangeFormulario({ ...formulario, descripcion: e.target.value })}
+              disabled={cargando}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide} disabled={cargando}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" disabled={cargando}>
+            {cargando ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Guardando...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-1"></i>
+                Guardar Cambios
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+};
+
+const ModalEliminarCategoria = ({ show, onHide, onConfirmar, categoria, cargando }) => {
+  if (!categoria) return null;
+
+  return (
+    <Modal show={show} onHide={onHide} centered>
+      <Modal.Header closeButton className="bg-danger text-white">
+        <Modal.Title>
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          Eliminar Categoría
+        </Modal.Title>
+      </Modal.Header>
       <Modal.Body>
-        <Form.Group className="mb-3">
-          <Form.Label>Nombre de la Categoría</Form.Label>
-          <Form.Control
-            type="text"
-            value={formData.nombre}
-            onChange={(e) => onFormChange({ ...formData, nombre: e.target.value })}
-            required
-          />
-        </Form.Group>
-        <Form.Group className="mb-3">
-          <Form.Label>Descripción</Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            value={formData.descripcion}
-            onChange={(e) => onFormChange({ ...formData, descripcion: e.target.value })}
-          />
-        </Form.Group>
+        <div className="text-center">
+          <i className="bi bi-x-octagon fs-1 text-danger"></i>
+          <h5 className="mt-3">¿Estás seguro de eliminar esta categoría?</h5>
+          <p className="fw-bold">{categoria.nombre}</p>
+          <p className="text-muted">
+            ID: <code>{categoria.id}</code>
+          </p>
+          <Alert variant="warning">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            <strong>Advertencia:</strong> Esta acción no se puede deshacer.
+            Se verificará que no haya productos usando esta categoría antes de eliminar.
+          </Alert>
+        </div>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
+        <Button variant="secondary" onClick={onHide} disabled={cargando}>
           Cancelar
         </Button>
-        <Button variant="primary" type="submit">
-          Crear Categoría
+        <Button variant="danger" onClick={onConfirmar} disabled={cargando}>
+          {cargando ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2"></span>
+              Verificando...
+            </>
+          ) : (
+            'Sí, Eliminar'
+          )}
         </Button>
       </Modal.Footer>
-    </Form>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 export default ProfileAdmin;

@@ -4,136 +4,133 @@ import {
     getCountFromServer,
     query,
     where,
-    getDocs
+    getDocs,
+    orderBy,
+    Timestamp
 } from "firebase/firestore";
 
 export class DashboardService {
-    static async getTotalCompras() {
+    static async obtenerTotalCompras() {
         try {
-            console.log('Obteniendo total de compras desde Firebase v9...');
-            const comprasRef = collection(db, "order")
+            const comprasRef = collection(db, "order");
             const snapshot = await getCountFromServer(comprasRef);
-            const total = snapshot.data().count;
-            console.log('Total compras: ', total);
-            return total;
+            return snapshot.data().count;
         } catch (error) {
-            console.error("Error al obtener total de compras: ", error)
-            return 24;
+            console.error("Error al obtener total de compras:", error);
+            return 0;
         }
     }
 
-    static async getProyeccionCompras() {
+    static async calcularProyeccionCompras() {
         try {
-            console.log('Calculando proyección de compras...');
             const ahora = new Date();
-            const mesActualInicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
-            const mesAnteriorInicio = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
-            const mesAnteriorFin = new Date(ahora.getFullYear(), ahora.getMonth(), 0);
+            const inicioMesActual = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+            const inicioMesAnterior = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+            const finMesAnterior = new Date(ahora.getFullYear(), ahora.getMonth(), 0);
 
             const comprasRef = collection(db, "order");
 
-            // Compras del mes actual
-            const qActual = query(
+            const consultaActual = query(
                 comprasRef,
-                where("fecha", ">=", mesActualInicio),
-                where("fecha", "<=", ahora)
+                where("createdAt", ">=", Timestamp.fromDate(inicioMesActual)),
+                where("createdAt", "<=", Timestamp.fromDate(ahora))
             );
-            const snapshotActual = await getCountFromServer(qActual);
-            const comprasActual = snapshotActual.data().count;
 
-            // Compras del mes anterior
-            const qAnterior = query(
+            const consultaAnterior = query(
                 comprasRef,
-                where("fecha", ">=", mesAnteriorInicio),
-                where("fecha", "<=", mesAnteriorFin)
+                where("createdAt", ">=", Timestamp.fromDate(inicioMesAnterior)),
+                where("createdAt", "<=", Timestamp.fromDate(finMesAnterior))
             );
-            const snapshotAnterior = await getCountFromServer(qAnterior);
+
+            const [snapshotActual, snapshotAnterior] = await Promise.all([
+                getCountFromServer(consultaActual),
+                getCountFromServer(consultaAnterior)
+            ]);
+
+            const comprasActual = snapshotActual.data().count;
             const comprasAnterior = snapshotAnterior.data().count;
 
-            console.log(`Compras actual: ${comprasActual}, anterior: ${comprasAnterior}`);
-
-            if (comprasAnterior === 0) return comprasActual > 0 ? 100 : 0;
+            if (comprasAnterior === 0) {
+                return comprasActual > 0 ? 100 : 0;
+            }
 
             const aumento = ((comprasActual - comprasAnterior) / comprasAnterior) * 100;
             return Math.round(aumento);
         } catch (error) {
             console.error("Error al calcular proyección:", error);
-            return 15; // Datos de ejemplo
+            return 0;
         }
     }
 
-    static async getTotalProductos() {
+    static async obtenerTotalProductos() {
         try {
-            console.log('Obteniendo total de productos...');
             const productosRef = collection(db, "producto");
-            const snapshot = await getCountFromServer(productosRef);
+            const consulta = query(productosRef, where("activo", "==", true));
+            const snapshot = await getCountFromServer(consulta);
             return snapshot.data().count;
         } catch (error) {
             console.error("Error al obtener total de productos:", error);
-            return 156; // Datos de ejemplo
+            return 0;
         }
     }
 
-    static async getInventarioTotal() {
+    static async calcularInventarioTotal() {
         try {
-            console.log('Calculando inventario total...');
             const productosRef = collection(db, "producto");
-            const querySnapshot = await getDocs(productosRef);
+            const consulta = query(productosRef, where("activo", "==", true));
+            const snapshot = await getDocs(consulta);
+            
             let totalInventario = 0;
-
-            querySnapshot.forEach((doc) => {
+            snapshot.forEach((doc) => {
                 const producto = doc.data();
-                totalInventario += producto.cantidad || producto.stock || 0;
+                totalInventario += producto.stock || 0;
             });
 
             return totalInventario;
         } catch (error) {
             console.error("Error al calcular inventario:", error);
-            return 1248; // Datos de ejemplo
+            return 0;
         }
     }
 
-    static async getTotalUsuarios() {
+    static async obtenerTotalUsuarios() {
         try {
-            console.log('Obteniendo total de usuarios...');
             const usuariosRef = collection(db, "usuario");
             const snapshot = await getCountFromServer(usuariosRef);
             return snapshot.data().count;
         } catch (error) {
             console.error("Error al obtener total de usuarios:", error);
-            return 89; // Datos de ejemplo
+            return 0;
         }
     }
 
-    static async getNuevosUsuariosMes() {
+    static async calcularNuevosUsuariosMes() {
         try {
-            console.log('Obteniendo nuevos usuarios del mes...');
             const inicioMes = new Date();
             inicioMes.setDate(1);
             inicioMes.setHours(0, 0, 0, 0);
 
             const usuariosRef = collection(db, "usuario");
-            const q = query(
+            const consulta = query(
                 usuariosRef,
-                where("createdAt", ">=", inicioMes)
+                where("createdAt", ">=", Timestamp.fromDate(inicioMes))
             );
 
-            const snapshot = await getCountFromServer(q);
+            const snapshot = await getCountFromServer(consulta);
             return snapshot.data().count;
         } catch (error) {
-            console.error("Error al obtener nuevos usuarios:", error);
-            return 12; // Datos de ejemplo
+            console.error("Error al calcular nuevos usuarios:", error);
+            return 0;
         }
     }
 
-    static async getVentasTotales() {
+    static async calcularVentasTotales() {
         try {
-            console.log('Calculando ventas totales...');
             const comprasRef = collection(db, "order");
-            const querySnapshot = await getDocs(comprasRef);
+            const snapshot = await getDocs(comprasRef);
+            
             let ventasTotales = 0;
-
-            querySnapshot.forEach((doc) => {
+            snapshot.forEach((doc) => {
                 const compra = doc.data();
                 ventasTotales += compra.total || compra.montoTotal || 0;
             });
@@ -141,28 +138,28 @@ export class DashboardService {
             return ventasTotales;
         } catch (error) {
             console.error("Error al calcular ventas totales:", error);
-            return 2500000; // Datos de ejemplo
+            return 0;
         }
     }
 
-    static async getVentasUltimaSemana() {
+    static async obtenerVentasUltimaSemana() {
         try {
             const unaSemanaAtras = new Date();
             unaSemanaAtras.setDate(unaSemanaAtras.getDate() - 7);
 
             const comprasRef = collection(db, "order");
-            const q = query(
+            const consulta = query(
                 comprasRef,
-                where("fecha", ">=", unaSemanaAtras),
-                where("fecha", "<=", new Date())
+                where("createdAt", ">=", Timestamp.fromDate(unaSemanaAtras)),
+                where("createdAt", "<=", Timestamp.fromDate(new Date()))
             );
 
-            const querySnapshot = await getDocs(q);
+            const snapshot = await getDocs(consulta);
             const ventasPorDia = {};
 
-            querySnapshot.forEach((doc) => {
+            snapshot.forEach((doc) => {
                 const compra = doc.data();
-                const fecha = compra.fecha?.toDate?.() || new Date();
+                const fecha = compra.createdAt?.toDate?.() || new Date();
                 const dia = fecha.toISOString().split('T')[0];
 
                 if (!ventasPorDia[dia]) {
@@ -178,50 +175,47 @@ export class DashboardService {
         }
     }
 
-    static async getEstadisticasCompletas() {
+    static async obtenerEstadisticasCompletas() {
         try {
-            console.log('Iniciando obtención de estadísticas completas desde Firebase...');
-
             const [
                 totalCompras,
                 proyeccion,
                 totalProductos,
                 inventario,
                 totalUsuarios,
-                nuevosUsuarios
+                nuevosUsuarios,
+                ventasTotales
             ] = await Promise.all([
-                this.getTotalCompras(),
-                this.getProyeccionCompras(),
-                this.getTotalProductos(),
-                this.getInventarioTotal(),
-                this.getTotalUsuarios(),
-                this.getNuevosUsuariosMes()
+                this.obtenerTotalCompras(),
+                this.calcularProyeccionCompras(),
+                this.obtenerTotalProductos(),
+                this.calcularInventarioTotal(),
+                this.obtenerTotalUsuarios(),
+                this.calcularNuevosUsuariosMes(),
+                this.calcularVentasTotales()
             ]);
 
-            const estadisticas = {
+            return {
                 totalCompras,
                 proyeccionCompras: proyeccion,
                 totalProductos,
                 inventarioTotal: inventario,
                 totalUsuarios,
-                nuevosUsuariosMes: nuevosUsuarios
+                nuevosUsuariosMes: nuevosUsuarios,
+                ventasTotales: ventasTotales
             };
 
-            console.log('Estadísticas REALES obtenidas de Firebase:', estadisticas);
-            return estadisticas;
-
         } catch (error) {
-            console.error("Error al obtener estadísticas completas, usando datos de ejemplo:", error);
-            // Datos de ejemplo como fallback
+            console.error("Error al obtener estadísticas completas:", error);
             return {
-                totalCompras: 24,
-                proyeccionCompras: 15,
-                totalProductos: 156,
-                inventarioTotal: 1248,
-                totalUsuarios: 89,
-                nuevosUsuariosMes: 12
+                totalCompras: 0,
+                proyeccionCompras: 0,
+                totalProductos: 0,
+                inventarioTotal: 0,
+                totalUsuarios: 0,
+                nuevosUsuariosMes: 0,
+                ventasTotales: 0
             };
         }
     }
 }
-
