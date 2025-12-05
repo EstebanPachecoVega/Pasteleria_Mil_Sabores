@@ -1,50 +1,87 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { calculateUserDiscounts } from '../../data/users';
 import { formatPrice } from '../../utils/formatters';
 import { obtenerProductoPorId } from '../../services/productService';
 
 const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveItem }) => {
-  const [discountCode, setDiscountCode] = useState('');
-  const [discountMessage, setDiscountMessage] = useState('');
   const [productStocks, setProductStocks] = useState({});
-  const [loadingStocks, setLoadingStocks] = useState({});
-
+  const [loadingItems, setLoadingItems] = useState({});
   const [editingItemId, setEditingItemId] = useState(null);
   const [editQuantity, setEditQuantity] = useState('');
+  const [localCartItems, setLocalCartItems] = useState([]);
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  // Cargar stocks de productos
+  // Sincronizar cartItems con estado local para actualizaciones más fluidas
+  useEffect(() => {
+    setLocalCartItems(cartItems);
+  }, [cartItems]);
+
+  // Funciones auxiliares para calcular edad y cumpleaños
+  const calculateUserAge = useCallback((birthDateString) => {
+    if (!birthDateString) return 0;
+    
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  }, []);
+
+  const isUserBirthdayToday = useCallback((birthDateString) => {
+    if (!birthDateString) return false;
+    
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+    
+    return today.getMonth() === birthDate.getMonth() && 
+           today.getDate() === birthDate.getDate();
+  }, []);
+
+  // Cargar stocks de productos solo cuando sea necesario
   useEffect(() => {
     const loadProductStocks = async () => {
-      const stockPromises = cartItems.map(async (item) => {
+      // Solo cargar stocks de items que no los tengan aún
+      const itemsToLoad = cartItems.filter(item => !productStocks[item.id]);
+      if (itemsToLoad.length === 0) return;
+
+      const stockPromises = itemsToLoad.map(async (item) => {
         try {
+          setLoadingItems(prev => ({ ...prev, [item.id]: true }));
           const producto = await obtenerProductoPorId(item.id);
           return { id: item.id, stock: producto?.stock || 0 };
         } catch (error) {
           console.error(`Error cargando stock para ${item.id}:`, error);
           return { id: item.id, stock: 0 };
+        } finally {
+          setLoadingItems(prev => ({ ...prev, [item.id]: false }));
         }
       });
 
       const stocks = await Promise.all(stockPromises);
-      const stockMap = {};
-      stocks.forEach(s => {
-        stockMap[s.id] = s.stock;
+      setProductStocks(prev => {
+        const newStocks = { ...prev };
+        stocks.forEach(s => {
+          newStocks[s.id] = s.stock;
+        });
+        return newStocks;
       });
-      setProductStocks(stockMap);
     };
 
     if (show && cartItems.length > 0) {
       loadProductStocks();
     }
-  }, [show, cartItems]);
+  }, [show, cartItems]); // Removí productStocks de las dependencias para evitar loops
 
-  // Normalizar items del carrito
+  // Normalizar items del carrito usando estado local para mejor rendimiento
   const normalizedCartItems = useMemo(() => {
-    return cartItems.map(item => ({
+    return localCartItems.map(item => ({
       id: item.id || item.productId,
       name: item.nombre || item.name || 'Producto sin nombre',
       price: Number(item.precio || item.price || 0),
@@ -54,21 +91,60 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
       categoryId: item.categoriaId || item.categoryId || '',
       stock: productStocks[item.id] || item.stock || 0
     }));
-  }, [cartItems, productStocks]);
+  }, [localCartItems, productStocks]);
 
-  // Calcular totales con useMemo
-  const { subtotal, ageDiscount, codeDiscount, birthdayDiscount, totalDiscounts, total } = useMemo(() => {
-    const subtotalValue = normalizedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Optimizar cálculo de totales con memoización más granular
+  const subtotal = useMemo(() => {
+    return normalizedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  }, [normalizedCartItems]);
+
+  const discountDetails = useMemo(() => {
+    if (!currentUser) return [];
     
-    // Calcular descuentos
-    const userDiscounts = currentUser ? calculateUserDiscounts(currentUser, subtotalValue, normalizedCartItems) : { specialDiscounts: {} };
+    const details = [];
+    const userAge = calculateUserAge(currentUser.birthDate);
     
-    const ageDiscountValue = userDiscounts.specialDiscounts?.seniorDiscount ? subtotalValue * 0.5 : 0;
-    const codeDiscountValue = userDiscounts.specialDiscounts?.codeDiscount ? subtotalValue * 0.1 : 0;
+    if (userAge >= 50) {
+      details.push('50% descuento para mayores de 50 años');
+    }
     
-    // Descuento de torta gratis
+    const discountCode = localStorage.getItem('discountCode');
+    if (discountCode === 'FELICES50' || currentUser.discountCode === 'FELICES50') {
+      details.push('10% descuento por promoción');
+    }
+    
+    if (isUserBirthdayToday(currentUser.birthDate)) {
+      const cake = normalizedCartItems.find(item => 
+        item.category?.toLowerCase().includes('torta') || 
+        item.name.toLowerCase().includes('torta')
+      );
+      if (cake) {
+        details.push(`Torta gratis en tu cumpleaños (${cake.name})`);
+      }
+    }
+    
+    return details;
+  }, [normalizedCartItems, currentUser, calculateUserAge, isUserBirthdayToday]);
+
+  const totalDiscounts = useMemo(() => {
+    if (!currentUser) return 0;
+    
+    let ageDiscountValue = 0;
+    let codeDiscountValue = 0;
     let birthdayDiscountValue = 0;
-    if (userDiscounts.specialDiscounts?.birthdayDiscount) {
+    
+    const userAge = calculateUserAge(currentUser.birthDate);
+    
+    if (userAge >= 50) {
+      ageDiscountValue = subtotal * 0.5;
+    }
+    
+    const discountCode = localStorage.getItem('discountCode');
+    if (discountCode === 'FELICES50' || currentUser.discountCode === 'FELICES50') {
+      codeDiscountValue = subtotal * 0.1;
+    }
+    
+    if (isUserBirthdayToday(currentUser.birthDate)) {
       const cake = normalizedCartItems.find(item => 
         item.category?.toLowerCase().includes('torta') || 
         item.name.toLowerCase().includes('torta')
@@ -77,110 +153,131 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
         birthdayDiscountValue = cake.price * cake.quantity;
       }
     }
+    
+    return ageDiscountValue + codeDiscountValue + birthdayDiscountValue;
+  }, [subtotal, normalizedCartItems, currentUser, calculateUserAge, isUserBirthdayToday]);
 
-    const totalDiscountsValue = ageDiscountValue + codeDiscountValue + birthdayDiscountValue;
-    const totalValue = Math.max(0, subtotalValue - totalDiscountsValue);
+  const total = useMemo(() => {
+    return Math.max(0, subtotal - totalDiscounts);
+  }, [subtotal, totalDiscounts]);
 
-    return {
-      subtotal: subtotalValue,
-      ageDiscount: ageDiscountValue,
-      codeDiscount: codeDiscountValue,
-      birthdayDiscount: birthdayDiscountValue,
-      totalDiscounts: totalDiscountsValue,
-      total: totalValue
-    };
-  }, [normalizedCartItems, currentUser]);
+  // Optimizar manejo de cantidades con actualización local inmediata
+  const handleIncrement = useCallback((itemId, currentQuantity) => {
+    const maxStock = productStocks[itemId] || 100;
+    
+    if (currentQuantity >= maxStock) return;
+    
+    // Actualización local inmediata para mejor UX
+    const newQuantity = currentQuantity + 1;
+    const updatedItems = localCartItems.map(item =>
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    );
+    
+    // Actualizar estado local
+    setLocalCartItems(updatedItems);
+    
+    // Actualizar localStorage inmediatamente
+    localStorage.setItem('cart', JSON.stringify(updatedItems));
+    
+    // Llamar a la función prop con un pequeño delay para evitar bloqueos
+    setTimeout(() => {
+      onUpdateQuantity(itemId, newQuantity);
+    }, 0);
+    
+    // Notificar a otros componentes
+    window.dispatchEvent(new Event('cartUpdated'));
+  }, [localCartItems, productStocks, onUpdateQuantity]);
 
-  // Aplicar código de descuento
-  const applyDiscountCode = () => {
-    if (discountCode.toUpperCase() === 'FELICES50') {
-      localStorage.setItem('discountCode', 'FELICES50');
-      setDiscountMessage('¡10% de descuento aplicado! Recarga para ver el efecto.');
-      setDiscountCode('');
+  const handleDecrement = useCallback((itemId, currentQuantity) => {
+    if (currentQuantity <= 1) {
+      // Eliminar item
+      const updatedItems = localCartItems.filter(item => item.id !== itemId);
+      setLocalCartItems(updatedItems);
+      localStorage.setItem('cart', JSON.stringify(updatedItems));
+      window.dispatchEvent(new Event('cartUpdated'));
+      
+      setTimeout(() => {
+        onRemoveItem(itemId);
+      }, 0);
     } else {
-      setDiscountMessage('Código no válido');
+      // Decrementar cantidad
+      const newQuantity = currentQuantity - 1;
+      const updatedItems = localCartItems.map(item =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      );
+      
+      setLocalCartItems(updatedItems);
+      localStorage.setItem('cart', JSON.stringify(updatedItems));
+      
+      setTimeout(() => {
+        onUpdateQuantity(itemId, newQuantity);
+      }, 0);
+      
+      window.dispatchEvent(new Event('cartUpdated'));
     }
-  };
+  }, [localCartItems, onUpdateQuantity, onRemoveItem]);
 
-  // Funciones para manejar la edición del quantity CORREGIDAS
-  const startEditing = (item) => {
+  // Funciones para edición directa
+  const startEditing = useCallback((item) => {
     setEditingItemId(item.id);
     setEditQuantity(item.quantity.toString());
-  };
+  }, []);
 
-  const cancelEditing = () => {
+  const cancelEditing = useCallback(() => {
     setEditingItemId(null);
     setEditQuantity('');
-  };
+  }, []);
 
-  const saveQuantity = async (itemId) => {
+  const saveQuantity = useCallback(async (itemId) => {
     let newQuantity = parseInt(editQuantity) || 1;
     const maxStock = productStocks[itemId] || 100;
 
     // Validar stock máximo
     if (newQuantity > maxStock) {
       newQuantity = maxStock;
-      setDiscountMessage(`Stock máximo disponible: ${maxStock} unidades`);
     }
 
     if (newQuantity < 1) {
-      onRemoveItem(itemId);
+      handleDecrement(itemId, 1);
     } else {
-      onUpdateQuantity(itemId, newQuantity);
+      const updatedItems = localCartItems.map(item =>
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
+      );
+      
+      setLocalCartItems(updatedItems);
+      localStorage.setItem('cart', JSON.stringify(updatedItems));
+      
+      setTimeout(() => {
+        onUpdateQuantity(itemId, newQuantity);
+      }, 0);
+      
+      window.dispatchEvent(new Event('cartUpdated'));
     }
 
     setEditingItemId(null);
     setEditQuantity('');
-  };
+  }, [editQuantity, productStocks, localCartItems, handleDecrement, onUpdateQuantity]);
 
-  const handleQuantityKeyPress = (e, itemId) => {
+  const handleQuantityKeyPress = useCallback((e, itemId) => {
     if (e.key === 'Enter') {
       saveQuantity(itemId);
     } else if (e.key === 'Escape') {
       cancelEditing();
     }
-  };
-
-  // Incrementar cantidad con validación de stock
-  const handleIncrement = (itemId, currentQuantity) => {
-    const maxStock = productStocks[itemId] || 100;
-    if (currentQuantity < maxStock) {
-      onUpdateQuantity(itemId, currentQuantity + 1);
-    } else {
-      setDiscountMessage(`Stock máximo: ${maxStock} unidades`);
-    }
-  };
-
-  // Decrementar cantidad
-  const handleDecrement = (itemId, currentQuantity) => {
-    if (currentQuantity > 1) {
-      onUpdateQuantity(itemId, currentQuantity - 1);
-    } else {
-      onRemoveItem(itemId);
-    }
-  };
+  }, [saveQuantity, cancelEditing]);
 
   // Resetear al cerrar
   useEffect(() => {
     if (!show) {
-      setDiscountCode('');
-      setDiscountMessage('');
       setEditingItemId(null);
       setEditQuantity('');
     }
   }, [show]);
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      applyDiscountCode();
-    }
-  };
-
-  const handleProceedToCheckout = () => {
+  const handleProceedToCheckout = useCallback(() => {
     onClose();
     navigate('/checkout');
-  };
+  }, [onClose, navigate]);
 
   return (
     <div
@@ -218,15 +315,30 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
               {normalizedCartItems.map(item => {
                 const maxStock = productStocks[item.id] || item.stock || 100;
                 const stockAvailable = maxStock - item.quantity;
+                const isLoading = loadingItems[item.id];
                 
                 return (
                   <div key={item.id} className="cart-item d-flex align-items-center p-2 border-bottom">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="cart-item-image rounded me-3"
-                      style={{ width: '60px', height: '60px', objectFit: 'cover' }}
-                    />
+                    <div className="position-relative">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="cart-item-image rounded me-3"
+                        style={{ 
+                          width: '60px', 
+                          height: '60px', 
+                          objectFit: 'cover',
+                          opacity: isLoading ? 0.7 : 1
+                        }}
+                      />
+                      {isLoading && (
+                        <div className="position-absolute top-50 start-0 translate-middle-y ms-3">
+                          <div className="spinner-border spinner-border-sm text-primary" role="status">
+                            <span className="visually-hidden">Cargando...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <div className="cart-item-details flex-grow-1">
                       <h6 className="mb-1">{item.name}</h6>
                       <small className="text-muted">
@@ -238,7 +350,7 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                           <button
                             className="cart-item-decrease btn btn-outline-secondary btn-sm"
                             onClick={() => handleDecrement(item.id, item.quantity)}
-                            disabled={item.quantity <= 1}
+                            disabled={item.quantity <= 1 || isLoading}
                             aria-label="Disminuir cantidad"
                           >
                             -
@@ -270,18 +382,23 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                           ) : (
                             <span
                               className="quantity-number editable mx-3"
-                              onClick={() => startEditing(item)}
-                              title="Haz clic para editar la cantidad"
-                              style={{ cursor: 'pointer', minWidth: '30px', textAlign: 'center' }}
+                              onClick={() => !isLoading && startEditing(item)}
+                              title={isLoading ? "Cargando..." : "Haz clic para editar la cantidad"}
+                              style={{ 
+                                cursor: isLoading ? 'not-allowed' : 'pointer', 
+                                minWidth: '30px', 
+                                textAlign: 'center',
+                                opacity: isLoading ? 0.5 : 1
+                              }}
                             >
-                              {item.quantity}
+                              {isLoading ? '...' : item.quantity}
                             </span>
                           )}
                           
                           <button
                             className="cart-item-increase btn btn-outline-secondary btn-sm"
                             onClick={() => handleIncrement(item.id, item.quantity)}
-                            disabled={item.quantity >= maxStock}
+                            disabled={item.quantity >= maxStock || isLoading}
                             aria-label="Aumentar cantidad"
                           >
                             +
@@ -294,7 +411,8 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
                           </div>
                           <button
                             className="cart-item-remove btn btn-outline-danger btn-sm"
-                            onClick={() => onRemoveItem(item.id)}
+                            onClick={() => handleDecrement(item.id, 1)}
+                            disabled={isLoading}
                             aria-label='Eliminar producto'
                           >
                             <i className="bi bi-trash"></i>
@@ -314,36 +432,22 @@ const CartOffCanvas = ({ show, onClose, cartItems, onUpdateQuantity, onRemoveIte
             </div>
 
             {/* Sección de descuentos */}
-            <div className="discount-section mt-3 p-3 bg-light rounded">
-              <h6 className="mb-2">¿Tienes un código de descuento?</h6>
-              {discountMessage && (
-                <div className={`small ${discountMessage.includes('no válido') ? 'text-danger' : 'text-success'}`}>
-                  {discountMessage}
+            {discountDetails.length > 0 && (
+              <div className="discount-section mt-3 p-3 bg-light rounded">
+                <h6 className="mb-2">
+                  <i className="bi bi-tag me-2"></i>
+                  Descuentos Aplicados
+                </h6>
+                <div className="mt-2">
+                  {discountDetails.map((detail, index) => (
+                    <div key={index} className="alert alert-success py-2 small mb-2">
+                      <i className="bi bi-check-circle me-2"></i>
+                      {detail}
+                    </div>
+                  ))}
                 </div>
-              )}
-
-              <div className="mt-2">
-                {currentUser && (
-                  <>
-                    {ageDiscount > 0 && (
-                      <div className="alert alert-success py-2 small mb-2">
-                        <i className="bi bi-coin me-2"></i> 50% de descuento para mayores de 50 años
-                      </div>
-                    )}
-                    {codeDiscount > 0 && (
-                      <div className="alert alert-success py-2 small mb-2">
-                        <i className="bi bi-tag me-2"></i> 10% de descuento con código FELICES50
-                      </div>
-                    )}
-                    {birthdayDiscount > 0 && (
-                      <div className="alert alert-success py-2 small mb-2">
-                        <i className="bi bi-gift me-2"></i> ¡Torta gratis en tu cumpleaños!
-                      </div>
-                    )}
-                  </>
-                )}
               </div>
-            </div>
+            )}
 
             {/* Resumen */}
             <div className="cart-summary mt-3 p-3 border-top">
