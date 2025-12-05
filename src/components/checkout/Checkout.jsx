@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Breadcrumb, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -7,7 +7,6 @@ import ShippingInfo from './ShippingInfo';
 import PaymentMethod from './PaymentMethod';
 import OrderConfirmation from './OrderConfirmation';
 import { formatPrice } from '../../utils/formatters';
-import { getSpecialDiscounts } from '../../data/users';
 import { calculateShippingCost } from '../../services/shippingService';
 
 const Checkout = () => {
@@ -29,35 +28,125 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  // Calcular subtotal
-  const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  // Función para calcular edad desde birthDate
+  const calculateAge = (birthDateString) => {
+    if (!birthDateString) return 0;
+    
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
 
-  // Cargar items del carrito y descuentos del usuario
+  // Función para verificar si es cumpleaños
+  const isBirthdayToday = (birthDateString) => {
+    if (!birthDateString) return false;
+    
+    const birthDate = new Date(birthDateString);
+    const today = new Date();
+    
+    return today.getMonth() === birthDate.getMonth() && 
+           today.getDate() === birthDate.getDate();
+  };
+
+  // Normalizar items
+  const normalizeCartItem = (item) => ({
+    id: item.id || item.productId,
+    name: item.nombre || item.name || 'Producto sin nombre',
+    price: Number(item.precio || item.price || 0),
+    quantity: Number(item.cantidad || item.quantity || 1),
+    image: item.image || item.imagen || '/images/productos/default.png',
+    categoryName: item.categoriaNombre || item.categoryName || '',
+    stock: item.stock || 0
+  });
+
+  // Cargar items
   useEffect(() => {
-    const cart = JSON.parse(localStorage.getItem('cart')) || [];
-    setCartItems(cart);
+    const loadCartItems = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem('cart')) || [];
+        const normalizedCart = cart.map(normalizeCartItem);
+        setCartItems(normalizedCart);
+        
+        if (normalizedCart.length === 0 && currentStep === 1) {
+          navigate('/productos');
+        }
+      } catch (error) {
+        console.error('Error al cargar carrito:', error);
+        setCartItems([]);
+      }
+    };
 
+    loadCartItems();
+    window.addEventListener('cartUpdated', loadCartItems);
+    return () => window.removeEventListener('cartUpdated', loadCartItems);
+  }, [navigate, currentStep]);
+
+  // Calcular descuentos
+  const { discountAmount, discounts } = useMemo(() => {
+    const subtotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    
+    let discountAmount = 0;
+    const discounts = {};
+    
     if (currentUser) {
-      const discounts = getSpecialDiscounts(currentUser);
-      setUserDiscounts(discounts);
+      // Calcular edad desde birthDate
+      const userAge = calculateAge(currentUser.birthDate);
+      console.log('📅 Edad calculada:', userAge, 'años');
+      
+      if (userAge >= 50) {
+        discountAmount += subtotal * 0.5;
+        discounts.seniorDiscount = true;
+      }
+      
+      // Verificar código de descuento
+      const discountCode = localStorage.getItem('discountCode');
+      if (discountCode === 'FELICES50') {
+        discountAmount += subtotal * 0.1;
+        discounts.codeDiscount = true;
+      }
+      
+      // Verificar cumpleaños
+      if (isBirthdayToday(currentUser.birthDate)) {
+        const cakeItem = cartItems.find(item => 
+          item.categoryName?.toLowerCase().includes('torta') || 
+          item.name.toLowerCase().includes('torta')
+        );
+        if (cakeItem) {
+          discountAmount += cakeItem.price * cakeItem.quantity;
+          discounts.birthdayDiscount = true;
+        }
+      }
     }
+    
+    return { discountAmount, discounts };
+  }, [cartItems, currentUser]);
 
-    if (cart.length === 0 && currentStep === 1) {
-      navigate('/productos');
-    }
-  }, [navigate, currentStep, currentUser]);
+  // Calcular subtotal
+  const subtotal = useMemo(() => {
+    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+  }, [cartItems]);
 
-  // Manejar cambios de costo de envío desde ShippingInfo
+  // Calcular total
+  const total = useMemo(() => {
+    return Math.max(0, subtotal - discountAmount + (hasRegionSelected ? shippingCost : 0));
+  }, [subtotal, discountAmount, shippingCost, hasRegionSelected]);
+
+  // Manejar envío
   const handleShippingCostChange = (shippingData) => {
-    console.log('🔄 Actualizando costo de envío desde ShippingInfo:', shippingData);
     setShippingCost(shippingData.costo);
     setShippingConfig(shippingData.config);
     setIsShippingFree(shippingData.costo === 0);
     setHasRegionSelected(!!shippingData.config);
-    setIsShippingLoading(false);
   };
 
-  // Calcular envío cuando cambia región en orderData (para mantener compatibilidad)
+  // Calcular envío automático
   useEffect(() => {
     const calculateShipping = async () => {
       const regionId = orderData.shippingInfo?.region;
@@ -76,7 +165,6 @@ const Checkout = () => {
           const fallbackCost = subtotal >= 50000 ? 0 : 3000;
           setShippingCost(fallbackCost);
           setIsShippingFree(subtotal >= 50000);
-          setHasRegionSelected(false);
         } finally {
           setIsShippingLoading(false);
         }
@@ -85,29 +173,16 @@ const Checkout = () => {
         setIsShippingFree(false);
         setShippingConfig(null);
         setHasRegionSelected(false);
-        setIsShippingLoading(false);
       }
     };
 
-    if (currentStep === 1) {
-      calculateShipping();
-    }
-  }, [orderData.shippingInfo?.region, subtotal, currentStep]);
+    calculateShipping();
+  }, [orderData.shippingInfo?.region, subtotal]);
 
-  // Calcular descuentos y total
-  let discountAmount = 0;
-  if (userDiscounts.seniorDiscount) {
-    discountAmount += subtotal * 0.5;
-  }
-  if (userDiscounts.codeDiscount) {
-    discountAmount += subtotal * 0.1;
-  }
-
-  const total = Math.max(0, subtotal - discountAmount + (hasRegionSelected ? shippingCost : 0));
-
+  // Funciones del carrito
   const updateCartQuantity = (productId, newQuantity) => {
     const updatedItems = cartItems.map(item =>
-      item.id === productId ? { ...item, quantity: Math.max(0, newQuantity) } : item
+      item.id === productId ? { ...item, quantity: Math.max(1, newQuantity) } : item
     ).filter(item => item.quantity > 0);
 
     setCartItems(updatedItems);
@@ -122,6 +197,7 @@ const Checkout = () => {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
+  // Navegación
   const handleNextStep = (data = {}) => {
     setOrderData(prev => ({ ...prev, ...data }));
     setCurrentStep(prev => prev + 1);
@@ -136,9 +212,11 @@ const Checkout = () => {
     setOrderNumber(orderId);
     setCurrentStep(4);
     localStorage.removeItem('cart');
+    localStorage.removeItem('discountCode');
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
+  // Steps
   const steps = [
     { number: 1, title: 'Resumen', active: currentStep === 1, completed: currentStep > 1 },
     { number: 2, title: 'Envío', active: currentStep === 2, completed: currentStep > 2 },
@@ -185,7 +263,7 @@ const Checkout = () => {
                   shippingCost={shippingCost}
                   total={total}
                   discountAmount={discountAmount}
-                  userDiscounts={userDiscounts}
+                  userDiscounts={discounts}
                   shippingConfig={shippingConfig}
                   hasRegionSelected={hasRegionSelected}
                   isShippingLoading={isShippingLoading}
@@ -214,7 +292,7 @@ const Checkout = () => {
                   cartItems={cartItems}
                   total={total}
                   discountAmount={discountAmount}
-                  userDiscounts={userDiscounts}
+                  userDiscounts={discounts}
                   shippingCost={shippingCost}
                   hasRegionSelected={hasRegionSelected}
                   isShippingLoading={isShippingLoading}
@@ -258,22 +336,27 @@ const Checkout = () => {
                         <span>Descuentos:</span>
                         <span>-${formatPrice(discountAmount)}</span>
                       </div>
-                      {userDiscounts.seniorDiscount && (
+                      {discounts.seniorDiscount && (
                         <div className="small text-success mb-1">
                           <i className="bi bi-coin me-1"></i>
                           50% descuento (Mayor de 50 años)
                         </div>
                       )}
-                      {userDiscounts.codeDiscount && (
+                      {discounts.codeDiscount && (
                         <div className="small text-success mb-1">
                           <i className="bi bi-tag me-1"></i>
                           10% descuento adicional
                         </div>
                       )}
+                      {discounts.birthdayDiscount && (
+                        <div className="small text-success mb-1">
+                          <i className="bi bi-gift me-1"></i>
+                          Torta gratis en cumpleaños
+                        </div>
+                      )}
                     </>
                   )}
 
-                  {/* Mostrar loading, envío o mensaje según estado */}
                   {isShippingLoading ? (
                     <div className="d-flex justify-content-between mb-2">
                       <span>Envío:</span>
@@ -283,27 +366,9 @@ const Checkout = () => {
                       </span>
                     </div>
                   ) : hasRegionSelected ? (
-                    <>
-                      <div className="d-flex justify-content-between mb-2">
-                        <span>Envío:</span>
-                        <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
-                      </div>
-                      
-                      {shippingConfig && (
-                        <div className={`small mb-2 ${shippingCost === 0 ? 'text-success' : 'text-muted'}`}>
-                          <i className={`${shippingConfig.icon} me-1`}></i>
-                          {shippingCost === 0 ? (
-                            `¡Envío GRATIS para ${shippingConfig.name}!`
-                          ) : (
-                            `Envío ${shippingConfig.name} - Gratis desde $${formatPrice(shippingConfig.costoGratisDesde)}`
-                          )}
-                        </div>
-                      )}
-                    </>
-                  ) : currentStep >= 2 ? (
-                    <div className="small text-warning mb-2">
-                      <i className="bi bi-exclamation-triangle me-1"></i>
-                      Completa tu dirección para calcular el envío
+                    <div className="d-flex justify-content-between mb-2">
+                      <span>Envío:</span>
+                      <span>{shippingCost === 0 ? 'GRATIS' : `$${formatPrice(shippingCost)}`}</span>
                     </div>
                   ) : null}
 
@@ -313,16 +378,6 @@ const Checkout = () => {
                     <span>${formatPrice(total)}</span>
                   </div>
                 </div>
-              </Card.Body>
-            </Card>
-
-            <Card className="security-info-card">
-              <Card.Body className="text-center">
-                <i className="bi bi-shield-check text-primary fs-1 mb-3"></i>
-                <h6>Compra 100% Segura</h6>
-                <p className="small text-muted mb-0">
-                  Tus datos están protegidos con encriptación SSL
-                </p>
               </Card.Body>
             </Card>
           </div>
