@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Button } from 'react-bootstrap';
 import { useAuth } from '../../../context/AuthContext';
 import { formatPrice } from '../../../utils/formatters';
-import { getUserOrders } from '../../../services/firestoreService';
+import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
 import { Link } from 'react-router-dom';
 
 const OrderHistory = () => {
@@ -11,37 +12,76 @@ const OrderHistory = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadOrders = async () => {
-      setLoading(true);
-
-      if (currentUser) {
-        try {
-          const userOrders = await getUserOrders(currentUser.id);
-          setOrders(userOrders);
-        } catch (error) {
-          console.error('Error al cargar órdenes:', error);
-          const allOrders = JSON.parse(localStorage.getItem('orders')) || [];
-          const localUserOrders = allOrders.filter(order => order.userId === currentUser.id);
-          setOrders(localUserOrders);
-        }
-      }
-
+    if (!currentUser) {
       setLoading(false);
-    };
+      return;
+    }
 
-    loadOrders();
+    setLoading(true);
+    
+    // Crear consulta para obtener órdenes del usuario actual
+    const ordersRef = collection(db, "order");
+    const q = query(
+      ordersRef,
+      where("userId", "==", currentUser.id),
+      orderBy("createdAt", "desc")
+    );
+
+    // Suscribirse a cambios en tiempo real
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const userOrders = [];
+      
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        userOrders.push({
+          id: data.orderId || doc.id,
+          ...data,
+          // Asegurar que date exista
+          date: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          // Priorizar estado desde Firebase
+          status: data.estado || data.status || 'pendiente',
+          estado: data.estado || data.status || 'pendiente',
+          // Asegurar que discounts sea un número
+          discounts: data.discountAmount || data.discounts || 0
+        });
+      });
+
+      setOrders(userOrders);
+      setLoading(false);
+    }, (error) => {
+      console.error('Error en suscripción a órdenes:', error);
+      setLoading(false);
+      
+      // Fallback a localStorage si hay error
+      try {
+        const allOrders = JSON.parse(localStorage.getItem('orders')) || [];
+        const localUserOrders = allOrders.filter(order => order.userId === currentUser.id);
+        setOrders(localUserOrders);
+      } catch (e) {
+        console.error('Error con fallback:', e);
+      }
+    });
+
+    // Limpiar suscripción al desmontar
+    return () => unsubscribe();
   }, [currentUser]);
 
   const getStatusVariant = (status) => {
-    switch (status) {
+    const statusValue = status || 'pendiente';
+    switch (statusValue.toLowerCase()) {
+      case 'pendiente':
+        return 'warning';
       case 'confirmado':
+      case 'confirmada':
         return 'success';
       case 'en_preparacion':
-        return 'warning';
-      case 'en_camino':
+      case 'en preparación':
         return 'info';
-      case 'entregado':
+      case 'en_camino':
+      case 'en camino':
         return 'primary';
+      case 'entregado':
+        return 'secondary';
       case 'cancelado':
         return 'danger';
       default:
@@ -49,14 +89,56 @@ const OrderHistory = () => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-CL', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const getStatusText = (status) => {
+    const statusValue = status || 'pendiente';
+    switch (statusValue.toLowerCase()) {
+      case 'pendiente':
+        return 'PENDIENTE';
+      case 'confirmado':
+      case 'confirmada':
+        return 'CONFIRMADO';
+      case 'en_preparacion':
+      case 'en preparación':
+        return 'EN PREPARACIÓN';
+      case 'en_camino':
+      case 'en camino':
+        return 'EN CAMINO';
+      case 'entregado':
+        return 'ENTREGADO';
+      case 'cancelado':
+        return 'CANCELADO';
+      default:
+        return statusValue.toUpperCase();
+    }
+  };
+
+  const formatDate = (dateValue) => {
+    try {
+      if (!dateValue) return 'Fecha no disponible';
+      
+      let date;
+      if (typeof dateValue === 'string') {
+        date = new Date(dateValue);
+      } else if (dateValue && typeof dateValue.toDate === 'function') {
+        // Si es un timestamp de Firebase
+        date = dateValue.toDate();
+      } else if (dateValue instanceof Date) {
+        date = dateValue;
+      } else {
+        return 'Fecha no disponible';
+      }
+      
+      return date.toLocaleDateString('es-CL', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formateando fecha:', error);
+      return 'Fecha no disponible';
+    }
   };
 
   if (!currentUser) {
@@ -124,46 +206,54 @@ const OrderHistory = () => {
                       {orders.map((order) => (
                         <tr key={order.id}>
                           <td>
-                            <strong>{order.id}</strong>
+                            <strong title={order.id}>
+                              {order.id?.length > 15 ? order.id.substring(0, 15) + '...' : order.id}
+                            </strong>
                           </td>
                           <td>
-                            <small>{formatDate(order.date)}</small>
+                            <small>{formatDate(order.createdAt || order.date)}</small>
                           </td>
                           <td>
                             <div>
-                              {order.items.slice(0, 2).map((item, index) => (
+                              {(order.items || []).slice(0, 2).map((item, index) => (
                                 <div key={index} className="d-flex align-items-center mb-1">
                                   <img
-                                    src={item.image}
-                                    alt={item.name}
+                                    src={item.image || '/images/productos/default.png'}
+                                    alt={item.name || 'Producto'}
                                     className="rounded me-2"
                                     style={{ width: '30px', height: '30px', objectFit: 'cover' }}
+                                    onError={(e) => {
+                                      e.target.src = '/images/productos/default.png';
+                                    }}
                                   />
                                   <small>
-                                    {item.quantity}x {item.name}
-                                    {index === 0 && order.items.length > 2 && (
+                                    {(item.quantity || 1)}x {item.name || 'Producto'}
+                                    {index === 0 && order.items && order.items.length > 2 && (
                                       <Badge bg="light" text="dark" className="ms-1">
-                                        +{order.items.length - 2} más
+                                        +{(order.items.length - 2)} más
                                       </Badge>
                                     )}
                                   </small>
                                 </div>
                               ))}
+                              {(!order.items || order.items.length === 0) && (
+                                <small className="text-muted">Sin productos</small>
+                              )}
                             </div>
                           </td>
                           <td>
-                            <strong>${formatPrice(order.total)}</strong>
-                            {order.discounts > 0 && (
+                            <strong>${formatPrice(order.total || 0)}</strong>
+                            {order.discountAmount > 0 && (
                               <div>
                                 <small className="text-success">
-                                  -${formatPrice(order.discounts)} desc.
+                                  -${formatPrice(order.discountAmount)} desc.
                                 </small>
                               </div>
                             )}
                           </td>
                           <td>
-                            <Badge bg={getStatusVariant(order.status)}>
-                              {order.status}
+                            <Badge bg={getStatusVariant(order.estado)} className="px-3 py-2">
+                              {getStatusText(order.estado)}
                             </Badge>
                           </td>
                           <td>
@@ -189,7 +279,7 @@ const OrderHistory = () => {
           {/* Estadísticas del usuario */}
           {orders.length > 0 && (
             <Row className="mt-4">
-              <Col md={4}>
+              <Col md={3}>
                 <Card className="text-center">
                   <Card.Body>
                     <i className="bi bi-bag-check text-primary fs-1"></i>
@@ -198,14 +288,36 @@ const OrderHistory = () => {
                   </Card.Body>
                 </Card>
               </Col>
-              <Col md={4}>
+              <Col md={3}>
                 <Card className="text-center">
                   <Card.Body>
                     <i className="bi bi-currency-dollar text-success fs-1"></i>
                     <h5 className="mt-2">
-                      ${formatPrice(orders.reduce((total, order) => total + order.total, 0))}
+                      ${formatPrice(orders.reduce((total, order) => total + (order.total || 0), 0))}
                     </h5>
                     <p className="text-muted mb-0">Total Gastado</p>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={3}>
+                <Card className="text-center">
+                  <Card.Body>
+                    <i className="bi bi-clock-history text-warning fs-1"></i>
+                    <h5 className="mt-2">
+                      {orders.filter(o => (o.estado || '').toLowerCase() === 'pendiente').length}
+                    </h5>
+                    <p className="text-muted mb-0">Pendientes</p>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={3}>
+                <Card className="text-center">
+                  <Card.Body>
+                    <i className="bi bi-check-circle text-success fs-1"></i>
+                    <h5 className="mt-2">
+                      {orders.filter(o => (o.estado || '').toLowerCase() === 'entregado').length}
+                    </h5>
+                    <p className="text-muted mb-0">Entregados</p>
                   </Card.Body>
                 </Card>
               </Col>

@@ -1084,16 +1084,50 @@ const SeccionCategorias = ({ categorias, onNuevaCategoria, onEditarCategoria, on
 };
 
 const SeccionPedidos = ({ ordenes, usuarios, onActualizarEstado, onRefrescar, onVerDetalle, onEditar, obtenerNombreCliente }) => {
-  const obtenerColorEstado = (estado) => {
-    const colores = {
-      'pendiente': 'warning',
-      'confirmado': 'primary',
-      'en_preparacion': 'info',
-      'en_camino': 'warning',
-      'entregado': 'success',
-      'cancelado': 'danger'
-    };
-    return colores[estado] || 'secondary';
+  const getStatusVariant = (estado) => {
+    const estadoValue = estado || 'pendiente';
+    switch (estadoValue.toLowerCase()) {
+      case 'pendiente':
+        return 'warning';
+      case 'confirmado':
+      case 'confirmada':
+        return 'success';
+      case 'en_preparacion':
+      case 'en preparación':
+        return 'info';
+      case 'en_camino':
+      case 'en camino':
+        return 'primary';
+      case 'entregado':
+        return 'secondary';
+      case 'cancelado':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getStatusText = (estado) => {
+    const estadoValue = estado || 'pendiente';
+    switch (estadoValue.toLowerCase()) {
+      case 'pendiente':
+        return 'PENDIENTE';
+      case 'confirmado':
+      case 'confirmada':
+        return 'CONFIRMADO';
+      case 'en_preparacion':
+      case 'en preparación':
+        return 'EN PREPARACIÓN';
+      case 'en_camino':
+      case 'en camino':
+        return 'EN CAMINO';
+      case 'entregado':
+        return 'ENTREGADO';
+      case 'cancelado':
+        return 'CANCELADO';
+      default:
+        return estadoValue.toUpperCase();
+    }
   };
 
   const formatearFecha = (fecha) => {
@@ -1162,65 +1196,68 @@ const SeccionPedidos = ({ ordenes, usuarios, onActualizarEstado, onRefrescar, on
                 </tr>
               </thead>
               <tbody>
-                {ordenes.map(orden => (
-                  <tr key={orden.id}>
-                    <td>
-                      <code title={orden.id} className="bg-light p-1 rounded">
-                        {formatearIdOrden(orden.id)}
-                      </code>
-                    </td>
-                    <td>{formatearFecha(orden.createdAt || orden.fecha)}</td>
-                    <td>{formatearHora(orden.createdAt || orden.fecha)}</td>
-                    <td>
-                      <div className="fw-semibold">
-                        {obtenerNombreCliente(orden.userId)}
-                      </div>
-                      {orden.email && (
-                        <div className="text-muted small">{orden.email}</div>
-                      )}
-                    </td>
-                    <td className="fw-bold text-success">
-                      ${(orden.total || 0).toLocaleString('es-CL')}
-                    </td>
-                    <td>
-                      <Badge bg={obtenerColorEstado(orden.estado)} className="px-3 py-2">
-                        {orden.estado ? orden.estado.toUpperCase() : 'PENDIENTE'}
-                      </Badge>
-                    </td>
-                    <td>
-                      <div className="btn-group btn-group-sm" role="group">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => onEditar(orden)}
-                          title="Editar estado del pedido"
-                          className="me-1"
-                        >
-                          <i className="bi bi-pencil"></i>
-                        </Button>
-                        <Button
-                          variant="outline-info"
-                          size="sm"
-                          onClick={() => onVerDetalle(orden)}
-                          title="Ver detalles del pedido"
-                          className="me-1"
-                        >
-                          <i className="bi bi-eye"></i>
-                        </Button>
-                        {orden.estado === 'pendiente' && (
-                          <Button
-                            variant="outline-success"
-                            size="sm"
-                            onClick={() => onActualizarEstado(orden.id, 'confirmado')}
-                            title="Confirmar pedido"
-                          >
-                            <i className="bi bi-check-circle"></i>
-                          </Button>
+                {ordenes.map(orden => {
+                  const estadoOrden = orden.estado || orden.status || 'pendiente';
+                  return (
+                    <tr key={orden.id}>
+                      <td>
+                        <code title={orden.id} className="bg-light p-1 rounded">
+                          {formatearIdOrden(orden.id)}
+                        </code>
+                      </td>
+                      <td>{formatearFecha(orden.createdAt || orden.fecha)}</td>
+                      <td>{formatearHora(orden.createdAt || orden.fecha)}</td>
+                      <td>
+                        <div className="fw-semibold">
+                          {obtenerNombreCliente(orden.userId)}
+                        </div>
+                        {orden.email && (
+                          <div className="text-muted small">{orden.email}</div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="fw-bold text-success">
+                        ${(orden.total || 0).toLocaleString('es-CL')}
+                      </td>
+                      <td>
+                        <Badge bg={getStatusVariant(estadoOrden)} className="px-3 py-2">
+                          {getStatusText(estadoOrden)}
+                        </Badge>
+                      </td>
+                      <td>
+                        <div className="btn-group btn-group-sm" role="group">
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => onEditar(orden)}
+                            title="Editar estado del pedido"
+                            className="me-1"
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </Button>
+                          <Button
+                            variant="outline-info"
+                            size="sm"
+                            onClick={() => onVerDetalle(orden)}
+                            title="Ver detalles del pedido"
+                            className="me-1"
+                          >
+                            <i className="bi bi-eye"></i>
+                          </Button>
+                          {estadoOrden === 'pendiente' && (
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              onClick={() => onActualizarEstado(orden.id, 'confirmado')}
+                              title="Confirmar pedido"
+                            >
+                              <i className="bi bi-check-circle"></i>
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </Table>
           </div>
@@ -1874,8 +1911,7 @@ const ModalEliminarCategoria = ({ show, onHide, onConfirmar, categoria, cargando
   );
 };
 
-// Nuevos componentes para modales de pedidos
-
+// Modal para ver los detalles de un pedido
 const ModalDetallePedido = ({ show, onHide, pedido, obtenerNombreCliente, obtenerCorreoCliente, obtenerTelefonoCliente }) => {
   if (!pedido) return null;
 
@@ -1923,13 +1959,36 @@ const ModalDetallePedido = ({ show, onHide, pedido, obtenerNombreCliente, obtene
     return colores[estado] || 'secondary';
   };
 
+  const getStatusText = (estado) => {
+    const estadoValue = estado || 'pendiente';
+    switch (estadoValue.toLowerCase()) {
+      case 'pendiente':
+        return 'PENDIENTE';
+      case 'confirmado':
+      case 'confirmada':
+        return 'CONFIRMADO';
+      case 'en_preparacion':
+      case 'en preparación':
+        return 'EN PREPARACIÓN';
+      case 'en_camino':
+      case 'en camino':
+        return 'EN CAMINO';
+      case 'entregado':
+        return 'ENTREGADO';
+      case 'cancelado':
+        return 'CANCELADO';
+      default:
+        return estadoValue.toUpperCase();
+    }
+  };
+
   // Función actualizada para obtener información de envío del pedido
   const obtenerInfoEnvio = () => {
     if (!pedido) return {};
-    
+
     // Los campos están dentro de shippingInfo según la estructura de Firebase
     const shippingInfo = pedido.shippingInfo || {};
-    
+
     return {
       direccion: shippingInfo.direccionCompleta || 'No especificada',
       comuna: shippingInfo.comuna || 'No especificada',
@@ -1965,7 +2024,7 @@ const ModalDetallePedido = ({ show, onHide, pedido, obtenerNombreCliente, obtene
           </Col>
           <Col md={4} className="text-end">
             <Badge bg={obtenerColorEstado(pedido.estado || pedido.status)} className="px-3 py-2 fs-6">
-              {(pedido.estado || pedido.status || 'pendiente').toUpperCase()}
+              {getStatusText(pedido.estado || pedido.status)}
             </Badge>
           </Col>
         </Row>
@@ -2115,13 +2174,60 @@ const ModalEditarPedido = ({ show, onHide, onSubmit, formulario, onChangeFormula
   };
 
   const estadosDisponibles = [
-    { value: 'pendiente', label: 'Pendiente', color: 'warning' },
-    { value: 'confirmado', label: 'Confirmado', color: 'primary' },
-    { value: 'en_preparacion', label: 'En preparación', color: 'info' },
-    { value: 'en_camino', label: 'En camino', color: 'warning' },
-    { value: 'entregado', label: 'Entregado', color: 'success' },
-    { value: 'cancelado', label: 'Cancelado', color: 'danger' }
+    { value: 'pendiente', label: 'PENDIENTE', color: 'warning' },
+    { value: 'confirmado', label: 'CONFIRMADO', color: 'primary' },
+    { value: 'en_preparacion', label: 'EN PREPARACIÓN', color: 'info' },
+    { value: 'en_camino', label: 'EN CAMINO', color: 'warning' },
+    { value: 'entregado', label: 'ENTREGADO', color: 'success' },
+    { value: 'cancelado', label: 'CANCELADO', color: 'danger' }
   ];
+
+  // Función para formatear estado para mostrar
+  const getStatusText = (estado) => {
+    const estadoValue = estado || 'pendiente';
+    switch (estadoValue.toLowerCase()) {
+      case 'pendiente':
+        return 'PENDIENTE';
+      case 'confirmado':
+      case 'confirmada':
+        return 'CONFIRMADO';
+      case 'en_preparacion':
+      case 'en preparación':
+        return 'EN PREPARACIÓN';
+      case 'en_camino':
+      case 'en camino':
+        return 'EN CAMINO';
+      case 'entregado':
+        return 'ENTREGADO';
+      case 'cancelado':
+        return 'CANCELADO';
+      default:
+        return estadoValue.toUpperCase();
+    }
+  };
+
+  const getStatusColor = (estado) => {
+    const estadoValue = estado || 'pendiente';
+    switch (estadoValue.toLowerCase()) {
+      case 'pendiente':
+        return 'warning';
+      case 'confirmado':
+      case 'confirmada':
+        return 'primary';
+      case 'en_preparacion':
+      case 'en preparación':
+        return 'info';
+      case 'en_camino':
+      case 'en camino':
+        return 'warning';
+      case 'entregado':
+        return 'success';
+      case 'cancelado':
+        return 'danger';
+      default:
+        return 'secondary';
+    }
+  };
 
   return (
     <Modal show={show} onHide={onHide}>
@@ -2136,12 +2242,12 @@ const ModalEditarPedido = ({ show, onHide, onSubmit, formulario, onChangeFormula
           {pedido && (
             <div className="mb-4">
               <p><strong>ID Pedido:</strong> {pedido.id?.substring(0, 16)}...</p>
-              <p><strong>Cliente:</strong> {pedido.nombreCliente || 'Cliente'}</p>
+              <p><strong>Cliente:</strong> {pedido.userName || 'Cliente'}</p>
               <p><strong>Fecha:</strong> {pedido.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'N/A'}</p>
               <p><strong>Total:</strong> ${(pedido.total || 0).toLocaleString('es-CL')}</p>
               <p><strong>Estado actual:</strong>
-                <Badge bg={estadosDisponibles.find(e => e.value === pedido.estado)?.color || 'secondary'} className="ms-2">
-                  {pedido.estado ? pedido.estado.toUpperCase() : 'PENDIENTE'}
+                <Badge bg={getStatusColor(pedido.estado || pedido.status)} className="ms-2">
+                  {getStatusText(pedido.estado || pedido.status)}
                 </Badge>
               </p>
             </div>
