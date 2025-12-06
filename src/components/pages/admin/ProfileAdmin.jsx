@@ -4,7 +4,12 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CrudService } from '../../../services/crudService';
 import { DashboardService } from '../../../services/dashboardService';
-import { formatearCategoria } from '../../../utils/formatters';
+import { 
+  formatearCategoria, 
+  formatearFecha, 
+  formatearFechaHora, 
+  formatearHora 
+} from '../../../utils/formatters';
 
 const ProfileAdmin = () => {
   const { currentUser, logout } = useAuth();
@@ -78,10 +83,19 @@ const ProfileAdmin = () => {
         CrudService.obtenerCategorias()
       ]);
 
+      // Formatear usuarios para asegurar datos consistentes
+      const usuariosFormateados = usuariosData.map(usuario => ({
+        ...usuario,
+        name: usuario.name || `${usuario.primerNombre || ''} ${usuario.segundoNombre || ''} ${usuario.primerApellido || ''} ${usuario.segundoApellido || ''}`.trim(),
+        telefono: usuario.telefono || usuario.phone || 'N/A',
+        email: usuario.email || 'N/A',
+        birthDate: usuario.birthDate || null
+      }));
+
       setEstadisticas(estadisticasData);
       setOrdenes(ordenesData);
       setProductos(productosData);
-      setUsuarios(usuariosData);
+      setUsuarios(usuariosFormateados);
       setCategorias(categoriasData);
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -422,7 +436,7 @@ const ProfileAdmin = () => {
 
     const usuario = usuarios.find(u => u.id === userId);
     if (usuario) {
-      return usuario.phone || usuario.telefono || 'Sin teléfono';
+      return usuario.telefono || usuario.phone || 'Sin teléfono';
     }
 
     const orden = ordenes.find(o => o.userId === userId);
@@ -438,7 +452,7 @@ const ProfileAdmin = () => {
     setMostrarModalDetallePedido(true);
   };
 
-  // 1. Editar SOLO el estado del pedido
+  // Abrir modal para editar pedido (solo estado)
   const abrirModalEditarPedido = (pedido) => {
     setPedidoSeleccionado(pedido);
     setFormularioPedido({
@@ -447,7 +461,7 @@ const ProfileAdmin = () => {
     setMostrarModalEditarPedido(true);
   };
 
-  // 1. Actualizar SOLO el estado del pedido
+  // Actualizar estado del pedido
   const manejarActualizarPedido = async (e) => {
     e.preventDefault();
 
@@ -543,7 +557,12 @@ const ProfileAdmin = () => {
       case 'dashboard':
         return <SeccionDashboard estadisticas={estadisticas} />;
       case 'usuarios':
-        return <SeccionUsuarios usuarios={usuarios} />;
+        return (
+          <SeccionUsuarios 
+            usuarios={usuarios} 
+            onRefrescar={cargarDatosDashboard} 
+          />
+        );
       case 'productos':
         return (
           <SeccionProductos
@@ -1130,28 +1149,6 @@ const SeccionPedidos = ({ ordenes, usuarios, onActualizarEstado, onRefrescar, on
     }
   };
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return 'N/A';
-    if (typeof fecha.toDate === 'function') {
-      return fecha.toDate().toLocaleDateString('es-CL');
-    }
-    if (fecha instanceof Date) {
-      return fecha.toLocaleDateString('es-CL');
-    }
-    return fecha;
-  };
-
-  const formatearHora = (fecha) => {
-    if (!fecha) return '';
-    if (typeof fecha.toDate === 'function') {
-      return fecha.toDate().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-    }
-    if (fecha instanceof Date) {
-      return fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-    }
-    return '';
-  };
-
   // Formatear el ID de la orden para mostrar completo o una parte significativa
   const formatearIdOrden = (id) => {
     if (!id) return 'N/A';
@@ -1267,35 +1264,56 @@ const SeccionPedidos = ({ ordenes, usuarios, onActualizarEstado, onRefrescar, on
   );
 };
 
-const SeccionUsuarios = ({ usuarios }) => {
+const SeccionUsuarios = ({ usuarios, onRefrescar }) => {
   return (
     <Card>
-      <Card.Header>
+      <Card.Header className="d-flex justify-content-between align-items-center">
         <h5 className="mb-0">Usuarios ({usuarios.length})</h5>
+        <Button
+          variant="outline-secondary"
+          onClick={onRefrescar}
+          title="Actualizar lista de usuarios"
+        >
+          <i className="bi bi-arrow-clockwise me-1"></i>
+          Actualizar
+        </Button>
       </Card.Header>
       <Card.Body>
-        <Table responsive striped>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Email</th>
-              <th>Teléfono</th>
-              <th>Registro</th>
-            </tr>
-          </thead>
-          <tbody>
-            {usuarios.map(usuario => (
-              <tr key={usuario.id}>
-                <td>{usuario.name}</td>
-                <td>{usuario.email}</td>
-                <td>{usuario.phone || 'N/A'}</td>
-                <td>
-                  {usuario.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'N/A'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        {usuarios.length === 0 ? (
+          <div className="text-center py-5">
+            <i className="bi bi-people fs-1 text-muted mb-3"></i>
+            <p className="text-muted">No hay usuarios registrados</p>
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <Table responsive striped>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Email</th>
+                  <th>Teléfono</th>
+                  <th>Fecha Nacimiento</th>
+                  <th>Registro</th>
+                  <th>Actualización</th>
+                </tr>
+              </thead>
+              <tbody>
+                {usuarios.map(usuario => (
+                  <tr key={usuario.id}>
+                    <td className="fw-semibold">
+                      {usuario.name || `${usuario.primerNombre || ''} ${usuario.segundoNombre || ''} ${usuario.primerApellido || ''} ${usuario.segundoApellido || ''}`.trim() || 'Sin nombre'}
+                    </td>
+                    <td>{usuario.email || 'N/A'}</td>
+                    <td>{usuario.telefono || usuario.phone || 'N/A'}</td>
+                    <td>{formatearFecha(usuario.birthDate)}</td>
+                    <td>{formatearFecha(usuario.createdAt, { incluirHora: true })}</td>
+                    <td>{formatearFecha(usuario.updatedAt, { incluirHora: true })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        )}
       </Card.Body>
     </Card>
   );
@@ -1542,14 +1560,6 @@ const ModalDetalleProducto = ({ show, onHide, producto }) => {
     }).format(precio || 0);
   };
 
-  const formatearFecha = (fecha) => {
-    if (!fecha) return 'N/A';
-    if (typeof fecha.toDate === 'function') {
-      return fecha.toDate().toLocaleString('es-CL');
-    }
-    return fecha;
-  };
-
   return (
     <Modal show={show} onHide={onHide} size="lg">
       <Modal.Header closeButton>
@@ -1614,11 +1624,11 @@ const ModalDetalleProducto = ({ show, onHide, producto }) => {
                 </tr>
                 <tr>
                   <td><strong>Creado:</strong></td>
-                  <td>{formatearFecha(producto.createdAt)}</td>
+                  <td>{formatearFecha(producto.createdAt, { incluirHora: true })}</td>
                 </tr>
                 <tr>
                   <td><strong>Actualizado:</strong></td>
-                  <td>{formatearFecha(producto.updatedAt)}</td>
+                  <td>{formatearFecha(producto.updatedAt, { incluirHora: true })}</td>
                 </tr>
               </tbody>
             </Table>
@@ -1769,7 +1779,7 @@ const ModalEditarCategoria = ({ show, onHide, onSubmit, formulario, onChangeForm
       erroresValidacion.orden = 'El orden debe ser un número mayor a 0';
     }
 
-    // Verificar si el orden ya existe (excluyendo la categoría actual)
+    // Verificar si el orden ya existe en otra categoría
     const ordenExistente = categorias?.some(cat =>
       cat.id !== categoria?.id &&
       parseInt(cat.orden || 0) === orden
@@ -1915,30 +1925,6 @@ const ModalEliminarCategoria = ({ show, onHide, onConfirmar, categoria, cargando
 const ModalDetallePedido = ({ show, onHide, pedido, obtenerNombreCliente, obtenerCorreoCliente, obtenerTelefonoCliente }) => {
   if (!pedido) return null;
 
-  const formatearFechaCompleta = (fecha) => {
-    if (!fecha) return 'N/A';
-    if (typeof fecha.toDate === 'function') {
-      const date = fecha.toDate();
-      return date.toLocaleString('es-CL', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    if (fecha instanceof Date) {
-      return fecha.toLocaleString('es-CL', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    }
-    return fecha;
-  };
-
   const formatearMoneda = (valor) => {
     return new Intl.NumberFormat('es-CL', {
       style: 'currency',
@@ -2019,7 +2005,7 @@ const ModalDetallePedido = ({ show, onHide, pedido, obtenerNombreCliente, obtene
           <Col md={8}>
             <h5>Pedido #{pedido.id?.substring(0, 12)}...</h5>
             <p className="text-muted mb-0">
-              Fecha: {formatearFechaCompleta(pedido.createdAt || pedido.fecha)}
+              Fecha: {formatearFecha(pedido.createdAt || pedido.fecha, { incluirHora: true })}
             </p>
           </Col>
           <Col md={4} className="text-end">
@@ -2166,7 +2152,7 @@ const ModalDetallePedido = ({ show, onHide, pedido, obtenerNombreCliente, obtene
   );
 };
 
-// 1. Modal simplificado SOLO para estado del pedido
+// Modal para editar el estado de un pedido
 const ModalEditarPedido = ({ show, onHide, onSubmit, formulario, onChangeFormulario, pedido, cargando }) => {
   const manejarEnvio = (e) => {
     e.preventDefault();
@@ -2243,7 +2229,7 @@ const ModalEditarPedido = ({ show, onHide, onSubmit, formulario, onChangeFormula
             <div className="mb-4">
               <p><strong>ID Pedido:</strong> {pedido.id?.substring(0, 16)}...</p>
               <p><strong>Cliente:</strong> {pedido.userName || 'Cliente'}</p>
-              <p><strong>Fecha:</strong> {pedido.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'N/A'}</p>
+              <p><strong>Fecha:</strong> {formatearFecha(pedido.createdAt || pedido.fecha)}</p>
               <p><strong>Total:</strong> ${(pedido.total || 0).toLocaleString('es-CL')}</p>
               <p><strong>Estado actual:</strong>
                 <Badge bg={getStatusColor(pedido.estado || pedido.status)} className="ms-2">
