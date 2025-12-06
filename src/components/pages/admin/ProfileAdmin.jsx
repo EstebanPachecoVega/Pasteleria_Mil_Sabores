@@ -28,6 +28,11 @@ const ProfileAdmin = () => {
   const [mostrarModalEditarCategoria, setMostrarModalEditarCategoria] = useState(false);
   const [mostrarModalEliminarCategoria, setMostrarModalEliminarCategoria] = useState(false);
 
+  // Modales para pedidos
+  const [mostrarModalDetallePedido, setMostrarModalDetallePedido] = useState(false);
+  const [mostrarModalEditarPedido, setMostrarModalEditarPedido] = useState(false);
+  const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+
   const [formularioProducto, setFormularioProducto] = useState({
     nombre: '',
     descripcion: '',
@@ -42,6 +47,11 @@ const ProfileAdmin = () => {
     nombre: '',
     descripcion: '',
     orden: ''
+  });
+
+  // Formulario simplificado SOLO para estado del pedido
+  const [formularioPedido, setFormularioPedido] = useState({
+    estado: ''
   });
 
   const [cargandoAccion, setCargandoAccion] = useState(false);
@@ -373,6 +383,98 @@ const ProfileAdmin = () => {
     }
   };
 
+  // Nuevas funciones para manejo de pedidos
+  const obtenerNombreCliente = (userId) => {
+    if (!userId) return 'Cliente no registrado';
+
+    const usuario = usuarios.find(u => u.id === userId);
+    if (usuario) {
+      return usuario.name || usuario.nombre || 'Cliente sin nombre';
+    }
+
+    // Si no encontramos el usuario, intentar buscar por otros campos
+    const orden = ordenes.find(o => o.userId === userId);
+    if (orden && orden.nombreCliente) {
+      return orden.nombreCliente;
+    }
+
+    return `Cliente ID: ${userId ? userId.substring(0, 8) : 'N/A'}...`;
+  };
+
+  const obtenerCorreoCliente = (userId) => {
+    if (!userId) return 'Sin correo';
+
+    const usuario = usuarios.find(u => u.id === userId);
+    if (usuario) {
+      return usuario.email || 'Sin correo';
+    }
+
+    const orden = ordenes.find(o => o.userId === userId);
+    if (orden && orden.email) {
+      return orden.email;
+    }
+
+    return 'Sin correo';
+  };
+
+  const obtenerTelefonoCliente = (userId) => {
+    if (!userId) return 'Sin teléfono';
+
+    const usuario = usuarios.find(u => u.id === userId);
+    if (usuario) {
+      return usuario.phone || usuario.telefono || 'Sin teléfono';
+    }
+
+    const orden = ordenes.find(o => o.userId === userId);
+    if (orden && orden.telefono) {
+      return orden.telefono;
+    }
+
+    return 'Sin teléfono';
+  };
+
+  const abrirModalDetallePedido = (pedido) => {
+    setPedidoSeleccionado(pedido);
+    setMostrarModalDetallePedido(true);
+  };
+
+  // 1. Editar SOLO el estado del pedido
+  const abrirModalEditarPedido = (pedido) => {
+    setPedidoSeleccionado(pedido);
+    setFormularioPedido({
+      estado: pedido.estado || 'pendiente'
+    });
+    setMostrarModalEditarPedido(true);
+  };
+
+  // 1. Actualizar SOLO el estado del pedido
+  const manejarActualizarPedido = async (e) => {
+    e.preventDefault();
+
+    if (!pedidoSeleccionado) return;
+
+    setCargandoAccion(true);
+    try {
+      const exito = await CrudService.actualizarEstadoOrden(
+        pedidoSeleccionado.id,
+        formularioPedido.estado
+      );
+
+      if (exito) {
+        setMostrarModalEditarPedido(false);
+        setPedidoSeleccionado(null);
+        resetearFormularioPedido();
+        cargarDatosDashboard();
+        alert('✅ Estado del pedido actualizado exitosamente');
+      }
+    } catch (error) {
+      console.error('Error actualizando pedido:', error);
+      alert('❌ Error al actualizar el estado del pedido');
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
   const abrirModalEditarProducto = (producto) => {
     setProductoSeleccionado(producto);
     setFormularioProducto({
@@ -430,6 +532,12 @@ const ProfileAdmin = () => {
     });
   };
 
+  const resetearFormularioPedido = () => {
+    setFormularioPedido({
+      estado: ''
+    });
+  };
+
   const renderizarSeccionActiva = () => {
     switch (seccionActiva) {
       case 'dashboard':
@@ -468,7 +576,12 @@ const ProfileAdmin = () => {
         return (
           <SeccionPedidos
             ordenes={ordenes}
+            usuarios={usuarios}
             onActualizarEstado={manejarActualizarEstadoOrden}
+            onRefrescar={cargarDatosDashboard}
+            onVerDetalle={abrirModalDetallePedido}
+            onEditar={abrirModalEditarPedido}
+            obtenerNombreCliente={obtenerNombreCliente}
           />
         );
       default:
@@ -653,6 +766,34 @@ const ProfileAdmin = () => {
         }}
         onConfirmar={manejarEliminarCategoria}
         categoria={categoriaSeleccionada}
+        cargando={cargandoAccion}
+      />
+
+      {/* Nuevos modales para pedidos */}
+      <ModalDetallePedido
+        show={mostrarModalDetallePedido}
+        onHide={() => {
+          setMostrarModalDetallePedido(false);
+          setPedidoSeleccionado(null);
+        }}
+        pedido={pedidoSeleccionado}
+        obtenerNombreCliente={obtenerNombreCliente}
+        obtenerCorreoCliente={obtenerCorreoCliente}
+        obtenerTelefonoCliente={obtenerTelefonoCliente}
+      />
+
+      {/* Modal simplificado SOLO para estado del pedido */}
+      <ModalEditarPedido
+        show={mostrarModalEditarPedido}
+        onHide={() => {
+          setMostrarModalEditarPedido(false);
+          setPedidoSeleccionado(null);
+          resetearFormularioPedido();
+        }}
+        onSubmit={manejarActualizarPedido}
+        formulario={formularioPedido}
+        onChangeFormulario={setFormularioPedido}
+        pedido={pedidoSeleccionado}
         cargando={cargandoAccion}
       />
     </Container>
@@ -942,7 +1083,7 @@ const SeccionCategorias = ({ categorias, onNuevaCategoria, onEditarCategoria, on
   );
 };
 
-const SeccionPedidos = ({ ordenes, onActualizarEstado }) => {
+const SeccionPedidos = ({ ordenes, usuarios, onActualizarEstado, onRefrescar, onVerDetalle, onEditar, obtenerNombreCliente }) => {
   const obtenerColorEstado = (estado) => {
     const colores = {
       'pendiente': 'warning',
@@ -966,50 +1107,124 @@ const SeccionPedidos = ({ ordenes, onActualizarEstado }) => {
     return fecha;
   };
 
+  const formatearHora = (fecha) => {
+    if (!fecha) return '';
+    if (typeof fecha.toDate === 'function') {
+      return fecha.toDate().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    }
+    if (fecha instanceof Date) {
+      return fecha.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    }
+    return '';
+  };
+
+  // Formatear el ID de la orden para mostrar completo o una parte significativa
+  const formatearIdOrden = (id) => {
+    if (!id) return 'N/A';
+    // Mostrar los primeros 20 caracteres si es muy largo
+    if (id.length > 20) {
+      return id.substring(0, 20) + '...';
+    }
+    return id;
+  };
+
   return (
     <Card>
-      <Card.Header>
+      <Card.Header className="d-flex justify-content-between align-items-center">
         <h5 className="mb-0">Pedidos ({ordenes.length})</h5>
+        <Button
+          variant="outline-secondary"
+          onClick={onRefrescar}
+          title="Actualizar lista de pedidos"
+        >
+          <i className="bi bi-arrow-clockwise me-1"></i>
+          Actualizar
+        </Button>
       </Card.Header>
       <Card.Body>
-        <Table responsive striped>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Fecha</th>
-              <th>Cliente</th>
-              <th>Total</th>
-              <th>Estado</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ordenes.map(orden => (
-              <tr key={orden.id}>
-                <td>#{orden.id?.slice(-6) || orden.id}</td>
-                <td>{formatearFecha(orden.createdAt || orden.fecha)}</td>
-                <td>{orden.userId || orden.cliente || 'Cliente'}</td>
-                <td>${(orden.total || 0).toLocaleString('es-CL')}</td>
-                <td>
-                  <Badge bg={obtenerColorEstado(orden.estado)}>
-                    {orden.estado || 'pendiente'}
-                  </Badge>
-                </td>
-                <td>
-                  {orden.estado === 'pendiente' && (
-                    <Button
-                      variant="outline-success"
-                      size="sm"
-                      onClick={() => onActualizarEstado(orden.id, 'confirmado')}
-                    >
-                      Confirmar
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
+        {ordenes.length === 0 ? (
+          <div className="text-center py-5">
+            <i className="bi bi-receipt fs-1 text-muted mb-3"></i>
+            <p className="text-muted">No hay pedidos registrados</p>
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <Table striped hover>
+              <thead className="table-dark">
+                <tr>
+                  <th>ID Pedido</th>
+                  <th>Fecha</th>
+                  <th>Hora</th>
+                  <th>Cliente</th>
+                  <th>Total</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ordenes.map(orden => (
+                  <tr key={orden.id}>
+                    <td>
+                      <code title={orden.id} className="bg-light p-1 rounded">
+                        {formatearIdOrden(orden.id)}
+                      </code>
+                    </td>
+                    <td>{formatearFecha(orden.createdAt || orden.fecha)}</td>
+                    <td>{formatearHora(orden.createdAt || orden.fecha)}</td>
+                    <td>
+                      <div className="fw-semibold">
+                        {obtenerNombreCliente(orden.userId)}
+                      </div>
+                      {orden.email && (
+                        <div className="text-muted small">{orden.email}</div>
+                      )}
+                    </td>
+                    <td className="fw-bold text-success">
+                      ${(orden.total || 0).toLocaleString('es-CL')}
+                    </td>
+                    <td>
+                      <Badge bg={obtenerColorEstado(orden.estado)} className="px-3 py-2">
+                        {orden.estado ? orden.estado.toUpperCase() : 'PENDIENTE'}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div className="btn-group btn-group-sm" role="group">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => onEditar(orden)}
+                          title="Editar estado del pedido"
+                          className="me-1"
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </Button>
+                        <Button
+                          variant="outline-info"
+                          size="sm"
+                          onClick={() => onVerDetalle(orden)}
+                          title="Ver detalles del pedido"
+                          className="me-1"
+                        >
+                          <i className="bi bi-eye"></i>
+                        </Button>
+                        {orden.estado === 'pendiente' && (
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            onClick={() => onActualizarEstado(orden.id, 'confirmado')}
+                            title="Confirmar pedido"
+                          >
+                            <i className="bi bi-check-circle"></i>
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        )}
       </Card.Body>
     </Card>
   );
@@ -1387,33 +1602,33 @@ const ModalCategoria = ({ show, onHide, onSubmit, formulario, onChangeFormulario
 
   const manejarEnvio = (e) => {
     e.preventDefault();
-    
+
     // Validaciones
     const erroresValidacion = {};
-    
+
     if (!formulario.nombre?.trim()) {
       erroresValidacion.nombre = 'El nombre es requerido';
     }
-    
+
     const orden = parseInt(formulario.orden);
     if (isNaN(orden) || orden <= 0) {
       erroresValidacion.orden = 'El orden debe ser un número mayor a 0';
     }
-    
+
     // Verificar si el orden ya existe
-    const ordenExistente = categorias?.some(cat => 
+    const ordenExistente = categorias?.some(cat =>
       parseInt(cat.orden || 0) === orden
     );
-    
+
     if (ordenExistente) {
       erroresValidacion.orden = 'Este número de orden ya está en uso';
     }
-    
+
     if (Object.keys(erroresValidacion).length > 0) {
       setErrores(erroresValidacion);
       return;
     }
-    
+
     setErrores({});
     onSubmit(e);
   };
@@ -1504,34 +1719,34 @@ const ModalEditarCategoria = ({ show, onHide, onSubmit, formulario, onChangeForm
 
   const manejarEnvio = (e) => {
     e.preventDefault();
-    
+
     // Validaciones
     const erroresValidacion = {};
-    
+
     if (!formulario.nombre?.trim()) {
       erroresValidacion.nombre = 'El nombre es requerido';
     }
-    
+
     const orden = parseInt(formulario.orden);
     if (isNaN(orden) || orden <= 0) {
       erroresValidacion.orden = 'El orden debe ser un número mayor a 0';
     }
-    
+
     // Verificar si el orden ya existe (excluyendo la categoría actual)
-    const ordenExistente = categorias?.some(cat => 
-      cat.id !== categoria?.id && 
+    const ordenExistente = categorias?.some(cat =>
+      cat.id !== categoria?.id &&
       parseInt(cat.orden || 0) === orden
     );
-    
+
     if (ordenExistente) {
       erroresValidacion.orden = 'Este número de orden ya está en uso por otra categoría';
     }
-    
+
     if (Object.keys(erroresValidacion).length > 0) {
       setErrores(erroresValidacion);
       return;
     }
-    
+
     setErrores({});
     onSubmit(e);
   };
@@ -1655,6 +1870,335 @@ const ModalEliminarCategoria = ({ show, onHide, onConfirmar, categoria, cargando
           )}
         </Button>
       </Modal.Footer>
+    </Modal>
+  );
+};
+
+// Nuevos componentes para modales de pedidos
+
+const ModalDetallePedido = ({ show, onHide, pedido, obtenerNombreCliente, obtenerCorreoCliente, obtenerTelefonoCliente }) => {
+  if (!pedido) return null;
+
+  const formatearFechaCompleta = (fecha) => {
+    if (!fecha) return 'N/A';
+    if (typeof fecha.toDate === 'function') {
+      const date = fecha.toDate();
+      return date.toLocaleString('es-CL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    if (fecha instanceof Date) {
+      return fecha.toLocaleString('es-CL', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    return fecha;
+  };
+
+  const formatearMoneda = (valor) => {
+    return new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      minimumFractionDigits: 0
+    }).format(valor || 0);
+  };
+
+  const obtenerColorEstado = (estado) => {
+    const colores = {
+      'pendiente': 'warning',
+      'confirmado': 'primary',
+      'en_preparacion': 'info',
+      'en_camino': 'warning',
+      'entregado': 'success',
+      'cancelado': 'danger'
+    };
+    return colores[estado] || 'secondary';
+  };
+
+  // Función actualizada para obtener información de envío del pedido
+  const obtenerInfoEnvio = () => {
+    if (!pedido) return {};
+    
+    // Los campos están dentro de shippingInfo según la estructura de Firebase
+    const shippingInfo = pedido.shippingInfo || {};
+    
+    return {
+      direccion: shippingInfo.direccionCompleta || 'No especificada',
+      comuna: shippingInfo.comuna || 'No especificada',
+      region: shippingInfo.region || 'No especificada',
+      tipoVivienda: shippingInfo.tipoVivienda || 'No especificado',
+      codigoPostal: shippingInfo.codigoPostal || 'No especificado',
+      telefono: shippingInfo.telefono || 'No especificado',
+      email: shippingInfo.email || pedido.userEmail || 'No especificado',
+      nombreCompleto: shippingInfo.nombreCompleto || pedido.userName || 'No especificado',
+      notas: shippingInfo.notas || '',
+      costoEnvio: pedido.shippingCost || pedido.costoEnvio || 0,
+      esGratis: pedido.shippingCost === 0 || pedido.shippingCost === '0'
+    };
+  };
+
+  const infoEnvio = obtenerInfoEnvio();
+
+  return (
+    <Modal show={show} onHide={onHide} size="lg">
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <i className="bi bi-receipt me-2"></i>
+          Detalles del Pedido
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <Row className="mb-4">
+          <Col md={8}>
+            <h5>Pedido #{pedido.id?.substring(0, 12)}...</h5>
+            <p className="text-muted mb-0">
+              Fecha: {formatearFechaCompleta(pedido.createdAt || pedido.fecha)}
+            </p>
+          </Col>
+          <Col md={4} className="text-end">
+            <Badge bg={obtenerColorEstado(pedido.estado || pedido.status)} className="px-3 py-2 fs-6">
+              {(pedido.estado || pedido.status || 'pendiente').toUpperCase()}
+            </Badge>
+          </Col>
+        </Row>
+
+        <hr />
+
+        <Row className="mb-4">
+          <Col md={6}>
+            <h6>Información del Cliente</h6>
+            <Table borderless size="sm">
+              <tbody>
+                <tr>
+                  <td><strong>Nombre:</strong></td>
+                  <td>{infoEnvio.nombreCompleto || obtenerNombreCliente(pedido.userId)}</td>
+                </tr>
+                <tr>
+                  <td><strong>Email:</strong></td>
+                  <td>{infoEnvio.email || pedido.userEmail || obtenerCorreoCliente(pedido.userId) || 'No especificado'}</td>
+                </tr>
+                <tr>
+                  <td><strong>Teléfono:</strong></td>
+                  <td>{infoEnvio.telefono || obtenerTelefonoCliente(pedido.userId) || 'No especificado'}</td>
+                </tr>
+              </tbody>
+            </Table>
+          </Col>
+          <Col md={6}>
+            <h6>Información de Envío</h6>
+            <Table borderless size="sm">
+              <tbody>
+                <tr>
+                  <td><strong>Dirección:</strong></td>
+                  <td>{infoEnvio.direccion || 'No especificada'}</td>
+                </tr>
+                <tr>
+                  <td><strong>Comuna:</strong></td>
+                  <td>{infoEnvio.comuna || 'No especificada'}</td>
+                </tr>
+                <tr>
+                  <td><strong>Región:</strong></td>
+                  <td>{infoEnvio.region || 'No especificada'}</td>
+                </tr>
+                <tr>
+                  <td><strong>Código Postal:</strong></td>
+                  <td>{infoEnvio.codigoPostal || 'No especificado'}</td>
+                </tr>
+                <tr>
+                  <td><strong>Tipo de vivienda:</strong></td>
+                  <td>{infoEnvio.tipoVivienda || 'No especificado'}</td>
+                </tr>
+                {infoEnvio.notas && infoEnvio.notas.trim() !== '' && (
+                  <tr>
+                    <td><strong>Notas de envío:</strong></td>
+                    <td>{infoEnvio.notas}</td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
+          </Col>
+        </Row>
+
+        {pedido.items && pedido.items.length > 0 && (
+          <>
+            <h6>Productos del Pedido</h6>
+            <Table responsive bordered size="sm" className="mb-4">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Cantidad</th>
+                  <th>Precio Unitario</th>
+                  <th>Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pedido.items.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.name || item.nombre || 'Producto'}</td>
+                    <td>{item.quantity || item.cantidad || 1}</td>
+                    <td>{formatearMoneda(item.price || item.precio || 0)}</td>
+                    <td>{formatearMoneda((item.price || item.precio || 0) * (item.quantity || item.cantidad || 1))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </>
+        )}
+
+        <Row className="mt-4">
+          <Col md={6}>
+            <h6>Resumen del Pago</h6>
+            <Table borderless size="sm">
+              <tbody>
+                <tr>
+                  <td><strong>Subtotal:</strong></td>
+                  <td className="text-end">{formatearMoneda(pedido.subtotal || 0)}</td>
+                </tr>
+                <tr>
+                  <td><strong>Costo de envío:</strong></td>
+                  <td className="text-end">
+                    {(infoEnvio.costoEnvio === 0 || infoEnvio.costoEnvio === '0') && infoEnvio.esGratis ? (
+                      <Badge bg="success" className="px-2 py-1">GRATIS</Badge>
+                    ) : (
+                      formatearMoneda(infoEnvio.costoEnvio || 0)
+                    )}
+                  </td>
+                </tr>
+                {pedido.discountAmount && pedido.discountAmount > 0 && (
+                  <tr>
+                    <td><strong>Descuento:</strong></td>
+                    <td className="text-end text-danger">-{formatearMoneda(pedido.discountAmount)}</td>
+                  </tr>
+                )}
+                <tr className="border-top">
+                  <td><strong>TOTAL:</strong></td>
+                  <td className="text-end fw-bold fs-5 text-success">
+                    {formatearMoneda(pedido.total || 0)}
+                  </td>
+                </tr>
+              </tbody>
+            </Table>
+          </Col>
+        </Row>
+
+        {infoEnvio.notas && infoEnvio.notas.trim() !== '' && (
+          <div className="mt-3">
+            <h6>Notas Adicionales</h6>
+            <div className="bg-light p-3 rounded">
+              {infoEnvio.notas}
+            </div>
+          </div>
+        )}
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onHide}>
+          Cerrar
+        </Button>
+      </Modal.Footer>
+    </Modal>
+  );
+};
+
+// 1. Modal simplificado SOLO para estado del pedido
+const ModalEditarPedido = ({ show, onHide, onSubmit, formulario, onChangeFormulario, pedido, cargando }) => {
+  const manejarEnvio = (e) => {
+    e.preventDefault();
+    onSubmit(e);
+  };
+
+  const estadosDisponibles = [
+    { value: 'pendiente', label: 'Pendiente', color: 'warning' },
+    { value: 'confirmado', label: 'Confirmado', color: 'primary' },
+    { value: 'en_preparacion', label: 'En preparación', color: 'info' },
+    { value: 'en_camino', label: 'En camino', color: 'warning' },
+    { value: 'entregado', label: 'Entregado', color: 'success' },
+    { value: 'cancelado', label: 'Cancelado', color: 'danger' }
+  ];
+
+  return (
+    <Modal show={show} onHide={onHide}>
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <i className="bi bi-pencil me-2"></i>
+          Cambiar Estado del Pedido
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={manejarEnvio}>
+        <Modal.Body>
+          {pedido && (
+            <div className="mb-4">
+              <p><strong>ID Pedido:</strong> {pedido.id?.substring(0, 16)}...</p>
+              <p><strong>Cliente:</strong> {pedido.nombreCliente || 'Cliente'}</p>
+              <p><strong>Fecha:</strong> {pedido.createdAt?.toDate?.()?.toLocaleDateString('es-CL') || 'N/A'}</p>
+              <p><strong>Total:</strong> ${(pedido.total || 0).toLocaleString('es-CL')}</p>
+              <p><strong>Estado actual:</strong>
+                <Badge bg={estadosDisponibles.find(e => e.value === pedido.estado)?.color || 'secondary'} className="ms-2">
+                  {pedido.estado ? pedido.estado.toUpperCase() : 'PENDIENTE'}
+                </Badge>
+              </p>
+            </div>
+          )}
+
+          <Form.Group className="mb-3">
+            <Form.Label>Nuevo Estado del Pedido *</Form.Label>
+            <Form.Select
+              value={formulario.estado}
+              onChange={(e) => onChangeFormulario({ ...formulario, estado: e.target.value })}
+              disabled={cargando}
+              required
+            >
+              <option value="">Seleccionar nuevo estado</option>
+              {estadosDisponibles.map(estado => (
+                <option key={estado.value} value={estado.value}>
+                  {estado.label}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Text className="text-muted">
+              Selecciona el nuevo estado para este pedido
+            </Form.Text>
+          </Form.Group>
+
+          <Alert variant="info" className="mt-3">
+            <div className="d-flex align-items-start">
+              <i className="bi bi-info-circle me-2 mt-1"></i>
+              <div>
+                <strong>Nota:</strong>
+                <ul className="mb-0 mt-1">
+                  <li>Esta acción solo cambiará el estado del pedido</li>
+                  <li>Para editar información del cliente o envío, contacta al cliente directamente</li>
+                </ul>
+              </div>
+            </div>
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide} disabled={cargando}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" disabled={cargando}>
+            {cargando ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Actualizando...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-1"></i>
+                Actualizar Estado
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
     </Modal>
   );
 };
