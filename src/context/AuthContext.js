@@ -148,6 +148,10 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const isVendor = () => {
+    return currentUser?.rol === 'vendedor';
+  };
+
   // Función para actualizar perfil
   const updateProfile = async (profileData) => {
     if (!currentUser) {
@@ -207,6 +211,7 @@ export function AuthProvider({ children }) {
     updateProfile,
     isAdmin,
     isClient,
+    isVendor,
     hasRole,
     loading
   };

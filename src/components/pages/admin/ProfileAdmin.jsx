@@ -4,11 +4,11 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { CrudService } from '../../../services/crudService';
 import { DashboardService } from '../../../services/dashboardService';
-import { 
-  formatearCategoria, 
-  formatearFecha, 
-  formatearFechaHora, 
-  formatearHora 
+import {
+  formatearCategoria,
+  formatearFecha,
+  formatearFechaHora,
+  formatearHora
 } from '../../../utils/formatters';
 
 const ProfileAdmin = () => {
@@ -22,21 +22,35 @@ const ProfileAdmin = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [categorias, setCategorias] = useState([]);
   const [cargando, setCargando] = useState(false);
-
+  // Modales para productos
   const [mostrarModalProducto, setMostrarModalProducto] = useState(false);
   const [mostrarModalCategoria, setMostrarModalCategoria] = useState(false);
   const [mostrarModalEliminar, setMostrarModalEliminar] = useState(false);
   const [mostrarModalDetalle, setMostrarModalDetalle] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-
+  // Modales para categorías
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
   const [mostrarModalEditarCategoria, setMostrarModalEditarCategoria] = useState(false);
   const [mostrarModalEliminarCategoria, setMostrarModalEliminarCategoria] = useState(false);
-
   // Modales para pedidos
   const [mostrarModalDetallePedido, setMostrarModalDetallePedido] = useState(false);
   const [mostrarModalEditarPedido, setMostrarModalEditarPedido] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState(null);
+  // Modales para usuarios
+  const [mostrarModalUsuario, setMostrarModalUsuario] = useState(false);
+  const [mostrarModalEditarUsuario, setMostrarModalEditarUsuario] = useState(false);
+  const [mostrarModalEliminarUsuario, setMostrarModalEliminarUsuario] = useState(false);
+  const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
+
+  const [formularioUsuario, setFormularioUsuario] = useState({
+    name: '',
+    email: '',
+    password: '',
+    rol: 'cliente',
+    run: '',
+    telefono: '',
+    birthDate: ''
+  });
 
   const [formularioProducto, setFormularioProducto] = useState({
     nombre: '',
@@ -369,6 +383,132 @@ const ProfileAdmin = () => {
     }
   };
 
+  // Manejar creación de usuario
+  const manejarCrearUsuario = async (e) => {
+    e.preventDefault();
+
+    setCargandoAccion(true);
+    try {
+      const datosUsuario = {
+        name: formularioUsuario.name.trim(),
+        email: formularioUsuario.email.trim().toLowerCase(),
+        password: formularioUsuario.password || '123456',
+        rol: formularioUsuario.rol,
+        run: formularioUsuario.run || '',
+        telefono: formularioUsuario.telefono || '',
+        birthDate: formularioUsuario.birthDate || null
+      };
+
+      const usuarioId = await CrudService.crearUsuario(datosUsuario);
+
+      if (usuarioId) {
+        setMostrarModalUsuario(false);
+        resetearFormularioUsuario();
+        cargarDatosDashboard();
+        alert('✅ Usuario creado exitosamente');
+      }
+    } catch (error) {
+      console.error('Error creando usuario:', error);
+      alert('❌ Error al crear usuario: ' + error.message);
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
+  // Manejar actualización de usuario
+  const manejarActualizarUsuario = async (e) => {
+    e.preventDefault();
+
+    if (!usuarioSeleccionado) return;
+
+    setCargandoAccion(true);
+    try {
+      const datosActualizados = {
+        name: formularioUsuario.name.trim(),
+        email: formularioUsuario.email.trim().toLowerCase(),
+        rol: formularioUsuario.rol,
+        telefono: formularioUsuario.telefono || '',
+        birthDate: formularioUsuario.birthDate || null,
+        updatedAt: new Date()
+      };
+
+      const exito = await CrudService.actualizarUsuario(usuarioSeleccionado.id, datosActualizados);
+
+      if (exito) {
+        setMostrarModalEditarUsuario(false);
+        setUsuarioSeleccionado(null);
+        resetearFormularioUsuario();
+        cargarDatosDashboard();
+        alert('✅ Usuario actualizado exitosamente');
+      }
+    } catch (error) {
+      console.error('Error actualizando usuario:', error);
+      alert('❌ Error al actualizar usuario');
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
+  // Manejar eliminación de usuario
+  const manejarEliminarUsuario = async () => {
+    if (!usuarioSeleccionado) return;
+
+    setCargandoAccion(true);
+    try {
+      const exito = await CrudService.eliminarUsuario(usuarioSeleccionado.id);
+
+      if (exito) {
+        setMostrarModalEliminarUsuario(false);
+        setUsuarioSeleccionado(null);
+        cargarDatosDashboard();
+        alert('✅ Usuario marcado como inactivo');
+      }
+    } catch (error) {
+      console.error('Error eliminando usuario:', error);
+      alert('❌ Error al eliminar usuario');
+    } finally {
+      setCargandoAccion(false);
+    }
+  };
+
+  // Abrir modales
+  const abrirModalNuevoUsuario = () => {
+    resetearFormularioUsuario();
+    setMostrarModalUsuario(true);
+  };
+
+  const abrirModalEditarUsuario = (usuario) => {
+    setUsuarioSeleccionado(usuario);
+    setFormularioUsuario({
+      name: usuario.name || '',
+      email: usuario.email || '',
+      password: '', // No mostrar contraseña
+      rol: usuario.rol || 'cliente',
+      run: usuario.run || '',
+      telefono: usuario.telefono || '',
+      birthDate: usuario.birthDate || ''
+    });
+    setMostrarModalEditarUsuario(true);
+  };
+
+  const abrirModalEliminarUsuario = (usuario) => {
+    setUsuarioSeleccionado(usuario);
+    setMostrarModalEliminarUsuario(true);
+  };
+
+  // Resetear formulario
+  const resetearFormularioUsuario = () => {
+    setFormularioUsuario({
+      name: '',
+      email: '',
+      password: '',
+      rol: 'cliente',
+      run: '',
+      telefono: '',
+      birthDate: ''
+    });
+  };
+
   const manejarActualizarEstadoOrden = async (ordenId, nuevoEstado) => {
     try {
       await CrudService.actualizarEstadoOrden(ordenId, nuevoEstado);
@@ -558,9 +698,12 @@ const ProfileAdmin = () => {
         return <SeccionDashboard estadisticas={estadisticas} />;
       case 'usuarios':
         return (
-          <SeccionUsuarios 
-            usuarios={usuarios} 
-            onRefrescar={cargarDatosDashboard} 
+          <SeccionUsuarios
+            usuarios={usuarios}
+            onRefrescar={cargarDatosDashboard}
+            onNuevoUsuario={abrirModalNuevoUsuario}
+            onEditarUsuario={abrirModalEditarUsuario}
+            onEliminarUsuario={abrirModalEliminarUsuario}
           />
         );
       case 'productos':
@@ -729,6 +872,40 @@ const ProfileAdmin = () => {
         </Col>
       </Row>
 
+      <ModalUsuario
+        show={mostrarModalUsuario}
+        onHide={() => setMostrarModalUsuario(false)}
+        onSubmit={manejarCrearUsuario}
+        formulario={formularioUsuario}
+        onChangeFormulario={setFormularioUsuario}
+        cargando={cargandoAccion}
+      />
+
+      <ModalEditarUsuario
+        show={mostrarModalEditarUsuario}
+        onHide={() => {
+          setMostrarModalEditarUsuario(false);
+          setUsuarioSeleccionado(null);
+          resetearFormularioUsuario();
+        }}
+        onSubmit={manejarActualizarUsuario}
+        formulario={formularioUsuario}
+        onChangeFormulario={setFormularioUsuario}
+        usuario={usuarioSeleccionado}
+        cargando={cargandoAccion}
+      />
+
+      <ModalEliminarUsuario
+        show={mostrarModalEliminarUsuario}
+        onHide={() => {
+          setMostrarModalEliminarUsuario(false);
+          setUsuarioSeleccionado(null);
+        }}
+        onConfirmar={manejarEliminarUsuario}
+        usuario={usuarioSeleccionado}
+        cargando={cargandoAccion}
+      />
+      
       <ModalProducto
         show={mostrarModalProducto}
         onHide={() => setMostrarModalProducto(false)}
@@ -1264,19 +1441,28 @@ const SeccionPedidos = ({ ordenes, usuarios, onActualizarEstado, onRefrescar, on
   );
 };
 
-const SeccionUsuarios = ({ usuarios, onRefrescar }) => {
+const SeccionUsuarios = ({ usuarios, onRefrescar, onNuevoUsuario, onEditarUsuario, onEliminarUsuario }) => {
   return (
     <Card>
       <Card.Header className="d-flex justify-content-between align-items-center">
         <h5 className="mb-0">Usuarios ({usuarios.length})</h5>
-        <Button
-          variant="outline-secondary"
-          onClick={onRefrescar}
-          title="Actualizar lista de usuarios"
-        >
-          <i className="bi bi-arrow-clockwise me-1"></i>
-          Actualizar
-        </Button>
+        <div>
+          <Button
+            variant="primary"
+            onClick={onNuevoUsuario}
+            className="me-2"
+          >
+            <i className="bi bi-person-plus me-1"></i>
+            Nuevo Usuario
+          </Button>
+          <Button
+            variant="outline-secondary"
+            onClick={onRefrescar}
+            title="Actualizar lista de usuarios"
+          >
+            <i className="bi bi-arrow-clockwise"></i>
+          </Button>
+        </div>
       </Card.Header>
       <Card.Body>
         {usuarios.length === 0 ? (
@@ -1286,15 +1472,16 @@ const SeccionUsuarios = ({ usuarios, onRefrescar }) => {
           </div>
         ) : (
           <div className="table-responsive">
-            <Table responsive striped>
-              <thead>
+            <Table responsive striped hover>
+              <thead className="table-dark">
                 <tr>
                   <th>Nombre</th>
                   <th>Email</th>
+                  <th>Rol</th>
                   <th>Teléfono</th>
                   <th>Fecha Nacimiento</th>
-                  <th>Registro</th>
-                  <th>Actualización</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -1304,10 +1491,43 @@ const SeccionUsuarios = ({ usuarios, onRefrescar }) => {
                       {usuario.name || `${usuario.primerNombre || ''} ${usuario.segundoNombre || ''} ${usuario.primerApellido || ''} ${usuario.segundoApellido || ''}`.trim() || 'Sin nombre'}
                     </td>
                     <td>{usuario.email || 'N/A'}</td>
+                    <td>
+                      <Badge bg={
+                        usuario.rol === 'admin' ? 'danger' :
+                          usuario.rol === 'vendedor' ? 'warning' :
+                            'info'
+                      }>
+                        {usuario.rol || 'cliente'}
+                      </Badge>
+                    </td>
                     <td>{usuario.telefono || usuario.phone || 'N/A'}</td>
                     <td>{formatearFecha(usuario.birthDate)}</td>
-                    <td>{formatearFecha(usuario.createdAt, { incluirHora: true })}</td>
-                    <td>{formatearFecha(usuario.updatedAt, { incluirHora: true })}</td>
+                    <td>
+                      <Badge bg={usuario.activo !== false ? 'success' : 'secondary'}>
+                        {usuario.activo !== false ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div className="btn-group btn-group-sm">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => onEditarUsuario(usuario)}
+                          title="Editar usuario"
+                          className="me-1"
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => onEliminarUsuario(usuario)}
+                          title="Eliminar usuario"
+                        >
+                          <i className="bi bi-trash"></i>
+                        </Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -2291,6 +2511,316 @@ const ModalEditarPedido = ({ show, onHide, onSubmit, formulario, onChangeFormula
           </Button>
         </Modal.Footer>
       </Form>
+    </Modal>
+  );
+};
+
+// Modal para nuevo usuario
+const ModalUsuario = ({ show, onHide, onSubmit, formulario, onChangeFormulario, cargando }) => {
+  const manejarEnvio = (e) => {
+    e.preventDefault();
+    onSubmit(e);
+  };
+
+  return (
+    <Modal show={show} onHide={onHide} size="lg">
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <i className="bi bi-person-plus me-2"></i>
+          Nuevo Usuario
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={manejarEnvio}>
+        <Modal.Body>
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Nombre Completo *</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formulario.name}
+                  onChange={(e) => onChangeFormulario({ ...formulario, name: e.target.value })}
+                  required
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Email *</Form.Label>
+                <Form.Control
+                  type="email"
+                  value={formulario.email}
+                  onChange={(e) => onChangeFormulario({ ...formulario, email: e.target.value })}
+                  required
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Contraseña</Form.Label>
+                <Form.Control
+                  type="password"
+                  value={formulario.password}
+                  onChange={(e) => onChangeFormulario({ ...formulario, password: e.target.value })}
+                  placeholder="Dejar vacío para usar 123456"
+                  disabled={cargando}
+                />
+                <Form.Text className="text-muted">
+                  Si se deja vacío, se usará "123456"
+                </Form.Text>
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Rol *</Form.Label>
+                <Form.Select
+                  value={formulario.rol}
+                  onChange={(e) => onChangeFormulario({ ...formulario, rol: e.target.value })}
+                  required
+                  disabled={cargando}
+                >
+                  <option value="cliente">Cliente</option>
+                  <option value="vendedor">Vendedor</option>
+                  <option value="admin">Administrador</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>RUN</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formulario.run}
+                  onChange={(e) => onChangeFormulario({ ...formulario, run: e.target.value })}
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Teléfono</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formulario.telefono}
+                  onChange={(e) => onChangeFormulario({ ...formulario, telefono: e.target.value })}
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Fecha de Nacimiento</Form.Label>
+            <Form.Control
+              type="date"
+              value={formulario.birthDate}
+              onChange={(e) => onChangeFormulario({ ...formulario, birthDate: e.target.value })}
+              disabled={cargando}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide} disabled={cargando}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" disabled={cargando}>
+            {cargando ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Creando...
+              </>
+            ) : (
+              'Crear Usuario'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+};
+
+// Modal para editar usuario
+const ModalEditarUsuario = ({ show, onHide, onSubmit, formulario, onChangeFormulario, usuario, cargando }) => {
+  const manejarEnvio = (e) => {
+    e.preventDefault();
+    onSubmit(e);
+  };
+
+  return (
+    <Modal show={show} onHide={onHide} size="lg">
+      <Modal.Header closeButton>
+        <Modal.Title>
+          <i className="bi bi-pencil me-2"></i>
+          Editar Usuario
+        </Modal.Title>
+      </Modal.Header>
+      <Form onSubmit={manejarEnvio}>
+        <Modal.Body>
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Nombre Completo *</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formulario.name}
+                  onChange={(e) => onChangeFormulario({ ...formulario, name: e.target.value })}
+                  required
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Email *</Form.Label>
+                <Form.Control
+                  type="email"
+                  value={formulario.email}
+                  onChange={(e) => onChangeFormulario({ ...formulario, email: e.target.value })}
+                  required
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Nueva Contraseña</Form.Label>
+                <Form.Control
+                  type="password"
+                  value={formulario.password}
+                  onChange={(e) => onChangeFormulario({ ...formulario, password: e.target.value })}
+                  placeholder="Dejar vacío para no cambiar"
+                  disabled={cargando}
+                />
+                <Form.Text className="text-muted">
+                  Solo completa si deseas cambiar la contraseña
+                </Form.Text>
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Rol *</Form.Label>
+                <Form.Select
+                  value={formulario.rol}
+                  onChange={(e) => onChangeFormulario({ ...formulario, rol: e.target.value })}
+                  required
+                  disabled={cargando}
+                >
+                  <option value="cliente">Cliente</option>
+                  <option value="vendedor">Vendedor</option>
+                  <option value="admin">Administrador</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>RUN</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formulario.run}
+                  onChange={(e) => onChangeFormulario({ ...formulario, run: e.target.value })}
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Teléfono</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={formulario.telefono}
+                  onChange={(e) => onChangeFormulario({ ...formulario, telefono: e.target.value })}
+                  disabled={cargando}
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Fecha de Nacimiento</Form.Label>
+            <Form.Control
+              type="date"
+              value={formulario.birthDate}
+              onChange={(e) => onChangeFormulario({ ...formulario, birthDate: e.target.value })}
+              disabled={cargando}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide} disabled={cargando}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" disabled={cargando}>
+            {cargando ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Guardando...
+              </>
+            ) : (
+              'Guardar Cambios'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+};
+
+// Modal para eliminar usuario
+const ModalEliminarUsuario = ({ show, onHide, onConfirmar, usuario, cargando }) => {
+  if (!usuario) return null;
+
+  return (
+    <Modal show={show} onHide={onHide} centered>
+      <Modal.Header closeButton className="bg-danger text-white">
+        <Modal.Title>
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          Eliminar Usuario
+        </Modal.Title>
+      </Modal.Header>
+      <Modal.Body>
+        <div className="text-center">
+          <i className="bi bi-person-x fs-1 text-danger"></i>
+          <h5 className="mt-3">¿Estás seguro de eliminar este usuario?</h5>
+          <p className="fw-bold">{usuario.name || 'Usuario sin nombre'}</p>
+          <p className="text-muted">
+            Email: {usuario.email || 'N/A'}
+          </p>
+          <Alert variant="warning">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            <strong>Advertencia:</strong> Esta acción marcará al usuario como inactivo.
+            Podrá reactivarse editando su perfil.
+          </Alert>
+        </div>
+      </Modal.Body>
+      <Modal.Footer>
+        <Button variant="secondary" onClick={onHide} disabled={cargando}>
+          Cancelar
+        </Button>
+        <Button variant="danger" onClick={onConfirmar} disabled={cargando}>
+          {cargando ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2"></span>
+              Eliminando...
+            </>
+          ) : (
+            'Sí, Eliminar'
+          )}
+        </Button>
+      </Modal.Footer>
     </Modal>
   );
 };

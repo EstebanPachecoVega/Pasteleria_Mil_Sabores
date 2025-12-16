@@ -32,6 +32,33 @@ export async function addUser(user) {
     }
 }
 
+export async function createUserAsAdmin(userData) {
+  try {
+    // Verificar si el usuario ya existe
+    const existingUser = await findUserByEmail(userData.email);
+    
+    if (existingUser) {
+      throw new Error('El email ya está registrado');
+    }
+
+    const userWithDefaults = {
+      ...userData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      // Asegurar campos requeridos
+      rol: userData.rol || 'cliente',
+      activo: true
+    };
+
+    const docRef = await addDoc(collection(db, "usuario"), userWithDefaults);
+    console.log("Usuario creado por admin con ID: ", docRef.id);
+    return { id: docRef.id, ...userWithDefaults };
+  } catch (error) {
+    console.error("Error al crear usuario desde admin: ", error);
+    throw error;
+  }
+}
+
 // Buscar usuario por email
 export async function findUserByEmail(email) {
     try {

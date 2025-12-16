@@ -286,6 +286,67 @@ export class CrudService {
         }
     }
 
+    static async crearUsuario(usuario) {
+        try {
+            const usuarioNormalizado = {
+                name: usuario.name?.trim(),
+                email: usuario.email?.trim().toLowerCase(),
+                password: usuario.password || '123456', // Contraseña por defecto
+                rol: usuario.rol || 'cliente',
+                run: usuario.run || '',
+                telefono: usuario.telefono || '',
+                region: usuario.region || '',
+                comuna: usuario.comuna || '',
+                direccionCompleta: usuario.direccionCompleta || '',
+                primerNombre: usuario.primerNombre || usuario.name?.split(' ')[0] || '',
+                primerApellido: usuario.primerApellido || usuario.name?.split(' ').slice(-1)[0] || '',
+                segundoNombre: usuario.segundoNombre || '',
+                segundoApellido: usuario.segundoApellido || '',
+                birthDate: usuario.birthDate || null,
+                discountCode: usuario.discountCode || '',
+                tipoVivienda: usuario.tipoVivienda || '',
+                codigoPostal: usuario.codigoPostal || '',
+                activo: true,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+
+            const docRef = await addDoc(collection(db, "usuario"), usuarioNormalizado);
+            return docRef.id;
+        } catch (error) {
+            console.error("Error creando usuario:", error);
+            return null;
+        }
+    }
+
+    static async actualizarUsuario(id, datos) {
+        try {
+            const usuarioRef = doc(db, "usuario", id);
+            await updateDoc(usuarioRef, {
+                ...datos,
+                updatedAt: serverTimestamp()
+            });
+            return true;
+        } catch (error) {
+            console.error("Error actualizando usuario:", error);
+            return false;
+        }
+    }
+
+    static async eliminarUsuario(id) {
+        try {
+            const usuarioRef = doc(db, "usuario", id);
+            await updateDoc(usuarioRef, {
+                activo: false,
+                updatedAt: serverTimestamp()
+            });
+            return true;
+        } catch (error) {
+            console.error("Error eliminando usuario:", error);
+            return false;
+        }
+    }
+
     static async obtenerProductosPorCategoriaId(categoriaId) {
         try {
             const productosRef = collection(db, "producto");

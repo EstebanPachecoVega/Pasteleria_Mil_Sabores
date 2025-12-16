@@ -76,6 +76,7 @@ export const calculateUserDiscounts = async (currentUser, subtotal, cartItems = 
   const userTypeDiscounts = {
     regular: 0,
     premium: 10,
+    vendedor: 15,
     institutional: 15,
     admin: 20
   };
@@ -133,6 +134,7 @@ export const calculateUserDiscounts = async (currentUser, subtotal, cartItems = 
 export const userTypes = {
   REGULAR: 'regular',
   PREMIUM: 'premium', 
+  VENDEDOR: 'vendedor',
   INSTITUTIONAL: 'institutional',
   ADMIN: 'admin'
 };
@@ -140,6 +142,7 @@ export const userTypes = {
 export const userDiscounts = {
   [userTypes.REGULAR]: 0,
   [userTypes.PREMIUM]: 10,
+  [userTypes.VENDEDOR]: 15,
   [userTypes.INSTITUTIONAL]: 15,
   [userTypes.ADMIN]: 20,
   SENIOR: 50 
